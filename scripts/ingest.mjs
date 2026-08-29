@@ -42,6 +42,18 @@ const BASES = [
   'https://api-mobilelegends.vercel.app/api', // legado
 ].filter(Boolean);
 
+/**
+ * Descriptores de lo que necesitamos. La ruta real se busca en el esquema
+ * OpenAPI por estos patrones, en vez de fijarla a mano: los nombres cambian
+ * entre versiones pero el concepto no.
+ */
+const WANTED = {
+  rank: [/hero[-_]?rank/i, /hero[-_]?rate/i, /\brank\b/i],
+  position: [/hero[-_]?position/i, /hero[-_]?list/i, /\bheroes?\b\/?$/i],
+  counter: [/hero[-_]?counter/i],
+  compatibility: [/hero[-_]?compat/i],
+};
+
 /** Prefijos de grupo de rutas que ha usado el proyecto en distintas versiones. */
 // '/heroes' confirmado: da 405 (existe, otro método) mientras '/mlbb' da 404.
 const PREFIXES = ['/heroes', '', '/mlbb'];
@@ -147,6 +159,71 @@ async function fetchResource(paths, params = {}) {
   throw lastErr ?? new Error('ninguna combinación respondió');
 }
 
+/**
+ * Lee el esquema OpenAPI y devuelve un mapa de lo que nos interesa:
+ *   { rank: { url, method, params }, position: {...}, ... }
+ * Esto sustituye a adivinar rutas: la API dice cuáles tiene y con qué método.
+ */
+async function discoverRoutes() {
+  for (const base of BASES) {
+    const origin = new URL(base).origin;
+    for (const schemaUrl of [`${base}/openapi.json`, `${origin}/openapi.json`, `${origin}/api/openapi.json`]) {
+      let schema;
+      try {
+        schema = await request(schemaUrl, 'GET');
+      } catch (err) {
+        diagnostics.failed.push(`${schemaUrl} → ${err.message}`);
+        continue;
+      }
+      if (!schema?.paths) continue;
+
+      const allPaths = Object.keys(schema.paths);
+      diagnostics.schema = { url: schemaUrl, pathCount: allPaths.length, sample: allPaths.slice(0, 40) };
+      console.log(`  · esquema leído: ${allPaths.length} rutas en ${schemaUrl}`);
+
+      const routes = {};
+      for (const [key, patterns] of Object.entries(WANTED)) {
+        // Sin parámetros de ruta para las listas; con {id} para counter/compat.
+        const wantsId = key === 'counter' || key === 'compatibility';
+        const match = allPaths.find(
+          (p) => patterns.some((re) => re.test(p)) && (wantsId ? /\{/.test(p) : !/\{/.test(p)),
+        );
+        if (!match) continue;
+        const [method, op] = Object.entries(schema.paths[match])[0];
+        routes[key] = {
+          template: origin + match,
+          method: method.toUpperCase(),
+          params: (op?.parameters ?? []).map((prm) => prm.name),
+        };
+      }
+
+      diagnostics.routes = Object.fromEntries(
+        Object.entries(routes).map(([k, r]) => [k, `${r.method} ${r.template} (${r.params.join(', ') || 'sin params'})`]),
+      );
+      if (Object.keys(routes).length) return routes;
+    }
+  }
+  return null;
+}
+
+/** Llama a una ruta ya descubierta, mandando solo los parámetros que acepta. */
+async function callRoute(route, values, pathValue) {
+  const url = new URL(route.template.replace(/\{[^}]+\}/, pathValue ?? ''));
+  const accepted = route.params.length
+    ? Object.fromEntries(Object.entries(values).filter(([k]) => route.params.includes(k)))
+    : values;
+
+  if (route.method === 'GET') {
+    for (const [k, v] of Object.entries(accepted)) {
+      if (v != null) url.searchParams.set(k, String(v));
+    }
+    const data = await request(url.toString(), 'GET');
+    return { data, rows: firstArray(data) ?? [] };
+  }
+  const data = await request(url.toString(), route.method, accepted);
+  return { data, rows: firstArray(data) ?? [] };
+}
+
 /** Encuentra el primer array de objetos, a cualquier profundidad del envoltorio. */
 function firstArray(node, depth = 0) {
   if (depth > 6 || node == null) return null;
@@ -181,11 +258,13 @@ const asRate = (n) => {
 
 const NAME_KEYS = ['name', 'hero_name', 'heroname', 'hero'];
 
+let ROUTES = null;
+
 async function fetchHeroList() {
-  const { rows } = await fetchResource(
-    ['/hero-position/', '/hero-position', '/hero-list/', '/list/', '/'],
-    { size: 300, index: 1 },
-  );
+  const values = { size: 300, index: 1, page_size: 300, page_index: 1, lang: 'en' };
+  const { rows } = ROUTES?.position
+    ? await callRoute(ROUTES.position, values)
+    : await fetchResource(['/hero-position/', '/hero-position', '/hero-list/'], values);
   const heroes = [];
   for (const row of rows) {
     const name = pick(row, NAME_KEYS);
@@ -200,10 +279,15 @@ async function fetchHeroList() {
 }
 
 async function fetchStats(rank) {
-  const { rows } = await fetchResource(
-    ['/hero-rank/', '/hero-rank', '/rank/', '/hero-rate/'],
-    { days: DAYS, rank, size: 200, index: 1, sort_field: 'win_rate', sort_order: 'desc' },
-  );
+  const values = {
+    days: DAYS, past_days: DAYS,
+    rank, rank_id: rank,
+    size: 200, index: 1, page_size: 200, page_index: 1,
+    sort_field: 'win_rate', sort_order: 'desc', order: 'desc', lang: 'en',
+  };
+  const { rows } = ROUTES?.rank
+    ? await callRoute(ROUTES.rank, values)
+    : await fetchResource(['/hero-rank/', '/hero-rank', '/hero-rate/'], values);
 
   const stats = {};
   for (const row of rows) {
@@ -241,9 +325,14 @@ async function fetchRelations(roamNames, stats) {
     const id = stats[name]?.heroId;
     if (!id) continue;
     try {
+      const values = { days: DAYS, past_days: DAYS, rank: RANK, rank_id: RANK, lang: 'en' };
       const [c, s] = await Promise.all([
-        fetchResource([`/hero-counter/${id}/`, `/hero-counter/${id}`], { days: DAYS, rank: RANK }),
-        fetchResource([`/hero-compatibility/${id}/`, `/hero-compatibility/${id}`], { days: DAYS, rank: RANK }),
+        ROUTES?.counter
+          ? callRoute(ROUTES.counter, values, id)
+          : fetchResource([`/hero-counter/${id}/`], values),
+        ROUTES?.compatibility
+          ? callRoute(ROUTES.compatibility, values, id)
+          : fetchResource([`/hero-compatibility/${id}/`], values),
       ]);
       counters[name] = relationMap(c.rows);
       synergies[name] = relationMap(s.rows);
@@ -257,6 +346,13 @@ async function fetchRelations(roamNames, stats) {
 
 async function main() {
   console.log(`Ingesta MLBB · rangos=${RANKS.join(',')} · ventana=${DAYS}d`);
+
+  ROUTES = await discoverRoutes();
+  if (ROUTES) {
+    for (const [k, r] of Object.entries(ROUTES)) console.log(`  · ${k}: ${r.method} ${r.template}`);
+  } else {
+    console.warn('  · no se pudo leer el esquema; pruebo rutas conocidas a ciegas');
+  }
 
   const heroes = JSON.parse(await readFile(HEROES, 'utf8'));
   const roamNames = [...new Set(heroes.heroes.filter((h) => h.roam).map((h) => h.name))];
@@ -320,8 +416,10 @@ async function main() {
     newHeroes,
     diagnostics: {
       base: LOCKED ? `${LOCKED.method} ${LOCKED.base}${LOCKED.prefix}` : null,
+      schema: diagnostics.schema ?? null,
+      routes: diagnostics.routes ?? null,
       ok: [...new Set(diagnostics.ok)].slice(0, 6),
-      failed: LOCKED ? [] : [...new Set(diagnostics.failed)].slice(0, 12),
+      failed: Object.keys(statsByRank).length ? [] : [...new Set(diagnostics.failed)].slice(0, 12),
     },
     stats,
     statsByRank,

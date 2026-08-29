@@ -148,8 +148,16 @@ export default function App() {
             {meta?.diagnostics && (
               <details className="diag">
                 <summary>Ver por qué</summary>
-                <p>Base: <code>{meta.diagnostics.base}</code></p>
-                <p>Rutas que respondieron: <code>{meta.diagnostics.ok?.join(', ') || 'ninguna'}</code></p>
+                <p>Base: <code>{meta.diagnostics.base ?? 'ninguna'}</code></p>
+                {meta.diagnostics.schema && (
+                  <p>Esquema: <code>{meta.diagnostics.schema.pathCount} rutas en {meta.diagnostics.schema.url}</code></p>
+                )}
+                {meta.diagnostics.routes && Object.entries(meta.diagnostics.routes).map(([k, v]) => (
+                  <p key={k}><code>{k}: {v}</code></p>
+                ))}
+                {meta.diagnostics.schema?.sample && !meta.diagnostics.routes && (
+                  <p><code>{meta.diagnostics.schema.sample.join(' · ')}</code></p>
+                )}
                 {meta.diagnostics.failed?.map((f) => <p key={f}><code>{f}</code></p>)}
               </details>
             )}

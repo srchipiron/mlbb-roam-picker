@@ -47,7 +47,12 @@ bases y prefijos conocidos, se queda con la primera que responde y lo anota en `
 JSON. Los campos también se buscan por varios nombres posibles, y si un endpoint falla se conservan los
 datos anteriores en vez de dejarte sin nada.
 
-Si algún día dejan de funcionar todas, la app lo dice y el JSON lleva la lista de lo que se probó.
+Más aún: antes de pedir nada, la ingesta **lee el esquema OpenAPI de la API** y saca de ahí las rutas
+reales, su método (unas son GET y otras POST) y qué parámetros acepta cada una. Los nombres se buscan
+por patrón (`WANTED` en el script), no por ruta literal, así que un cambio de nombre no la rompe. Solo
+si no hay esquema cae a probar rutas conocidas a ciegas.
+
+Si algún día deja de funcionar del todo, la app lo dice y el JSON lleva el esquema y lo que se probó.
 Se añade la nueva base a `BASES` en `scripts/ingest.mjs`, o se pasa con `--base https://loquesea/api`.
 
 Para cruzar con una segunda fuente, añade un módulo en `scripts/sources/` que devuelva el mismo formato
