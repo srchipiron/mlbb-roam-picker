@@ -37,6 +37,32 @@ const RANK = args.rank ?? 'mythic';
 const RANKS = (args.ranks ?? 'epic,legend,mythic,glory').split(',').map((r) => r.trim());
 const DAYS = Number(args.days ?? 7);
 
+/** Traza de lo que ha funcionado y lo que no. Se guarda en el JSON de salida. */
+const diagnostics = { base: BASE, tried: [], ok: [], failed: [] };
+
+/**
+ * La API ha movido rutas entre versiones y no puedo probarlas desde aquí, así que
+ * en vez de fijar una, el script prueba las candidatas en orden y se queda con la
+ * primera que responde. Lo que ha funcionado queda anotado en diagnostics.
+ */
+async function tryPaths(paths, params = {}) {
+  let lastErr;
+  for (const path of paths) {
+    diagnostics.tried.push(path);
+    try {
+      const data = await get(path, params);
+      const rows = firstArray(data);
+      if (!rows || !rows.length) throw new Error('respuesta sin filas');
+      diagnostics.ok.push(path);
+      return { path, data, rows };
+    } catch (err) {
+      diagnostics.failed.push(`${path}: ${err.message}`);
+      lastErr = err;
+    }
+  }
+  throw lastErr ?? new Error('ninguna ruta candidata respondió');
+}
+
 async function get(path, params = {}) {
   const url = new URL(BASE + path);
   for (const [k, v] of Object.entries(params)) {
@@ -88,8 +114,10 @@ const asRate = (n) => {
  * a mano se quede corto: cualquier heroe que exista en el juego aparece aqui.
  */
 async function fetchHeroList() {
-  const raw = await get('/mlbb/hero-position/', { size: 300, index: 1 });
-  const rows = firstArray(raw) ?? [];
+  const { rows } = await tryPaths(
+    ['/mlbb/hero-position/', '/mlbb/hero-position', '/hero-position/', '/mlbb/heroes/', '/mlbb/heroes'],
+    { size: 300, index: 1 },
+  );
   const heroes = [];
   for (const row of rows) {
     const name = pick(row, ['name', 'hero_name', 'heroname']);
@@ -104,16 +132,10 @@ async function fetchHeroList() {
 }
 
 async function fetchStats(rank = RANK) {
-  const raw = await get('/mlbb/hero-rank/', {
-    days: DAYS,
-    rank,
-    size: 200,
-    index: 1,
-    sort_field: 'win_rate',
-    sort_order: 'desc',
-  });
-  const rows = firstArray(raw);
-  if (!rows) throw new Error('respuesta sin filas reconocibles');
+  const { rows } = await tryPaths(
+    ['/mlbb/hero-rank/', '/mlbb/hero-rank', '/hero-rank/', '/mlbb/hero-rate/'],
+    { days: DAYS, rank, size: 200, index: 1, sort_field: 'win_rate', sort_order: 'desc' },
+  );
 
   const stats = {};
   for (const row of rows) {
@@ -140,11 +162,11 @@ async function fetchRelations(roamNames, stats) {
     if (!id) continue;
     try {
       const [c, s] = await Promise.all([
-        get(`/mlbb/hero-counter/${id}/`, { days: DAYS, rank: RANK }),
-        get(`/mlbb/hero-compatibility/${id}/`, { days: DAYS, rank: RANK }),
+        tryPaths([`/mlbb/hero-counter/${id}/`, `/mlbb/hero-counter/${id}`, `/hero-counter/${id}/`], { days: DAYS, rank: RANK }),
+        tryPaths([`/mlbb/hero-compatibility/${id}/`, `/mlbb/hero-compatibility/${id}`, `/hero-compatibility/${id}/`], { days: DAYS, rank: RANK }),
       ]);
-      counters[name] = relationMap(c);
-      synergies[name] = relationMap(s);
+      counters[name] = relationMap(c.data);
+      synergies[name] = relationMap(s.data);
     } catch (err) {
       console.warn(`  · sin relaciones para ${name}: ${err.message}`);
     }
@@ -230,6 +252,11 @@ async function main() {
     rank: RANK,
     days: DAYS,
     ranks: Object.keys(statsByRank),
+    diagnostics: {
+      base: diagnostics.base,
+      ok: [...new Set(diagnostics.ok)],
+      failed: [...new Set(diagnostics.failed)].slice(0, 12),
+    },
     patchAvgWinRate,
     avgByRank,
     heroCount: Object.keys(stats).length,
@@ -244,6 +271,11 @@ async function main() {
   await mkdir(dirname(OUT), { recursive: true });
   await writeFile(OUT, JSON.stringify(out, null, 2) + '\n');
   console.log(`Escrito ${OUT}`);
+  console.log(`Rutas que respondieron: ${[...new Set(diagnostics.ok)].join(', ') || 'ninguna'}`);
+  if (!Object.keys(statsByRank).length) {
+    console.warn('SIN ESTADÍSTICAS. Fallos:');
+    for (const f of [...new Set(diagnostics.failed)].slice(0, 10)) console.warn(`  ${f}`);
+  }
   if (newHeroes.length) {
     console.log(`Héroes sin tags propios (usan los de su rol): ${newHeroes.join(', ')}`);
   }

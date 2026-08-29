@@ -48,9 +48,9 @@ button:focus-visible, [tabindex]:focus-visible { outline: 2px solid var(--gold);
   height: 100%;
 }
 
-/* En móvil el draft es una tira compacta arriba y las recomendaciones ocupan
-   el resto: en 30 segundos hay que ver el pick sin desplazarse. */
-@media (max-width: 820px) {
+/* Móvil en vertical: el draft es una tira compacta arriba y las recomendaciones
+   ocupan el resto. En 30 segundos hay que ver el pick sin desplazarse. */
+@media (max-width: 820px) and (orientation: portrait) {
   .app { grid-template-columns: 1fr; grid-template-rows: auto minmax(0, 1fr); }
   .draft {
     border-right: none; border-bottom: 1px solid var(--line);
@@ -71,6 +71,34 @@ button:focus-visible, [tabindex]:focus-visible { outline: 2px solid var(--gold);
   .rank { font-size: 15px; }
   .pick.top .rank { font-size: 19px; }
   .mastery-row { grid-template-columns: 1fr 74px 74px; }
+}
+
+/* Móvil en horizontal: caben las dos columnas, pero hay poca altura, así que
+   se aprieta todo en vertical y cada columna se desplaza por su cuenta. */
+@media (max-height: 560px) and (orientation: landscape) {
+  .app { grid-template-columns: minmax(220px, 34%) 1fr; grid-template-rows: 100%; }
+  .draft { padding: 8px 10px; overflow-y: auto; }
+  .results { padding: 8px 12px; }
+  .brand h1 { font-size: 16px; }
+  .side { margin-top: 8px; }
+  .side-label { font-size: 10px; margin-bottom: 3px; }
+  .slot { min-height: 32px; flex: 1 1 60px; padding: 5px 7px; font-size: 12px; }
+  .slot .x { display: none; }
+  .pick { padding: 8px 10px; gap: 8px; margin-bottom: 6px; }
+  .pick-name { font-size: 16px; }
+  .pick.top .pick-name { font-size: 19px; }
+  .rank { font-size: 15px; }
+  .pick.top .rank { font-size: 19px; }
+  .why-bar { margin-bottom: 6px; }
+  .tools .reset { padding: 7px; font-size: 11px; }
+  .sheet { padding: 10px; }
+  .hero-grid { grid-template-columns: repeat(auto-fill, minmax(96px, 1fr)); }
+  .hero-grid button { min-height: 40px; padding: 8px 6px; }
+}
+
+/* Tablet o móvil grande en horizontal: el diseño de dos columnas original. */
+@media (min-width: 821px) and (max-height: 560px) {
+  .draft { overflow-y: auto; }
 }
 
 /* Panel plegable: en móvil los baneos y los ajustes se esconden hasta que hacen falta. */
@@ -277,3 +305,9 @@ button:focus-visible, [tabindex]:focus-visible { outline: 2px solid var(--gold);
   font-size: 11px; color: var(--muted);
 }
 .ban-row button:hover { border-color: var(--enemy); color: var(--enemy); }
+
+/* ---------- diagnóstico de datos ---------- */
+
+.diag { font-size: 12px; color: var(--muted); margin-top: 14px; }
+.diag code { font-family: var(--font-num); font-size: 11px; word-break: break-all; }
+.diag summary { cursor: pointer; color: var(--gold); }

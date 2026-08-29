@@ -142,12 +142,19 @@ export default function App() {
           <span className="freshness">{roamPool.length} roamers</span>
         </div>
 
-        {!meta && (
-          <p className="notice">
-            Faltan los datos meta, así que esto se basa solo en composición y counters por rol.
-            Ejecuta <code>npm run ingest</code> para añadir winrates reales.
-          </p>
-        )}
+        {!metaCtx.stats || !Object.keys(metaCtx.stats).length ? (
+          <div className="notice">
+            Sin winrates: el ranking sale solo de composición y counters por rol.
+            {meta?.diagnostics && (
+              <details className="diag">
+                <summary>Ver por qué</summary>
+                <p>Base: <code>{meta.diagnostics.base}</code></p>
+                <p>Rutas que respondieron: <code>{meta.diagnostics.ok?.join(', ') || 'ninguna'}</code></p>
+                {meta.diagnostics.failed?.map((f) => <p key={f}><code>{f}</code></p>)}
+              </details>
+            )}
+          </div>
+        ) : null}
 
         {ranked.slice(0, 8).map((r, i) => (
           <Pick key={r.hero.name} result={r} index={i} stat={metaCtx.stats?.[r.hero.name]} />
