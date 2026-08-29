@@ -400,6 +400,12 @@ async function main() {
     return r.length ? r.reduce((a, b) => a + b, 0) / r.length : 0.5;
   };
 
+  // Misma normalización que usa la app, para que el aviso coincida con la realidad.
+  const norm = (n) => String(n ?? '').toLowerCase().normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '').replace(/&/g, 'and').replace(/[^a-z0-9]/g, '');
+  const statKeys = new Set(Object.keys(stats).map(norm));
+  const sinDatos = roamNames.filter((n) => !statKeys.has(norm(n)));
+
   const known = new Set(heroes.heroes.map((h) => h.name));
   const seen = new Set([...Object.keys(stats), ...heroList.map((h) => h.name)]);
   const newHeroes = [...seen].filter((n) => !known.has(n));
@@ -412,6 +418,7 @@ async function main() {
     patchAvgWinRate: avgOf(stats),
     avgByRank: Object.fromEntries(Object.entries(statsByRank).map(([k, v]) => [k, avgOf(v)])),
     heroCount: Object.keys(stats).length,
+    roamCoverage: { withData: roamNames.length - sinDatos.length, total: roamNames.length, missing: sinDatos },
     heroes: heroList,
     newHeroes,
     diagnostics: {
@@ -434,7 +441,11 @@ async function main() {
   if (!Object.keys(statsByRank).length) {
     console.warn('SIN ESTADÍSTICAS. Combinaciones probadas que fallaron:');
     for (const f of [...new Set(diagnostics.failed)].slice(0, 12)) console.warn(`  ${f}`);
-  } else if (newHeroes.length) {
+  } else if (sinDatos.length) {
+    console.warn(`Roamers sin estadísticas (${sinDatos.length}/${roamNames.length}): ${sinDatos.join(', ')}`);
+    console.warn('Si son muchos, los nombres de la API no coinciden con heroes.json.');
+  }
+  if (newHeroes.length) {
     console.log(`Héroes sin tags propios (usan los de su rol): ${newHeroes.join(', ')}`);
   }
 }

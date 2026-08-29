@@ -9,6 +9,34 @@ import {
 const clamp01 = (n) => Math.max(0, Math.min(1, n));
 
 /**
+ * Clave normalizada de un nombre de héroe. La API y el catálogo escriben lo
+ * mismo de formas distintas ("X.Borg" / "X Borg", "Yi Sun-shin" / "Yi Sun Shin",
+ * "Chang'e" / "Change"), y un fallo aquí es invisible: el héroe simplemente se
+ * queda sin datos y nadie se entera.
+ */
+export const normName = (name) =>
+  String(name ?? '')
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/&/g, 'and')          // "Popol & Kupa" = "Popol and Kupa"
+    .replace(/[^a-z0-9]/g, '');
+
+/** Reindexa un objeto {nombre: valor} por clave normalizada. */
+export function indexByName(obj) {
+  if (!obj) return undefined;
+  const out = {};
+  for (const [k, v] of Object.entries(obj)) {
+    out[normName(k)] = v && typeof v === 'object' && !Array.isArray(v) && !('winRate' in v)
+      ? indexByName(v)   // matrices de counters/sinergias: normaliza los dos niveles
+      : v;
+  }
+  return out;
+}
+
+const lookup = (map, name) => (map ? map[normName(name)] : undefined);
+
+/**
  * Winrate crudo -> 0..1, encogido hacia 0.5 segun el tamaño de muestra.
  * Un heroe con 52% y 300 partidas vale mas que uno con 58% y 12 partidas.
  * Usa un shrink bayesiano simple (media a priori = winrate medio del parche).
@@ -34,7 +62,7 @@ export function counterScore(roamHero, enemies, counterMatrix) {
   let total = 0;
 
   for (const enemy of enemies) {
-    const pair = counterMatrix?.[roamHero.name]?.[enemy.name];
+    const pair = lookup(lookup(counterMatrix, roamHero.name), enemy.name);
     if (pair != null) {
       // pair = winrate de roamHero contra enemy (0..1). 0.50 es neutro.
       const delta = clamp01((pair - 0.44) / 0.12);
@@ -65,7 +93,7 @@ export function synergyScore(roamHero, allies, synergyMatrix) {
   let total = 0;
 
   for (const ally of allies) {
-    const pair = synergyMatrix?.[roamHero.name]?.[ally.name];
+    const pair = lookup(lookup(synergyMatrix, roamHero.name), ally.name);
     if (pair != null) {
       total += clamp01((pair - 0.46) / 0.10);
       if (pair >= 0.53) reasons.push({ text: `combina bien con ${ally.name}`, good: true, w: 0.7 });
@@ -132,7 +160,7 @@ export function compScore(roamHero, allies) {
 
 /** Tu winrate personal, encogido con fuerza si llevas pocas partidas. */
 export function masteryScore(roamHero, mastery) {
-  const m = mastery?.[roamHero.name];
+  const m = lookup(mastery, roamHero.name) ?? mastery?.[roamHero.name];
   if (!m || !m.games) return { value: 0.5, reasons: [] };
   const shrunk = (m.winRate * m.games + 0.5 * MASTERY_CONFIDENCE_GAMES) / (m.games + MASTERY_CONFIDENCE_GAMES);
   const value = clamp01((shrunk - 0.40) / 0.20);
@@ -154,7 +182,7 @@ export function scoreHero(roamHero, ctx) {
   const { enemies = [], allies = [], meta = {}, mastery = {}, weights = DEFAULT_WEIGHTS } = ctx;
 
   const parts = {
-    meta: metaScore(meta.stats?.[roamHero.name], meta.patchAvgWinRate ?? 0.5),
+    meta: metaScore(lookup(meta.stats, roamHero.name), meta.patchAvgWinRate ?? 0.5),
     counter: counterScore(roamHero, enemies, meta.counters),
     synergy: synergyScore(roamHero, allies, meta.synergies),
     comp: compScore(roamHero, allies),
@@ -246,9 +274,9 @@ export function suggestBans(allHeroes, ctx) {
   const taken = new Set([...allies, ...enemies, ...bans].map((h) => h.name));
 
   return allHeroes
-    .filter((h) => !taken.has(h.name) && meta.stats?.[h.name])
+    .filter((h) => !taken.has(h.name) && lookup(meta.stats, h.name))
     .map((hero) => {
-      const stat = meta.stats[hero.name];
+      const stat = lookup(meta.stats, hero.name);
       const power = metaScore(stat, meta.patchAvgWinRate ?? 0.5).value;
       const consensus = stat.banRate ?? 0;
 
@@ -275,6 +303,13 @@ export function suggestBans(allHeroes, ctx) {
     })
     .sort((a, b) => b.score - a.score)
     .slice(0, 5);
+}
+
+/** Cuántos roamers tienen datos reales. Si baja, algo se ha roto en silencio. */
+export function coverage(pool, stats) {
+  if (!stats) return { withData: 0, total: pool.length, missing: [] };
+  const missing = pool.filter((h) => !lookup(stats, h.name)).map((h) => h.name);
+  return { withData: pool.length - missing.length, total: pool.length, missing };
 }
 
 function dedupe(reasons) {

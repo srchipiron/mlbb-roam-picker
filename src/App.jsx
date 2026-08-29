@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { rankRoamers, mergeCatalog, suggestBans } from './engine/score.js';
+import { rankRoamers, mergeCatalog, suggestBans, indexByName, coverage } from './engine/score.js';
 import { Side, HeroSheet, Pick, Legend, MasteryEditor, RankPicker, BanSuggestions } from './components/ui.jsx';
 
 const MASTERY_KEY = 'roam-picker:mastery';
@@ -61,12 +61,16 @@ export default function App() {
 
   const activeRank = rank && meta?.statsByRank?.[rank] ? rank : meta?.rank;
 
+  // Todo se indexa por nombre normalizado: la API y el catálogo escriben algunos
+  // héroes distinto y si no, se quedarían sin datos sin dar ningún error.
   const metaCtx = useMemo(() => ({
-    stats: meta?.statsByRank?.[activeRank] ?? meta?.stats,
-    counters: meta?.counters,
-    synergies: meta?.synergies,
+    stats: indexByName(meta?.statsByRank?.[activeRank] ?? meta?.stats),
+    counters: indexByName(meta?.counters),
+    synergies: indexByName(meta?.synergies),
     patchAvgWinRate: meta?.avgByRank?.[activeRank] ?? meta?.patchAvgWinRate ?? 0.5,
   }), [meta, activeRank]);
+
+  const cov = useMemo(() => coverage(roamPool, metaCtx.stats), [roamPool, metaCtx]);
 
   const ranked = useMemo(
     () => (catalog ? rankRoamers(roamPool, { enemies, allies, bans, mastery, meta: metaCtx }) : []),
@@ -139,7 +143,11 @@ export default function App() {
       <main className="results">
         <div className="results-head">
           <h2>Tu pick de roam</h2>
-          <span className="freshness">{roamPool.length} roamers</span>
+          <span className={`freshness ${cov.withData && cov.withData < cov.total ? 'stale' : ''}`}>
+            {cov.withData
+              ? `${cov.withData}/${cov.total} con datos`
+              : `${roamPool.length} roamers`}
+          </span>
         </div>
 
         {!metaCtx.stats || !Object.keys(metaCtx.stats).length ? (
