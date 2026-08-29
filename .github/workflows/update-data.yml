@@ -1,0 +1,36 @@
+name: Actualizar datos meta
+
+on:
+  schedule:
+    - cron: '17 5,17 * * *'   # dos veces al día (UTC)
+  workflow_dispatch:           # y a mano cuando cae un parche
+
+permissions:
+  contents: write
+
+jobs:
+  ingest:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Ingesta
+        run: node scripts/ingest.mjs --rank mythic --days 7
+
+      - name: Avisar de héroes nuevos sin tags
+        run: |
+          NUEVOS=$(node -e "const d=require('./public/data/roam-meta.json');console.log((d.newHeroes||[]).join(', '))")
+          if [ -n "$NUEVOS" ]; then
+            echo "::warning::Héroes sin tags en heroes.json: $NUEVOS"
+          fi
+
+      - name: Commit si hay cambios
+        run: |
+          git config user.name  "meta-bot"
+          git config user.email "meta-bot@users.noreply.github.com"
+          git add public/data/roam-meta.json
+          git diff --staged --quiet || git commit -m "datos: meta $(date -u +%Y-%m-%d)"
+          git push

@@ -1,0 +1,209 @@
+#!/usr/bin/env node
+/**
+ * Ingesta de datos meta de MLBB.
+ *
+ * Consulta la API publica de la comunidad (proyecto OpenMLBB / api-mobilelegends,
+ * BSD-3), normaliza winrate / pickrate / banrate, counters y sinergias, y escribe
+ * public/data/roam-meta.json.
+ *
+ *   node scripts/ingest.mjs                # rango por defecto
+ *   node scripts/ingest.mjs --rank mythic --days 7
+ *
+ * Si un endpoint cambia de forma, este script NO revienta: avisa por consola y
+ * conserva el fichero anterior para la parte que no ha podido refrescar.
+ */
+
+import { writeFile, readFile, mkdir } from 'node:fs/promises';
+import { dirname, resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+const __dirname = dirname(fileURLToPath(import.meta.url));
+const ROOT = resolve(__dirname, '..');
+const OUT = resolve(ROOT, 'public/data/roam-meta.json');
+const HEROES = resolve(ROOT, 'public/data/heroes.json');
+
+const BASE = process.env.MLBB_API_BASE ?? 'https://mlbb.rone.dev/api';
+const UA = 'mlbb-roam-picker (personal use)';
+
+const args = Object.fromEntries(
+  process.argv.slice(2).reduce((acc, cur, i, arr) => {
+    if (cur.startsWith('--')) acc.push([cur.slice(2), arr[i + 1]]);
+    return acc;
+  }, []),
+);
+const RANK = args.rank ?? 'mythic';
+const DAYS = Number(args.days ?? 7);
+
+async function get(path, params = {}) {
+  const url = new URL(BASE + path);
+  for (const [k, v] of Object.entries(params)) {
+    if (v != null) url.searchParams.set(k, String(v));
+  }
+  const res = await fetch(url, { headers: { 'User-Agent': UA, Accept: 'application/json' } });
+  if (!res.ok) throw new Error(`${res.status} ${res.statusText} en ${url.pathname}`);
+  return res.json();
+}
+
+/**
+ * Los wrappers de esta API han cambiado de forma entre versiones (a veces
+ * { data: { records: [...] } }, a veces { records: [...] }, a veces array pelado).
+ * Esto encuentra el primer array de objetos que haya dentro, a cualquier profundidad.
+ */
+function firstArray(node, depth = 0) {
+  if (depth > 6 || node == null) return null;
+  if (Array.isArray(node) && node.length && typeof node[0] === 'object') return node;
+  if (typeof node !== 'object') return null;
+  for (const v of Object.values(node)) {
+    const found = firstArray(v, depth + 1);
+    if (found) return found;
+  }
+  return null;
+}
+
+/** Busca un valor por varios nombres de campo posibles, a cualquier profundidad. */
+function pick(obj, keys, depth = 0) {
+  if (depth > 5 || obj == null || typeof obj !== 'object') return undefined;
+  for (const k of keys) {
+    if (obj[k] != null && typeof obj[k] !== 'object') return obj[k];
+  }
+  for (const v of Object.values(obj)) {
+    const found = pick(v, keys, depth + 1);
+    if (found !== undefined) return found;
+  }
+  return undefined;
+}
+
+const asRate = (n) => {
+  if (n == null) return null;
+  const x = Number(n);
+  if (Number.isNaN(x)) return null;
+  return x > 1 ? x / 100 : x; // la API mezcla 0.52 y 52
+};
+
+async function fetchStats() {
+  const raw = await get('/mlbb/hero-rank/', {
+    days: DAYS,
+    rank: RANK,
+    size: 200,
+    index: 1,
+    sort_field: 'win_rate',
+    sort_order: 'desc',
+  });
+  const rows = firstArray(raw);
+  if (!rows) throw new Error('respuesta sin filas reconocibles');
+
+  const stats = {};
+  for (const row of rows) {
+    const name = pick(row, ['name', 'hero_name', 'heroname']);
+    if (!name) continue;
+    stats[String(name).trim()] = {
+      winRate: asRate(pick(row, ['win_rate', 'winRate', 'main_hero_win_rate'])),
+      pickRate: asRate(pick(row, ['pick_rate', 'pickRate', 'main_hero_appearance_rate'])),
+      banRate: asRate(pick(row, ['ban_rate', 'banRate', 'main_hero_ban_rate'])),
+      matches: Number(pick(row, ['matches', 'match_count', 'total']) ?? 0) || null,
+      heroId: pick(row, ['hero_id', 'heroid', 'id']) ?? null,
+    };
+  }
+  return stats;
+}
+
+/** Counters y sinergias, hero a hero. Solo para el pool de roam: son ~30 llamadas. */
+async function fetchRelations(roamNames, stats) {
+  const counters = {};
+  const synergies = {};
+
+  for (const name of roamNames) {
+    const id = stats[name]?.heroId;
+    if (!id) continue;
+    try {
+      const [c, s] = await Promise.all([
+        get(`/mlbb/hero-counter/${id}/`, { days: DAYS, rank: RANK }),
+        get(`/mlbb/hero-compatibility/${id}/`, { days: DAYS, rank: RANK }),
+      ]);
+      counters[name] = relationMap(c);
+      synergies[name] = relationMap(s);
+    } catch (err) {
+      console.warn(`  · sin relaciones para ${name}: ${err.message}`);
+    }
+    await sleep(250); // cortesía con una API gratuita
+  }
+  return { counters, synergies };
+}
+
+function relationMap(raw) {
+  const rows = firstArray(raw) ?? [];
+  const map = {};
+  for (const row of rows) {
+    const name = pick(row, ['name', 'hero_name', 'heroname']);
+    const rate = asRate(pick(row, ['increase_win_rate', 'win_rate', 'hero_win_rate']));
+    if (name && rate != null) {
+      // increase_win_rate viene como delta (+0.02). Lo convertimos a winrate absoluto.
+      map[String(name).trim()] = Math.abs(rate) < 0.2 ? 0.5 + rate : rate;
+    }
+  }
+  return map;
+}
+
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+
+async function main() {
+  console.log(`Ingesta MLBB · rango=${RANK} · ventana=${DAYS}d · base=${BASE}`);
+
+  const heroes = JSON.parse(await readFile(HEROES, 'utf8'));
+  const roamNames = [...new Set(heroes.roamPool.map((h) => h.name))];
+
+  let previous = null;
+  try {
+    previous = JSON.parse(await readFile(OUT, 'utf8'));
+  } catch {
+    /* primera ejecución */
+  }
+
+  let stats = previous?.stats ?? {};
+  try {
+    stats = await fetchStats();
+    console.log(`  · estadísticas de ${Object.keys(stats).length} héroes`);
+  } catch (err) {
+    console.warn(`  · fallo al leer estadísticas (${err.message}); conservo las anteriores`);
+  }
+
+  let relations = { counters: previous?.counters ?? {}, synergies: previous?.synergies ?? {} };
+  try {
+    const fresh = await fetchRelations(roamNames, stats);
+    if (Object.keys(fresh.counters).length) relations = fresh;
+    console.log(`  · relaciones de ${Object.keys(relations.counters).length} roamers`);
+  } catch (err) {
+    console.warn(`  · fallo al leer relaciones (${err.message}); conservo las anteriores`);
+  }
+
+  const rates = Object.values(stats).map((s) => s.winRate).filter((n) => n != null);
+  const patchAvgWinRate = rates.length ? rates.reduce((a, b) => a + b, 0) / rates.length : 0.5;
+
+  // Héroes que la API conoce y nuestro catálogo no: normalmente, recién salidos.
+  const known = new Set([...heroes.roamPool, ...heroes.threatPool].map((h) => h.name));
+  const newHeroes = Object.keys(stats).filter((n) => !known.has(n));
+
+  const out = {
+    generatedAt: new Date().toISOString(),
+    rank: RANK,
+    days: DAYS,
+    patchAvgWinRate,
+    heroCount: Object.keys(stats).length,
+    newHeroes,
+    stats,
+    counters: relations.counters,
+    synergies: relations.synergies,
+  };
+
+  await mkdir(dirname(OUT), { recursive: true });
+  await writeFile(OUT, JSON.stringify(out, null, 2) + '\n');
+  console.log(`Escrito ${OUT}`);
+  if (newHeroes.length) {
+    console.log(`Héroes sin tags en heroes.json: ${newHeroes.join(', ')}`);
+  }
+}
+
+main().catch((err) => {
+  console.error('Ingesta fallida:', err.message);
+  process.exit(1);
+});
