@@ -271,6 +271,7 @@ async function fetchHeroList() {
     if (!name) continue;
     heroes.push({
       name: String(name).trim(),
+      id: pick(row, ['hero_id', 'heroid', 'id']) ?? null,
       role: String(pick(row, ['role', 'hero_role', 'primary_role']) ?? '').toLowerCase(),
       lane: String(pick(row, ['lane', 'hero_lane', 'primary_lane']) ?? '').toLowerCase(),
     });
@@ -317,13 +318,28 @@ function relationMap(rows) {
   return map;
 }
 
-async function fetchRelations(roamNames, stats) {
+async function fetchRelations(roamNames, stats, heroList) {
   const counters = {};
   const synergies = {};
 
+  // El id puede venir en las estadísticas o en la lista de héroes. Si no está en
+  // ninguna, la API acepta también el nombre como identificador, así que se usa
+  // eso antes que rendirse: antes bastaba con que faltara el id para que TODOS
+  // los counters se quedaran vacíos sin decir nada.
+  const norm = (n) => String(n ?? '').toLowerCase().replace(/[^a-z0-9]/g, '');
+  const idPorNombre = new Map();
+  for (const [n, st] of Object.entries(stats)) if (st.heroId) idPorNombre.set(norm(n), st.heroId);
+  for (const h of heroList ?? []) if (h.id) idPorNombre.set(norm(h.name), h.id);
+
+  diagnostics.relations = {
+    rutaCounter: ROUTES?.counter ? `${ROUTES.counter.method} ${ROUTES.counter.template}` : null,
+    conId: 0, porNombre: 0, ok: 0, errores: [],
+  };
+
   for (const name of roamNames) {
-    const id = stats[name]?.heroId;
-    if (!id) continue;
+    const id = idPorNombre.get(norm(name)) ?? name;
+    if (idPorNombre.has(norm(name))) diagnostics.relations.conId++;
+    else diagnostics.relations.porNombre++;
     try {
       const values = { days: DAYS, past_days: DAYS, rank: RANK, rank_id: RANK, lang: 'en' };
       const [c, s] = await Promise.all([
@@ -336,8 +352,18 @@ async function fetchRelations(roamNames, stats) {
       ]);
       counters[name] = relationMap(c.rows);
       synergies[name] = relationMap(s.rows);
+      if (Object.keys(counters[name]).length) {
+        diagnostics.relations.ok++;
+      } else if (diagnostics.relations.errores.length < 4) {
+        // Respondió pero no supimos leerlo: guardamos los campos que traía.
+        diagnostics.relations.errores.push(
+          `${name}: respuesta sin pares legibles · campos: ${Object.keys(c.rows?.[0] ?? {}).join(',') || 'vacío'}`,
+        );
+      }
     } catch (err) {
-      console.warn(`  · sin relaciones para ${name}: ${err.message}`);
+      if (diagnostics.relations.errores.length < 4) {
+        diagnostics.relations.errores.push(`${name}: ${err.message}`);
+      }
     }
     await sleep(250); // cortesía con una API gratuita
   }
@@ -364,6 +390,15 @@ async function main() {
     /* primera ejecución */
   }
 
+  let heroList = previous?.heroes ?? [];
+  try {
+    const fresh = await fetchHeroList();
+    if (fresh.length) heroList = fresh;
+    console.log(`  · lista completa: ${heroList.length} héroes`);
+  } catch (err) {
+    console.warn(`  · lista de héroes: fallo (${err.message}); conservo la anterior`);
+  }
+
   const statsByRank = { ...(previous?.statsByRank ?? {}) };
   for (const rank of RANKS) {
     try {
@@ -377,18 +412,9 @@ async function main() {
   }
   const stats = statsByRank[RANK] ?? Object.values(statsByRank)[0] ?? previous?.stats ?? {};
 
-  let heroList = previous?.heroes ?? [];
-  try {
-    const fresh = await fetchHeroList();
-    if (fresh.length) heroList = fresh;
-    console.log(`  · lista completa: ${heroList.length} héroes`);
-  } catch (err) {
-    console.warn(`  · lista de héroes: fallo (${err.message}); conservo la anterior`);
-  }
-
   let relations = { counters: previous?.counters ?? {}, synergies: previous?.synergies ?? {} };
   try {
-    const fresh = await fetchRelations(roamNames, stats);
+    const fresh = await fetchRelations(roamNames, stats, heroList);
     if (Object.keys(fresh.counters).length) relations = fresh;
     console.log(`  · relaciones de ${Object.keys(relations.counters).length} roamers`);
   } catch (err) {
@@ -425,6 +451,7 @@ async function main() {
       base: LOCKED ? `${LOCKED.method} ${LOCKED.base}${LOCKED.prefix}` : null,
       schema: diagnostics.schema ?? null,
       routes: diagnostics.routes ?? null,
+      relations: diagnostics.relations ?? null,
       ok: [...new Set(diagnostics.ok)].slice(0, 6),
       failed: Object.keys(statsByRank).length ? [] : [...new Set(diagnostics.failed)].slice(0, 12),
     },
@@ -438,6 +465,11 @@ async function main() {
   await writeFile(OUT, JSON.stringify(out, null, 2) + '\n');
 
   console.log(`Escrito ${OUT}`);
+  if (diagnostics.relations) {
+    const r = diagnostics.relations;
+    console.log(`Relaciones: ${r.ok} con datos · ${r.conId} por id · ${r.porNombre} por nombre`);
+    for (const e of r.errores) console.warn(`  ${e}`);
+  }
   if (!Object.keys(statsByRank).length) {
     console.warn('SIN ESTADÍSTICAS. Combinaciones probadas que fallaron:');
     for (const f of [...new Set(diagnostics.failed)].slice(0, 12)) console.warn(`  ${f}`);
