@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { rankRoamers, mergeCatalog, suggestBans, indexByName, coverage } from './engine/score.js';
+import { rankRoamers, mergeCatalog, suggestBans, indexByName, coverage, empatados } from './engine/score.js';
 import { Side, HeroSheet, Pick, Legend, MasteryEditor, RankPicker, BanSuggestions } from './components/ui.jsx';
 
 const MASTERY_KEY = 'roam-picker:mastery';
@@ -70,7 +70,12 @@ export default function App() {
     patchAvgWinRate: meta?.avgByRank?.[activeRank] ?? meta?.patchAvgWinRate ?? 0.5,
   }), [meta, activeRank]);
 
-  const cov = useMemo(() => coverage(roamPool, metaCtx.stats), [roamPool, metaCtx]);
+  const cov = useMemo(
+    () => coverage(roamPool, metaCtx.stats, metaCtx.counters),
+    [roamPool, metaCtx],
+  );
+
+  const empate = useMemo(() => empatados(ranked), [ranked]);
 
   const ranked = useMemo(
     () => (catalog ? rankRoamers(roamPool, { enemies, allies, bans, mastery, meta: metaCtx }) : []),
@@ -145,7 +150,7 @@ export default function App() {
           <h2>Tu pick de roam</h2>
           <span className={`freshness ${cov.withData && cov.withData < cov.total ? 'stale' : ''}`}>
             {cov.withData
-              ? `${cov.withData}/${cov.total} con datos`
+              ? `${cov.withData}/${cov.total} con datos · ${cov.conCounters} con counters`
               : `${roamPool.length} roamers`}
           </span>
         </div>
@@ -171,6 +176,13 @@ export default function App() {
             )}
           </div>
         ) : null}
+
+        {empate.length > 1 && (
+          <p className="tie">
+            {empate.map((e) => e.hero.name).join(', ')} están prácticamente igual.
+            Coge el que mejor lleves.
+          </p>
+        )}
 
         {ranked.slice(0, 8).map((r, i) => (
           <Pick key={r.hero.name} result={r} index={i} stat={metaCtx.stats?.[r.hero.name]} />

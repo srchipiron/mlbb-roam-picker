@@ -34,7 +34,15 @@ export function indexByName(obj) {
   return out;
 }
 
-const lookup = (map, name) => (map ? map[normName(name)] : undefined);
+/**
+ * Busca por clave normalizada y, si no, por el nombre tal cual. El respaldo
+ * importa: si quien llama no normalizó el mapa, la versión anterior devolvía
+ * "sin datos" en silencio y todos los héroes empataban a 0.50.
+ */
+const lookup = (map, name) => {
+  if (!map) return undefined;
+  return map[normName(name)] ?? map[name];
+};
 
 /**
  * Winrate crudo -> 0..1, encogido hacia 0.5 segun el tamaño de muestra.
@@ -72,15 +80,21 @@ export function counterScore(roamHero, enemies, counterMatrix) {
       continue;
     }
 
-    // Fallback por tags
-    let sub = 0;
+    // Fallback por tags. Igual que en composición, contra un enemigo concreto
+    // cuenta la ventaja más fuerte y media la segunda: sumarlas todas premiaba
+    // al héroe con más etiquetas en el catálogo, no al que mejor le va.
+    const positivas = [];
+    let penalizacion = 0;
     for (const rule of COUNTER_RULES) {
-      if (enemy.tags.includes(rule.enemyTag) && roamHero.tags.includes(rule.roamTag)) {
-        sub += rule.weight;
-        reasons.push({ text: rule.why(enemy.name), good: rule.weight > 0, w: Math.abs(rule.weight), kind: `${rule.enemyTag}>${rule.roamTag}` });
-      }
+      if (!enemy.tags.includes(rule.enemyTag) || !roamHero.tags.includes(rule.roamTag)) continue;
+      const r = { text: rule.why(enemy.name), good: rule.weight > 0, w: Math.abs(rule.weight), kind: `${rule.enemyTag}>${rule.roamTag}` };
+      reasons.push(r);
+      if (rule.weight > 0) positivas.push(rule.weight);
+      else penalizacion += rule.weight; // las desventajas sí suman: son avisos
     }
-    total += clamp01(0.5 + sub * 0.22);
+    positivas.sort((a, b) => b - a);
+    const sub = (positivas[0] ?? 0) + (positivas[1] ?? 0) * 0.5 + penalizacion;
+    total += clamp01(0.5 + sub * 0.28);
   }
 
   return { value: total / enemies.length, reasons: dedupe(reasons) };
@@ -133,29 +147,45 @@ const has = (hero, need) => (SATISFIES[need] ?? [need]).some((t) => hero.tags.in
 
 /**
  * Huecos de composicion que rellena este roamer.
- * Con pocos aliados elegidos sabemos poco, asi que el resultado se acerca a
- * neutro: sin esa correccion, un draft vacio premia al generalista y ya está.
+ *
+ * Cuenta solo los DOS huecos más importantes que tapa, más medio punto por un
+ * tercero. Sumar todos premiaba al héroe con más tags escritos en el catálogo:
+ * Carmilla cubre cinco necesidades sobre el papel y salía primera en el 94% de
+ * los drafts. Un roamer no arregla cinco agujeros él solo, así que la ventaja
+ * por acumular etiquetas se corta aquí.
+ *
+ * Con pocos aliados elegidos, además, el resultado se acerca a neutro: sin eso,
+ * un draft vacío premia al generalista y ya está.
  */
 export function compScore(roamHero, allies) {
   const covered = new Set(allies.flatMap((a) => a.tags));
-  let score = 0;
-  let max = 0;
-  const reasons = [];
+  const cubiertos = [];
 
   for (const need of TEAM_NEEDS) {
-    max += need.weight;
     if (!has(roamHero, need.tag)) continue;
-    if ((SATISFIES[need.tag] ?? [need.tag]).some((t) => covered.has(t))) {
-      score += need.weight * 0.35; // ya cubierto: aporta redundancia, no solución
-    } else {
-      score += need.weight;
-      reasons.push({ text: need.why, good: true, w: need.weight });
-    }
+    // Si un aliado ya lo cubre, no cuenta NADA. Antes daba un 35% y eso convertía
+    // la composición en una nota fija de "lo completo que es el héroe", que apenas
+    // cambiaba con el draft y duplicaba lo que ya mide el winrate.
+    if ((SATISFIES[need.tag] ?? [need.tag]).some((t) => covered.has(t))) continue;
+    cubiertos.push({ ...need, valor: need.weight });
   }
 
-  const raw = max ? clamp01(score / max) : 0.5;
+  cubiertos.sort((a, b) => b.valor - a.valor);
+  const contados = cubiertos.slice(0, 3);
+  const score = contados.reduce((acc, n, i) => acc + n.valor * (i < 2 ? 1 : 0.5), 0);
+
+  // Techo: los dos huecos más valiosos del juego, más medio del tercero.
+  const techo = [...TEAM_NEEDS].sort((a, b) => b.weight - a.weight)
+    .slice(0, 3).reduce((acc, n, i) => acc + n.weight * (i < 2 ? 1 : 0.5), 0);
+
+  const raw = clamp01(score / techo);
   const confidence = Math.min(1, allies.length / 3);
-  return { value: 0.5 + (raw - 0.5) * (0.35 + 0.65 * confidence), reasons: allies.length ? reasons : [] };
+  return {
+    value: 0.5 + (raw - 0.5) * (0.35 + 0.65 * confidence),
+    reasons: allies.length
+      ? contados.map((n) => ({ text: n.why, good: true, w: n.weight }))
+      : [],
+  };
 }
 
 /** Tu winrate personal, encogido con fuerza si llevas pocas partidas. */
@@ -306,10 +336,22 @@ export function suggestBans(allHeroes, ctx) {
 }
 
 /** Cuántos roamers tienen datos reales. Si baja, algo se ha roto en silencio. */
-export function coverage(pool, stats) {
-  if (!stats) return { withData: 0, total: pool.length, missing: [] };
-  const missing = pool.filter((h) => !lookup(stats, h.name)).map((h) => h.name);
-  return { withData: pool.length - missing.length, total: pool.length, missing };
+export function coverage(pool, stats, counters) {
+  const missing = stats ? pool.filter((h) => !lookup(stats, h.name)).map((h) => h.name) : pool.map((h) => h.name);
+  const conCounters = counters
+    ? pool.filter((h) => Object.keys(lookup(counters, h.name) ?? {}).length).length
+    : 0;
+  return { withData: pool.length - missing.length, total: pool.length, missing, conCounters };
+}
+
+/**
+ * Agrupa los primeros puestos que están dentro del margen de ruido.
+ * Fingir que el nº1 es mejor que el nº2 cuando les separan 3 milésimas es
+ * precisión falsa: si están empatados, hay que decirlo.
+ */
+export function empatados(ranked, margen = 0.015) {
+  if (!ranked.length) return [];
+  return ranked.filter((r) => ranked[0].score - r.score <= margen).slice(0, 4);
 }
 
 function dedupe(reasons) {

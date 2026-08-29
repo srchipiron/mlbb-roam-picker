@@ -33,15 +33,17 @@ export const COUNTER_RULES = [
     why: (e) => `corta la curación de ${e}`,
   },
   {
+    // Casi toda composición tiene un carry lento, así que esto se cumple siempre:
+    // si pesa mucho, cualquier héroe con "engage" gana contra cualquier enemigo.
     enemyTag: 'immobile',
     roamTag: 'engage',
-    weight: 0.7,
+    weight: 0.35,
     why: (e) => `${e} no tiene escape contra un inicio`,
   },
   {
     enemyTag: 'hypercarry',
     roamTag: 'engage',
-    weight: 0.6,
+    weight: 0.3,
     why: (e) => `obliga a pelear antes de que ${e} escale`,
   },
   {
