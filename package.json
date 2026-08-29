@@ -7,7 +7,8 @@
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview --host",
-    "ingest": "node scripts/ingest.mjs"
+    "ingest": "node scripts/ingest.mjs",
+    "check": "node scripts/check-order.mjs src/App.jsx src/components/ui.jsx"
   },
   "dependencies": {
     "react": "^18.3.1",

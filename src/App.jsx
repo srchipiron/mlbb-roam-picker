@@ -75,12 +75,12 @@ export default function App() {
     [roamPool, metaCtx],
   );
 
-  const empate = useMemo(() => empatados(ranked), [ranked]);
-
   const ranked = useMemo(
     () => (catalog ? rankRoamers(roamPool, { enemies, allies, bans, mastery, meta: metaCtx }) : []),
     [catalog, roamPool, metaCtx, enemies, allies, bans, mastery],
   );
+
+  const empate = useMemo(() => empatados(ranked), [ranked]);
 
   const banIdeas = useMemo(
     () => (catalog && metaCtx.stats

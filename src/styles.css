@@ -324,3 +324,18 @@ button:focus-visible, [tabindex]:focus-visible { outline: 2px solid var(--gold);
   font-size: 12px; color: var(--muted); margin: 0 0 10px;
   border-left: 2px solid var(--gold); padding-left: 9px;
 }
+
+/* ---------- pantalla de error ---------- */
+
+.crash { padding: 24px 18px; max-width: 620px; }
+.crash h1 { font-family: var(--font-display); font-size: 20px; letter-spacing: 0.08em; text-transform: uppercase; }
+.crash p { color: var(--enemy); font-family: var(--font-num); font-size: 13px; }
+.crash pre {
+  background: var(--panel); border: 1px solid var(--line); border-radius: var(--r);
+  padding: 10px; font-size: 11px; color: var(--muted); overflow-x: auto; white-space: pre-wrap;
+}
+.crash button {
+  border: 1px solid var(--gold); color: var(--gold); border-radius: var(--r);
+  padding: 11px 18px; margin-top: 12px;
+  font-family: var(--font-display); text-transform: uppercase; letter-spacing: 0.12em; font-size: 12px;
+}

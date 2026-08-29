@@ -32,6 +32,9 @@ jobs:
         run: node scripts/ingest.mjs --rank mythic --days 7
         continue-on-error: true
 
+      - name: Comprobar orden de declaraciones
+        run: node scripts/check-order.mjs src/App.jsx src/components/ui.jsx
+
       - name: Compilar
         env:
           BASE_PATH: /${{ github.event.repository.name }}/
