@@ -271,11 +271,19 @@ button:focus-visible, [tabindex]:focus-visible { outline: 2px solid var(--gold);
   display: grid; grid-template-columns: 1fr 92px 92px; gap: 8px; align-items: center;
   padding: 7px 0; border-bottom: 1px solid var(--line);
 }
+.mastery-row.head {
+  color: var(--muted); font-size: 11px; text-transform: uppercase;
+  letter-spacing: 0.1em; font-family: var(--font-display);
+  position: sticky; top: 0; background: rgba(6, 8, 14, 0.95);
+}
+.mastery-row.head span:not(:first-child) { text-align: center; }
+
 .mastery-row input {
   background: var(--panel-hi); border: 1px solid var(--line); border-radius: var(--r);
   padding: 9px 10px; color: var(--text); font-size: 16px; width: 100%;
-  font-family: var(--font-num);
+  font-family: var(--font-num); text-align: center;
 }
+.mastery-row input.bad { border-color: var(--enemy); color: var(--enemy); }
 
 .tools { display: flex; gap: 8px; margin-top: 18px; }
 .tools .reset { margin-top: 0; }

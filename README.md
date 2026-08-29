@@ -75,7 +75,9 @@ es lo que hace que la app siga siendo útil con un héroe recién salido del que
 el score se acerca a neutro. Sin esa corrección la app siempre recomendaría al mismo generalista.
 
 Tu maestría se edita desde el botón **Tu maestría**: partidas y winrate de cada roamer, tal como
-salen en tu perfil del juego. Se guarda en `localStorage` y no sale del móvil.
+salen en tu perfil del juego. El winrate va en porcentaje (`50,6` o `50.6`, las dos formas valen) y
+la conversión a fracción se hace al guardar. Los héroes que ya tienen datos suben arriba de la lista.
+Se guarda en `localStorage` y no sale del móvil.
 
 ## Baneos
 
