@@ -134,3 +134,62 @@ export function Legend() {
     </div>
   );
 }
+
+/**
+ * Pantalla de maestría: tus partidas y tu winrate con cada roamer.
+ * Es el 15% del score y el componente que más separa tus picks de una tier list.
+ */
+export function MasteryEditor({ pool, mastery, onChange, onClose }) {
+  const [draft, setDraft] = useState(mastery);
+
+  const set = (name, field, raw) => {
+    const value = raw === '' ? '' : Number(raw);
+    setDraft((prev) => {
+      const entry = { ...(prev[name] ?? { games: '', winRate: '' }), [field]: value };
+      return { ...prev, [name]: entry };
+    });
+  };
+
+  const save = () => {
+    const clean = {};
+    for (const [name, e] of Object.entries(draft)) {
+      const games = Number(e.games);
+      const wr = Number(e.winRate);
+      if (games > 0 && wr > 0) clean[name] = { games, winRate: wr > 1 ? wr / 100 : wr };
+    }
+    onChange(clean);
+    onClose();
+  };
+
+  const sorted = [...pool].sort((a, b) => a.name.localeCompare(b.name));
+
+  return (
+    <div className="sheet" role="dialog" aria-label="Tu maestría">
+      <div className="sheet-head">
+        <strong style={{ flex: 1, alignSelf: 'center' }}>Tu maestría</strong>
+        <button className="close" onClick={onClose}>Cancelar</button>
+        <button className="close" style={{ color: 'var(--gold)' }} onClick={save}>Guardar</button>
+      </div>
+      <p className="empty-state" style={{ padding: '0 0 10px' }}>
+        Partidas y winrate de tu perfil del juego. Por debajo de 20 partidas cuenta poco.
+      </p>
+      <div className="mastery-list">
+        {sorted.map((h) => (
+          <div className="mastery-row" key={h.name}>
+            <span>{h.name}</span>
+            <input
+              type="number" inputMode="numeric" placeholder="partidas"
+              value={draft[h.name]?.games ?? ''}
+              onChange={(e) => set(h.name, 'games', e.target.value)}
+            />
+            <input
+              type="number" inputMode="decimal" placeholder="% WR"
+              value={draft[h.name]?.winRate ?? ''}
+              onChange={(e) => set(h.name, 'winRate', e.target.value)}
+            />
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}

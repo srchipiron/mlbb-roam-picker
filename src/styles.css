@@ -203,3 +203,22 @@ button:focus-visible, [tabindex]:focus-visible { outline: 2px solid var(--gold);
 @media (prefers-reduced-motion: no-preference) {
   .pick { transition: border-color 120ms ease; }
 }
+
+/* ---------- maestría ---------- */
+
+.mastery-list { flex: 1; overflow-y: auto; }
+
+.mastery-row {
+  display: grid; grid-template-columns: 1fr 92px 92px; gap: 8px; align-items: center;
+  padding: 7px 0; border-bottom: 1px solid var(--line);
+}
+.mastery-row input {
+  background: var(--panel-hi); border: 1px solid var(--line); border-radius: var(--r);
+  padding: 9px 10px; color: var(--text); font-size: 16px; width: 100%;
+  font-family: var(--font-num);
+}
+
+.tools { display: flex; gap: 8px; margin-top: 18px; }
+.tools .reset { margin-top: 0; }
+
+.inferred { font-size: 11px; color: var(--muted); margin-left: 6px; }

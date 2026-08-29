@@ -80,6 +80,26 @@ const asRate = (n) => {
   return x > 1 ? x / 100 : x; // la API mezcla 0.52 y 52
 };
 
+/**
+ * Lista completa de heroes con su rol. Es lo que evita que el catalogo escrito
+ * a mano se quede corto: cualquier heroe que exista en el juego aparece aqui.
+ */
+async function fetchHeroList() {
+  const raw = await get('/mlbb/hero-position/', { size: 300, index: 1 });
+  const rows = firstArray(raw) ?? [];
+  const heroes = [];
+  for (const row of rows) {
+    const name = pick(row, ['name', 'hero_name', 'heroname']);
+    if (!name) continue;
+    heroes.push({
+      name: String(name).trim(),
+      role: String(pick(row, ['role', 'sort_id', 'hero_role']) ?? '').toLowerCase(),
+      lane: String(pick(row, ['lane', 'hero_lane']) ?? '').toLowerCase(),
+    });
+  }
+  return heroes;
+}
+
 async function fetchStats() {
   const raw = await get('/mlbb/hero-rank/', {
     days: DAYS,
@@ -150,7 +170,7 @@ async function main() {
   console.log(`Ingesta MLBB · rango=${RANK} · ventana=${DAYS}d · base=${BASE}`);
 
   const heroes = JSON.parse(await readFile(HEROES, 'utf8'));
-  const roamNames = [...new Set(heroes.roamPool.map((h) => h.name))];
+  const roamNames = [...new Set(heroes.heroes.filter((h) => h.roam).map((h) => h.name))];
 
   let previous = null;
   try {
@@ -167,6 +187,15 @@ async function main() {
     console.warn(`  · fallo al leer estadísticas (${err.message}); conservo las anteriores`);
   }
 
+  let heroList = previous?.heroes ?? [];
+  try {
+    const fresh = await fetchHeroList();
+    if (fresh.length) heroList = fresh;
+    console.log(`  · lista completa: ${heroList.length} héroes`);
+  } catch (err) {
+    console.warn(`  · fallo al leer la lista de héroes (${err.message}); conservo la anterior`);
+  }
+
   let relations = { counters: previous?.counters ?? {}, synergies: previous?.synergies ?? {} };
   try {
     const fresh = await fetchRelations(roamNames, stats);
@@ -180,8 +209,9 @@ async function main() {
   const patchAvgWinRate = rates.length ? rates.reduce((a, b) => a + b, 0) / rates.length : 0.5;
 
   // Héroes que la API conoce y nuestro catálogo no: normalmente, recién salidos.
-  const known = new Set([...heroes.roamPool, ...heroes.threatPool].map((h) => h.name));
-  const newHeroes = Object.keys(stats).filter((n) => !known.has(n));
+  const known = new Set(heroes.heroes.map((h) => h.name));
+  const seen = new Set([...Object.keys(stats), ...heroList.map((h) => h.name)]);
+  const newHeroes = [...seen].filter((n) => !known.has(n));
 
   const out = {
     generatedAt: new Date().toISOString(),
@@ -189,6 +219,7 @@ async function main() {
     days: DAYS,
     patchAvgWinRate,
     heroCount: Object.keys(stats).length,
+    heroes: heroList,
     newHeroes,
     stats,
     counters: relations.counters,
@@ -199,7 +230,7 @@ async function main() {
   await writeFile(OUT, JSON.stringify(out, null, 2) + '\n');
   console.log(`Escrito ${OUT}`);
   if (newHeroes.length) {
-    console.log(`Héroes sin tags en heroes.json: ${newHeroes.join(', ')}`);
+    console.log(`Héroes sin tags propios (usan los de su rol): ${newHeroes.join(', ')}`);
   }
 }
 

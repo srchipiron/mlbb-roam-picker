@@ -89,6 +89,21 @@ export const TEAM_NEEDS = [
   { tag: 'vision', weight: 0.3, why: 'nadie aporta visión' },
 ];
 
+/**
+ * Tags por defecto segun el rol, para heroes que la API conoce y el catalogo
+ * todavia no. Es una aproximacion grosera, pero permite que un heroe recien
+ * salido se pueda marcar como pick enemigo y cuente en los counters desde el
+ * primer dia, en vez de ser invisible hasta que alguien le escriba los tags.
+ */
+export const ROLE_DEFAULTS = {
+  tank: ['tanky', 'engage', 'cc_hard'],
+  support: ['peel', 'sustain'],
+  fighter: ['dive', 'burst'],
+  assassin: ['mobile', 'dive', 'burst'],
+  mage: ['poke', 'burst'],
+  marksman: ['hypercarry', 'immobile'],
+};
+
 /** Umbral de partidas a partir del cual la maestría personal se considera fiable. */
 export const MASTERY_CONFIDENCE_GAMES = 20;
 

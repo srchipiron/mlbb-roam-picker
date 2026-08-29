@@ -31,10 +31,10 @@ Si quieres un APK, ver [APK.md](APK.md): se genera desde el móvil con PWABuilde
 si ha cambiado. El service worker sirve el fichero cacheado al instante y lo refresca por detrás,
 así que en el draft nunca esperas a la red.
 
-Cuando sale un héroe nuevo, la ingesta lo detecta (aparece en `stats` pero no en `heroes.json`) y el
-workflow deja un aviso en la ejecución. El héroe se puede marcar como pick enemigo desde el primer día;
-para que entre en las recomendaciones de roam hay que añadirle sus tags a mano en `public/data/heroes.json`.
-Es la única tarea manual del sistema y son treinta segundos por héroe.
+La ingesta también descarga la **lista completa de héroes** con su rol, así que el catálogo escrito a
+mano nunca deja a nadie fuera: un héroe que exista en el juego y no esté en `heroes.json` entra igual,
+con los tags por defecto de su rol (`ROLE_DEFAULTS` en `src/engine/rules.js`). El workflow avisa de
+cuáles son. Escribirle sus tags propios lo hace mejor, pero es opcional, no un requisito.
 
 ## Fuente de datos
 
@@ -74,10 +74,8 @@ es lo que hace que la app siga siendo útil con un héroe recién salido del que
 **La composición pesa poco con el draft vacío.** Con cero aliados elegidos no sabemos nada, así que
 el score se acerca a neutro. Sin esa corrección la app siempre recomendaría al mismo generalista.
 
-Tu maestría se guarda en `localStorage` bajo `roam-picker:mastery`, con el formato
-`{ "Belerick": { "games": 60, "winRate": 0.61 } }`. Todavía no hay pantalla para editarla: por ahora
-se mete desde la consola del navegador, o se conecta al endpoint de perfil de la API si te compensa
-autenticarte.
+Tu maestría se edita desde el botón **Tu maestría**: partidas y winrate de cada roamer, tal como
+salen en tu perfil del juego. Se guarda en `localStorage` y no sale del móvil.
 
 ## Lo que esto no hace
 
@@ -94,7 +92,7 @@ scripts/ingest.mjs        descarga y normaliza el meta
 src/engine/rules.js       reglas de counter, necesidades de equipo, pesos
 src/engine/score.js       el motor: cinco componentes -> un número y su desglose
 src/components/ui.jsx     selector de héroes, slots, tarjeta de recomendación
-public/data/heroes.json   catálogo de tags escrito a mano (esto es el activo real)
+public/data/heroes.json   catálogo de roles y tags escrito a mano (esto es el activo real)
 ```
 
 Datos © Moonton. Proyecto personal, sin relación con Moonton ni con los mantenedores de la API.

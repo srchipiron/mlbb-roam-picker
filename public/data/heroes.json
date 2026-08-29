@@ -1,6 +1,6 @@
 {
-  "_comment": "Catalogo ESTRUCTURAL escrito a mano. No contiene winrates: eso lo rellena scripts/ingest.mjs en roam-meta.json. Los tags son lo que hace funcionar el motor cuando la API falla o hay heroe nuevo sin datos.",
-  "schemaVersion": 1,
+  "_comment": "Catalogo ESTRUCTURAL escrito a mano: rol y tags. Los winrates los rellena scripts/ingest.mjs en roam-meta.json. Los heroes que la API conozca y no esten aqui se anaden solos con tags deducidos de su rol (ver roleDefaults en src/engine/rules.js).",
+  "schemaVersion": 2,
   "tagLegend": {
     "engage": "puede iniciar peleas a distancia",
     "peel": "protege al carry (knockback, escudo, inmunidad)",
@@ -23,96 +23,1261 @@
     "hypercarry": "escala a late game",
     "assassin_late": "amenaza al backline en late"
   },
-  "roamPool": [
-    { "name": "Belerick", "tags": ["tanky", "peel", "anti_dive", "immobile", "zone", "heal"] },
-    { "name": "Tigreal", "tags": ["engage", "cc_hard", "cc_chain", "tanky", "immobile", "zone"] },
-    { "name": "Atlas", "tags": ["engage", "cc_hard", "cc_chain", "tanky", "zone"] },
-    { "name": "Khufra", "tags": ["engage", "cc_hard", "anti_mobility", "tanky", "zone"] },
-    { "name": "Franco", "tags": ["engage", "cc_hard", "vision", "tanky", "anti_mobility"] },
-    { "name": "Minotaur", "tags": ["engage", "cc_hard", "tanky", "sustain", "immobile"] },
-    { "name": "Lolita", "tags": ["peel", "cc_hard", "tanky", "shield", "immobile", "zone"] },
-    { "name": "Grock", "tags": ["engage", "cc_hard", "tanky", "zone", "mobile"] },
-    { "name": "Hylos", "tags": ["tanky", "zone", "cc_chain", "mobile", "immobile"] },
-    { "name": "Akai", "tags": ["engage", "cc_chain", "tanky", "zone", "anti_mobility"] },
-    { "name": "Chip", "tags": ["engage", "cc_hard", "mobile", "vision", "zone"] },
-    { "name": "Angela", "tags": ["peel", "sustain", "shield", "cc_hard", "immobile"] },
-    { "name": "Diggie", "tags": ["peel", "anti_dive", "vision", "zone", "immobile"] },
-    { "name": "Mathilda", "tags": ["engage", "peel", "mobile", "shield", "cc_hard"] },
-    { "name": "Estes", "tags": ["sustain", "heal", "peel", "immobile"] },
-    { "name": "Rafaela", "tags": ["sustain", "heal", "peel", "cc_hard", "mobile"] },
-    { "name": "Floryn", "tags": ["sustain", "heal", "peel", "immobile"] },
-    { "name": "Carmilla", "tags": ["engage", "cc_hard", "tanky", "peel", "sustain"] },
-    { "name": "Johnson", "tags": ["engage", "cc_hard", "tanky", "burst", "mobile"] },
-    { "name": "Ruby", "tags": ["engage", "cc_chain", "tanky", "heal", "antiheal"] },
-    { "name": "Gatotkaca", "tags": ["engage", "cc_hard", "tanky", "anti_dive", "zone"] },
-    { "name": "Baxia", "tags": ["antiheal", "tanky", "mobile", "cc_chain", "engage"] },
-    { "name": "Uranus", "tags": ["tanky", "heal", "mobile", "zone"] },
-    { "name": "Barats", "tags": ["tanky", "cc_hard", "zone", "immobile", "anti_mobility"] },
-    { "name": "Edith", "tags": ["engage", "cc_hard", "tanky", "poke", "anti_dive"] },
-    { "name": "Kaja", "tags": ["engage", "cc_hard", "mobile", "anti_mobility"] },
-    { "name": "Chou", "tags": ["engage", "cc_hard", "mobile", "peel", "anti_mobility"] },
-    { "name": "Hilda", "tags": ["engage", "cc_hard", "tanky", "mobile", "heal"] },
-    { "name": "Gloo", "tags": ["tanky", "cc_chain", "zone", "anti_mobility"] },
-    { "name": "Fredrinn", "tags": ["tanky", "cc_hard", "heal", "engage", "zone"] },
-    { "name": "Terizla", "tags": ["tanky", "cc_hard", "zone", "immobile", "heal"] }
-  ],
-  "threatPool": [
-    { "name": "Fanny", "tags": ["mobile", "dive", "burst", "assassin_late"] },
-    { "name": "Ling", "tags": ["mobile", "dive", "burst", "assassin_late"] },
-    { "name": "Lancelot", "tags": ["mobile", "dive", "burst"] },
-    { "name": "Hayabusa", "tags": ["mobile", "dive", "burst", "assassin_late"] },
-    { "name": "Gusion", "tags": ["mobile", "dive", "burst"] },
-    { "name": "Harley", "tags": ["mobile", "dive", "burst"] },
-    { "name": "Natalia", "tags": ["mobile", "dive", "burst"] },
-    { "name": "Saber", "tags": ["dive", "burst", "cc_hard"] },
-    { "name": "Karina", "tags": ["dive", "burst", "mobile", "heal"] },
-    { "name": "Nolan", "tags": ["mobile", "dive", "burst"] },
-    { "name": "Joy", "tags": ["mobile", "dive", "burst"] },
-    { "name": "Yin", "tags": ["dive", "burst", "cc_hard"] },
-    { "name": "Julian", "tags": ["burst", "cc_hard", "dive"] },
-    { "name": "Esmeralda", "tags": ["heal", "shield", "tanky", "mobile", "hypercarry"] },
-    { "name": "Uranus", "tags": ["heal", "tanky", "mobile"] },
-    { "name": "Alice", "tags": ["heal", "mobile", "hypercarry", "dive"] },
-    { "name": "Yu Zhong", "tags": ["heal", "tanky", "cc_hard", "engage"] },
-    { "name": "Thamuz", "tags": ["heal", "tanky", "zone"] },
-    { "name": "Dyrroth", "tags": ["burst", "antiheal", "dive"] },
-    { "name": "Paquito", "tags": ["burst", "cc_hard", "dive", "mobile"] },
-    { "name": "Phoveus", "tags": ["anti_mobility", "tanky", "heal"] },
-    { "name": "Xavier", "tags": ["poke", "burst", "zone"] },
-    { "name": "Pharsa", "tags": ["poke", "burst", "mobile"] },
-    { "name": "Valentina", "tags": ["poke", "burst", "mobile"] },
-    { "name": "Yve", "tags": ["poke", "zone", "cc_chain"] },
-    { "name": "Cecilion", "tags": ["poke", "hypercarry", "zone"] },
-    { "name": "Vale", "tags": ["poke", "burst", "cc_chain"] },
-    { "name": "Kagura", "tags": ["poke", "burst", "mobile", "cc_hard"] },
-    { "name": "Lunox", "tags": ["burst", "heal", "hypercarry"] },
-    { "name": "Beatrix", "tags": ["poke", "burst", "hypercarry", "immobile"] },
-    { "name": "Wanwan", "tags": ["mobile", "hypercarry", "assassin_late", "dive"] },
-    { "name": "Brody", "tags": ["burst", "mobile", "hypercarry"] },
-    { "name": "Claude", "tags": ["hypercarry", "mobile", "assassin_late"] },
-    { "name": "Melissa", "tags": ["hypercarry", "anti_dive", "immobile"] },
-    { "name": "Hanabi", "tags": ["hypercarry", "immobile", "poke"] },
-    { "name": "Karrie", "tags": ["hypercarry", "mobile"] },
-    { "name": "Bruno", "tags": ["hypercarry", "poke", "immobile"] },
-    { "name": "Moskov", "tags": ["hypercarry", "poke", "cc_hard"] },
-    { "name": "Ixia", "tags": ["hypercarry", "immobile", "zone"] },
-    { "name": "Layla", "tags": ["hypercarry", "immobile", "poke"] },
-    { "name": "Miya", "tags": ["hypercarry", "mobile"] },
-    { "name": "Granger", "tags": ["burst", "hypercarry", "mobile"] },
-    { "name": "Natan", "tags": ["hypercarry", "poke", "immobile"] },
-    { "name": "Chou", "tags": ["mobile", "cc_hard", "dive"] },
-    { "name": "Khaleed", "tags": ["mobile", "heal", "engage"] },
-    { "name": "Arlott", "tags": ["cc_hard", "dive", "burst", "mobile"] },
-    { "name": "Aamon", "tags": ["burst", "mobile", "dive"] },
-    { "name": "Benedetta", "tags": ["mobile", "dive", "burst", "shield"] },
-    { "name": "Aldous", "tags": ["burst", "dive", "hypercarry"] },
-    { "name": "Martis", "tags": ["cc_hard", "dive", "mobile"] },
-    { "name": "Balmond", "tags": ["heal", "tanky", "burst"] },
-    { "name": "Alucard", "tags": ["heal", "dive", "burst"] },
-    { "name": "Guinevere", "tags": ["cc_hard", "burst", "mobile", "dive"] },
-    { "name": "Suyou", "tags": ["mobile", "dive", "burst"] },
-    { "name": "Zhuxin", "tags": ["cc_chain", "zone", "burst"] },
-    { "name": "Lukas", "tags": ["heal", "dive", "burst", "mobile"] },
-    { "name": "Kalea", "tags": ["cc_hard", "engage", "peel"] }
+  "heroes": [
+    {
+      "name": "Akai",
+      "role": "tank",
+      "tags": [
+        "engage",
+        "cc_chain",
+        "tanky",
+        "zone",
+        "anti_mobility"
+      ],
+      "roam": true
+    },
+    {
+      "name": "Atlas",
+      "role": "tank",
+      "tags": [
+        "engage",
+        "cc_hard",
+        "cc_chain",
+        "tanky",
+        "zone"
+      ],
+      "roam": true
+    },
+    {
+      "name": "Barats",
+      "role": "tank",
+      "tags": [
+        "tanky",
+        "cc_hard",
+        "zone",
+        "immobile",
+        "anti_mobility"
+      ],
+      "roam": true
+    },
+    {
+      "name": "Baxia",
+      "role": "tank",
+      "tags": [
+        "antiheal",
+        "tanky",
+        "mobile",
+        "cc_chain",
+        "engage"
+      ],
+      "roam": true
+    },
+    {
+      "name": "Belerick",
+      "role": "tank",
+      "tags": [
+        "tanky",
+        "peel",
+        "anti_dive",
+        "immobile",
+        "zone",
+        "heal"
+      ],
+      "roam": true
+    },
+    {
+      "name": "Carmilla",
+      "role": "support",
+      "tags": [
+        "engage",
+        "cc_hard",
+        "tanky",
+        "peel",
+        "sustain"
+      ],
+      "roam": true
+    },
+    {
+      "name": "Chip",
+      "role": "support",
+      "tags": [
+        "engage",
+        "cc_hard",
+        "mobile",
+        "vision",
+        "zone"
+      ],
+      "roam": true
+    },
+    {
+      "name": "Edith",
+      "role": "tank",
+      "tags": [
+        "engage",
+        "cc_hard",
+        "tanky",
+        "poke",
+        "anti_dive"
+      ],
+      "roam": true
+    },
+    {
+      "name": "Franco",
+      "role": "tank",
+      "tags": [
+        "engage",
+        "cc_hard",
+        "vision",
+        "tanky",
+        "anti_mobility"
+      ],
+      "roam": true
+    },
+    {
+      "name": "Fredrinn",
+      "role": "fighter",
+      "tags": [
+        "tanky",
+        "cc_hard",
+        "heal",
+        "engage",
+        "zone"
+      ],
+      "roam": true
+    },
+    {
+      "name": "Gatotkaca",
+      "role": "tank",
+      "tags": [
+        "engage",
+        "cc_hard",
+        "tanky",
+        "anti_dive",
+        "zone"
+      ],
+      "roam": true
+    },
+    {
+      "name": "Gloo",
+      "role": "tank",
+      "tags": [
+        "tanky",
+        "cc_chain",
+        "zone",
+        "anti_mobility"
+      ],
+      "roam": true
+    },
+    {
+      "name": "Grock",
+      "role": "tank",
+      "tags": [
+        "engage",
+        "cc_hard",
+        "tanky",
+        "zone",
+        "mobile"
+      ],
+      "roam": true
+    },
+    {
+      "name": "Hilda",
+      "role": "fighter",
+      "tags": [
+        "engage",
+        "cc_hard",
+        "tanky",
+        "mobile",
+        "heal"
+      ],
+      "roam": true
+    },
+    {
+      "name": "Hylos",
+      "role": "tank",
+      "tags": [
+        "tanky",
+        "zone",
+        "cc_chain",
+        "immobile"
+      ],
+      "roam": true
+    },
+    {
+      "name": "Johnson",
+      "role": "tank",
+      "tags": [
+        "engage",
+        "cc_hard",
+        "tanky",
+        "burst",
+        "mobile"
+      ],
+      "roam": true
+    },
+    {
+      "name": "Kalea",
+      "role": "support",
+      "tags": [
+        "cc_hard",
+        "engage",
+        "peel",
+        "mobile"
+      ],
+      "roam": true
+    },
+    {
+      "name": "Khufra",
+      "role": "tank",
+      "tags": [
+        "engage",
+        "cc_hard",
+        "anti_mobility",
+        "tanky",
+        "zone"
+      ],
+      "roam": true
+    },
+    {
+      "name": "Lolita",
+      "role": "support",
+      "tags": [
+        "peel",
+        "cc_hard",
+        "tanky",
+        "shield",
+        "immobile",
+        "zone"
+      ],
+      "roam": true
+    },
+    {
+      "name": "Minotaur",
+      "role": "tank",
+      "tags": [
+        "engage",
+        "cc_hard",
+        "tanky",
+        "sustain",
+        "immobile"
+      ],
+      "roam": true
+    },
+    {
+      "name": "Minsitthar",
+      "role": "fighter",
+      "tags": [
+        "engage",
+        "cc_hard",
+        "anti_mobility",
+        "tanky",
+        "zone"
+      ],
+      "roam": true
+    },
+    {
+      "name": "Ruby",
+      "role": "fighter",
+      "tags": [
+        "engage",
+        "cc_chain",
+        "tanky",
+        "heal",
+        "antiheal"
+      ],
+      "roam": true
+    },
+    {
+      "name": "Terizla",
+      "role": "fighter",
+      "tags": [
+        "tanky",
+        "cc_hard",
+        "zone",
+        "immobile",
+        "heal"
+      ],
+      "roam": true
+    },
+    {
+      "name": "Tigreal",
+      "role": "tank",
+      "tags": [
+        "engage",
+        "cc_hard",
+        "cc_chain",
+        "tanky",
+        "immobile",
+        "zone"
+      ],
+      "roam": true
+    },
+    {
+      "name": "Uranus",
+      "role": "tank",
+      "tags": [
+        "tanky",
+        "heal",
+        "mobile",
+        "zone"
+      ],
+      "roam": true
+    },
+    {
+      "name": "Angela",
+      "role": "support",
+      "tags": [
+        "peel",
+        "sustain",
+        "shield",
+        "cc_hard",
+        "immobile"
+      ],
+      "roam": true
+    },
+    {
+      "name": "Diggie",
+      "role": "support",
+      "tags": [
+        "peel",
+        "anti_dive",
+        "vision",
+        "zone",
+        "immobile"
+      ],
+      "roam": true
+    },
+    {
+      "name": "Estes",
+      "role": "support",
+      "tags": [
+        "sustain",
+        "heal",
+        "peel",
+        "immobile"
+      ],
+      "roam": true
+    },
+    {
+      "name": "Faramis",
+      "role": "support",
+      "tags": [
+        "sustain",
+        "zone",
+        "cc_hard",
+        "engage"
+      ],
+      "roam": true
+    },
+    {
+      "name": "Floryn",
+      "role": "support",
+      "tags": [
+        "sustain",
+        "heal",
+        "peel",
+        "immobile"
+      ],
+      "roam": true
+    },
+    {
+      "name": "Mathilda",
+      "role": "support",
+      "tags": [
+        "engage",
+        "peel",
+        "mobile",
+        "shield",
+        "cc_hard"
+      ],
+      "roam": true
+    },
+    {
+      "name": "Rafaela",
+      "role": "support",
+      "tags": [
+        "sustain",
+        "heal",
+        "peel",
+        "cc_hard",
+        "mobile"
+      ],
+      "roam": true
+    },
+    {
+      "name": "Kaja",
+      "role": "support",
+      "tags": [
+        "engage",
+        "cc_hard",
+        "mobile",
+        "anti_mobility"
+      ],
+      "roam": true
+    },
+    {
+      "name": "Chou",
+      "role": "fighter",
+      "tags": [
+        "engage",
+        "cc_hard",
+        "mobile",
+        "peel",
+        "anti_mobility"
+      ],
+      "roam": true
+    },
+    {
+      "name": "Aamon",
+      "role": "assassin",
+      "tags": [
+        "burst",
+        "mobile",
+        "dive"
+      ]
+    },
+    {
+      "name": "Alice",
+      "role": "mage",
+      "tags": [
+        "heal",
+        "mobile",
+        "hypercarry",
+        "dive"
+      ]
+    },
+    {
+      "name": "Aldous",
+      "role": "fighter",
+      "tags": [
+        "burst",
+        "dive",
+        "hypercarry"
+      ]
+    },
+    {
+      "name": "Alpha",
+      "role": "fighter",
+      "tags": [
+        "heal",
+        "burst",
+        "mobile"
+      ]
+    },
+    {
+      "name": "Alucard",
+      "role": "fighter",
+      "tags": [
+        "heal",
+        "dive",
+        "burst"
+      ]
+    },
+    {
+      "name": "Argus",
+      "role": "fighter",
+      "tags": [
+        "dive",
+        "burst",
+        "heal",
+        "mobile"
+      ]
+    },
+    {
+      "name": "Arlott",
+      "role": "fighter",
+      "tags": [
+        "cc_hard",
+        "dive",
+        "burst",
+        "mobile"
+      ]
+    },
+    {
+      "name": "Aulus",
+      "role": "fighter",
+      "tags": [
+        "dive",
+        "burst",
+        "mobile"
+      ]
+    },
+    {
+      "name": "Aurora",
+      "role": "mage",
+      "tags": [
+        "cc_hard",
+        "burst",
+        "poke",
+        "immobile"
+      ]
+    },
+    {
+      "name": "Badang",
+      "role": "fighter",
+      "tags": [
+        "cc_hard",
+        "burst",
+        "zone"
+      ]
+    },
+    {
+      "name": "Balmond",
+      "role": "fighter",
+      "tags": [
+        "heal",
+        "tanky",
+        "burst"
+      ]
+    },
+    {
+      "name": "Bane",
+      "role": "fighter",
+      "tags": [
+        "poke",
+        "burst",
+        "tanky"
+      ]
+    },
+    {
+      "name": "Beatrix",
+      "role": "marksman",
+      "tags": [
+        "poke",
+        "burst",
+        "hypercarry",
+        "immobile"
+      ]
+    },
+    {
+      "name": "Benedetta",
+      "role": "assassin",
+      "tags": [
+        "mobile",
+        "dive",
+        "burst",
+        "shield"
+      ]
+    },
+    {
+      "name": "Brody",
+      "role": "marksman",
+      "tags": [
+        "burst",
+        "mobile",
+        "hypercarry"
+      ]
+    },
+    {
+      "name": "Bruno",
+      "role": "marksman",
+      "tags": [
+        "hypercarry",
+        "poke",
+        "immobile"
+      ]
+    },
+    {
+      "name": "Cecilion",
+      "role": "mage",
+      "tags": [
+        "poke",
+        "hypercarry",
+        "zone"
+      ]
+    },
+    {
+      "name": "Chang'e",
+      "role": "mage",
+      "tags": [
+        "poke",
+        "mobile",
+        "hypercarry"
+      ]
+    },
+    {
+      "name": "Claude",
+      "role": "marksman",
+      "tags": [
+        "hypercarry",
+        "mobile",
+        "assassin_late"
+      ]
+    },
+    {
+      "name": "Clint",
+      "role": "marksman",
+      "tags": [
+        "poke",
+        "burst",
+        "immobile"
+      ]
+    },
+    {
+      "name": "Cyclops",
+      "role": "mage",
+      "tags": [
+        "burst",
+        "cc_hard",
+        "poke"
+      ]
+    },
+    {
+      "name": "Dyrroth",
+      "role": "fighter",
+      "tags": [
+        "burst",
+        "antiheal",
+        "dive"
+      ]
+    },
+    {
+      "name": "Esmeralda",
+      "role": "mage",
+      "tags": [
+        "heal",
+        "shield",
+        "tanky",
+        "mobile",
+        "hypercarry"
+      ]
+    },
+    {
+      "name": "Eudora",
+      "role": "mage",
+      "tags": [
+        "burst",
+        "cc_hard",
+        "immobile"
+      ]
+    },
+    {
+      "name": "Fanny",
+      "role": "assassin",
+      "tags": [
+        "mobile",
+        "dive",
+        "burst",
+        "assassin_late"
+      ]
+    },
+    {
+      "name": "Freya",
+      "role": "fighter",
+      "tags": [
+        "dive",
+        "burst",
+        "mobile"
+      ]
+    },
+    {
+      "name": "Gord",
+      "role": "mage",
+      "tags": [
+        "poke",
+        "zone",
+        "immobile"
+      ]
+    },
+    {
+      "name": "Granger",
+      "role": "marksman",
+      "tags": [
+        "burst",
+        "hypercarry",
+        "mobile"
+      ]
+    },
+    {
+      "name": "Guinevere",
+      "role": "fighter",
+      "tags": [
+        "cc_hard",
+        "burst",
+        "mobile",
+        "dive"
+      ]
+    },
+    {
+      "name": "Gusion",
+      "role": "assassin",
+      "tags": [
+        "mobile",
+        "dive",
+        "burst"
+      ]
+    },
+    {
+      "name": "Hanabi",
+      "role": "marksman",
+      "tags": [
+        "hypercarry",
+        "immobile",
+        "poke"
+      ]
+    },
+    {
+      "name": "Hanzo",
+      "role": "assassin",
+      "tags": [
+        "burst",
+        "dive",
+        "mobile"
+      ]
+    },
+    {
+      "name": "Harith",
+      "role": "mage",
+      "tags": [
+        "mobile",
+        "hypercarry",
+        "dive"
+      ]
+    },
+    {
+      "name": "Harley",
+      "role": "assassin",
+      "tags": [
+        "mobile",
+        "dive",
+        "burst"
+      ]
+    },
+    {
+      "name": "Hayabusa",
+      "role": "assassin",
+      "tags": [
+        "mobile",
+        "dive",
+        "burst",
+        "assassin_late"
+      ]
+    },
+    {
+      "name": "Helcurt",
+      "role": "assassin",
+      "tags": [
+        "dive",
+        "burst",
+        "mobile",
+        "vision"
+      ]
+    },
+    {
+      "name": "Irithel",
+      "role": "marksman",
+      "tags": [
+        "hypercarry",
+        "mobile"
+      ]
+    },
+    {
+      "name": "Ixia",
+      "role": "marksman",
+      "tags": [
+        "hypercarry",
+        "immobile",
+        "zone"
+      ]
+    },
+    {
+      "name": "Jawhead",
+      "role": "fighter",
+      "tags": [
+        "cc_hard",
+        "dive",
+        "burst",
+        "peel"
+      ]
+    },
+    {
+      "name": "Joy",
+      "role": "assassin",
+      "tags": [
+        "mobile",
+        "dive",
+        "burst"
+      ]
+    },
+    {
+      "name": "Julian",
+      "role": "fighter",
+      "tags": [
+        "burst",
+        "cc_hard",
+        "dive"
+      ]
+    },
+    {
+      "name": "Kadita",
+      "role": "mage",
+      "tags": [
+        "burst",
+        "cc_hard",
+        "mobile",
+        "dive"
+      ]
+    },
+    {
+      "name": "Kagura",
+      "role": "mage",
+      "tags": [
+        "poke",
+        "burst",
+        "mobile",
+        "cc_hard"
+      ]
+    },
+    {
+      "name": "Karina",
+      "role": "assassin",
+      "tags": [
+        "dive",
+        "burst",
+        "mobile",
+        "heal"
+      ]
+    },
+    {
+      "name": "Karrie",
+      "role": "marksman",
+      "tags": [
+        "hypercarry",
+        "mobile"
+      ]
+    },
+    {
+      "name": "Khaleed",
+      "role": "fighter",
+      "tags": [
+        "mobile",
+        "heal",
+        "engage"
+      ]
+    },
+    {
+      "name": "Kimmy",
+      "role": "marksman",
+      "tags": [
+        "poke",
+        "hypercarry",
+        "immobile"
+      ]
+    },
+    {
+      "name": "Lancelot",
+      "role": "assassin",
+      "tags": [
+        "mobile",
+        "dive",
+        "burst"
+      ]
+    },
+    {
+      "name": "Lapu-Lapu",
+      "role": "fighter",
+      "tags": [
+        "cc_hard",
+        "burst",
+        "shield"
+      ]
+    },
+    {
+      "name": "Layla",
+      "role": "marksman",
+      "tags": [
+        "hypercarry",
+        "immobile",
+        "poke"
+      ]
+    },
+    {
+      "name": "Leomord",
+      "role": "fighter",
+      "tags": [
+        "burst",
+        "cc_hard",
+        "mobile"
+      ]
+    },
+    {
+      "name": "Lesley",
+      "role": "marksman",
+      "tags": [
+        "burst",
+        "poke",
+        "mobile",
+        "assassin_late"
+      ]
+    },
+    {
+      "name": "Ling",
+      "role": "assassin",
+      "tags": [
+        "mobile",
+        "dive",
+        "burst",
+        "assassin_late"
+      ]
+    },
+    {
+      "name": "Lukas",
+      "role": "fighter",
+      "tags": [
+        "heal",
+        "dive",
+        "burst",
+        "mobile"
+      ]
+    },
+    {
+      "name": "Lunox",
+      "role": "mage",
+      "tags": [
+        "burst",
+        "heal",
+        "hypercarry"
+      ]
+    },
+    {
+      "name": "Luo Yi",
+      "role": "mage",
+      "tags": [
+        "cc_chain",
+        "zone",
+        "burst"
+      ]
+    },
+    {
+      "name": "Lylia",
+      "role": "mage",
+      "tags": [
+        "poke",
+        "zone",
+        "mobile"
+      ]
+    },
+    {
+      "name": "Martis",
+      "role": "fighter",
+      "tags": [
+        "cc_hard",
+        "dive",
+        "mobile"
+      ]
+    },
+    {
+      "name": "Masha",
+      "role": "fighter",
+      "tags": [
+        "dive",
+        "tanky",
+        "mobile",
+        "antiheal"
+      ]
+    },
+    {
+      "name": "Melissa",
+      "role": "marksman",
+      "tags": [
+        "hypercarry",
+        "anti_dive",
+        "immobile"
+      ]
+    },
+    {
+      "name": "Miya",
+      "role": "marksman",
+      "tags": [
+        "hypercarry",
+        "mobile"
+      ]
+    },
+    {
+      "name": "Moskov",
+      "role": "marksman",
+      "tags": [
+        "hypercarry",
+        "poke",
+        "cc_hard"
+      ]
+    },
+    {
+      "name": "Nana",
+      "role": "mage",
+      "tags": [
+        "cc_hard",
+        "poke",
+        "peel"
+      ]
+    },
+    {
+      "name": "Natalia",
+      "role": "assassin",
+      "tags": [
+        "mobile",
+        "dive",
+        "burst"
+      ]
+    },
+    {
+      "name": "Natan",
+      "role": "marksman",
+      "tags": [
+        "hypercarry",
+        "poke",
+        "immobile"
+      ]
+    },
+    {
+      "name": "Nolan",
+      "role": "assassin",
+      "tags": [
+        "mobile",
+        "dive",
+        "burst"
+      ]
+    },
+    {
+      "name": "Novaria",
+      "role": "mage",
+      "tags": [
+        "poke",
+        "vision",
+        "zone",
+        "immobile"
+      ]
+    },
+    {
+      "name": "Odette",
+      "role": "mage",
+      "tags": [
+        "burst",
+        "zone",
+        "immobile"
+      ]
+    },
+    {
+      "name": "Paquito",
+      "role": "fighter",
+      "tags": [
+        "burst",
+        "cc_hard",
+        "dive",
+        "mobile"
+      ]
+    },
+    {
+      "name": "Pharsa",
+      "role": "mage",
+      "tags": [
+        "poke",
+        "burst",
+        "mobile"
+      ]
+    },
+    {
+      "name": "Phoveus",
+      "role": "fighter",
+      "tags": [
+        "anti_mobility",
+        "tanky",
+        "heal"
+      ]
+    },
+    {
+      "name": "Popol and Kupa",
+      "role": "marksman",
+      "tags": [
+        "hypercarry",
+        "poke",
+        "cc_hard"
+      ]
+    },
+    {
+      "name": "Roger",
+      "role": "marksman",
+      "tags": [
+        "dive",
+        "burst",
+        "mobile"
+      ]
+    },
+    {
+      "name": "Saber",
+      "role": "assassin",
+      "tags": [
+        "dive",
+        "burst",
+        "cc_hard"
+      ]
+    },
+    {
+      "name": "Selena",
+      "role": "mage",
+      "tags": [
+        "burst",
+        "cc_hard",
+        "poke",
+        "vision"
+      ]
+    },
+    {
+      "name": "Silvanna",
+      "role": "fighter",
+      "tags": [
+        "cc_hard",
+        "dive",
+        "burst"
+      ]
+    },
+    {
+      "name": "Sun",
+      "role": "fighter",
+      "tags": [
+        "dive",
+        "mobile",
+        "zone",
+        "hypercarry"
+      ]
+    },
+    {
+      "name": "Suyou",
+      "role": "assassin",
+      "tags": [
+        "mobile",
+        "dive",
+        "burst"
+      ]
+    },
+    {
+      "name": "Thamuz",
+      "role": "fighter",
+      "tags": [
+        "heal",
+        "tanky",
+        "zone"
+      ]
+    },
+    {
+      "name": "Vale",
+      "role": "mage",
+      "tags": [
+        "poke",
+        "burst",
+        "cc_chain"
+      ]
+    },
+    {
+      "name": "Valentina",
+      "role": "mage",
+      "tags": [
+        "poke",
+        "burst",
+        "mobile"
+      ]
+    },
+    {
+      "name": "Vexana",
+      "role": "mage",
+      "tags": [
+        "cc_hard",
+        "burst",
+        "zone",
+        "immobile"
+      ]
+    },
+    {
+      "name": "Wanwan",
+      "role": "marksman",
+      "tags": [
+        "mobile",
+        "hypercarry",
+        "assassin_late",
+        "dive"
+      ]
+    },
+    {
+      "name": "X.Borg",
+      "role": "fighter",
+      "tags": [
+        "zone",
+        "poke",
+        "tanky"
+      ]
+    },
+    {
+      "name": "Xavier",
+      "role": "mage",
+      "tags": [
+        "poke",
+        "burst",
+        "zone"
+      ]
+    },
+    {
+      "name": "Yi Sun-shin",
+      "role": "marksman",
+      "tags": [
+        "hypercarry",
+        "mobile",
+        "vision"
+      ]
+    },
+    {
+      "name": "Yin",
+      "role": "fighter",
+      "tags": [
+        "dive",
+        "burst",
+        "cc_hard"
+      ]
+    },
+    {
+      "name": "Yu Zhong",
+      "role": "fighter",
+      "tags": [
+        "heal",
+        "tanky",
+        "cc_hard",
+        "engage"
+      ]
+    },
+    {
+      "name": "Yve",
+      "role": "mage",
+      "tags": [
+        "poke",
+        "zone",
+        "cc_chain"
+      ]
+    },
+    {
+      "name": "Zhask",
+      "role": "mage",
+      "tags": [
+        "poke",
+        "zone",
+        "immobile"
+      ]
+    },
+    {
+      "name": "Zhuxin",
+      "role": "mage",
+      "tags": [
+        "cc_chain",
+        "zone",
+        "burst"
+      ]
+    },
+    {
+      "name": "Zilong",
+      "role": "fighter",
+      "tags": [
+        "dive",
+        "mobile",
+        "burst"
+      ]
+    }
   ]
 }

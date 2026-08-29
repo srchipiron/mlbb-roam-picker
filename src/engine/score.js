@@ -1,4 +1,5 @@
 import {
+  ROLE_DEFAULTS,
   COUNTER_RULES,
   TEAM_NEEDS,
   MASTERY_CONFIDENCE_GAMES,
@@ -213,6 +214,26 @@ function spread(reasons) {
     out.push(r);
   }
   return out;
+}
+
+/**
+ * Completa el catalogo con los heroes que solo conoce la API.
+ * Marca los rellenados con `inferred` para poder avisarlo en la interfaz.
+ */
+export function mergeCatalog(catalogHeroes, apiHeroes = []) {
+  const byName = new Map(catalogHeroes.map((h) => [h.name, h]));
+  for (const api of apiHeroes) {
+    if (byName.has(api.name)) continue;
+    const role = (api.role ?? '').toLowerCase();
+    byName.set(api.name, {
+      name: api.name,
+      role,
+      tags: ROLE_DEFAULTS[role] ?? [],
+      roam: role === 'tank' || role === 'support',
+      inferred: true,
+    });
+  }
+  return [...byName.values()];
 }
 
 function dedupe(reasons) {

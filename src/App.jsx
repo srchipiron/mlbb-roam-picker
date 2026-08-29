@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
-import { rankRoamers } from './engine/score.js';
-import { Side, HeroSheet, Pick, Legend } from './components/ui.jsx';
+import { rankRoamers, mergeCatalog } from './engine/score.js';
+import { Side, HeroSheet, Pick, Legend, MasteryEditor } from './components/ui.jsx';
 
 const MASTERY_KEY = 'roam-picker:mastery';
 
@@ -14,9 +14,15 @@ export default function App() {
   const [bans, setBans] = useState([]);
   const [sheet, setSheet] = useState(null); // 'enemy' | 'ally' | 'ban'
 
-  const [mastery] = useState(() => {
+  const [mastery, setMastery] = useState(() => {
     try { return JSON.parse(localStorage.getItem(MASTERY_KEY) ?? '{}'); } catch { return {}; }
   });
+  const [editingMastery, setEditingMastery] = useState(false);
+
+  const saveMastery = (next) => {
+    setMastery(next);
+    try { localStorage.setItem(MASTERY_KEY, JSON.stringify(next)); } catch { /* modo incógnito */ }
+  };
 
   useEffect(() => {
     const load = async (path) => {
@@ -29,19 +35,14 @@ export default function App() {
     load('./data/roam-meta.json').then(setMeta).catch(() => setMeta(null));
   }, []);
 
-  const allHeroes = useMemo(() => {
-    if (!catalog) return [];
-    const byName = new Map();
-    for (const h of [...catalog.roamPool, ...catalog.threatPool]) {
-      if (!byName.has(h.name)) byName.set(h.name, h);
-    }
-    // Héroes que la API conoce pero el catálogo todavía no (recién salidos):
-    // entran sin tags para que al menos se puedan marcar como pick enemigo.
-    for (const name of meta?.newHeroes ?? []) {
-      if (!byName.has(name)) byName.set(name, { name, tags: [] });
-    }
-    return [...byName.values()];
-  }, [catalog, meta]);
+  // Catálogo escrito a mano + todo lo que conozca la API, con tags deducidos
+  // del rol. Así ningún héroe del juego se queda fuera del selector.
+  const allHeroes = useMemo(
+    () => (catalog ? mergeCatalog(catalog.heroes, meta?.heroes) : []),
+    [catalog, meta],
+  );
+
+  const roamPool = useMemo(() => allHeroes.filter((h) => h.roam), [allHeroes]);
 
   const taken = useMemo(
     () => new Set([...enemies, ...allies, ...bans].map((h) => h.name)),
@@ -50,7 +51,7 @@ export default function App() {
 
   const ranked = useMemo(() => {
     if (!catalog) return [];
-    return rankRoamers(catalog.roamPool, {
+    return rankRoamers(roamPool, {
       enemies, allies, bans, mastery,
       meta: {
         stats: meta?.stats,
@@ -59,7 +60,7 @@ export default function App() {
         patchAvgWinRate: meta?.patchAvgWinRate ?? 0.5,
       },
     });
-  }, [catalog, meta, enemies, allies, bans, mastery]);
+  }, [catalog, roamPool, meta, enemies, allies, bans, mastery]);
 
   const addTo = (hero) => {
     const setter = { enemy: setEnemies, ally: setAllies, ban: setBans }[sheet];
@@ -102,12 +103,16 @@ export default function App() {
         <Side title="Baneados" kind="bans" picks={bans} max={6}
               onAdd={() => setSheet('ban')} onRemove={remove(setBans)} />
 
-        <button className="reset" onClick={reset}>Nuevo draft</button>
+        <div className="tools">
+          <button className="reset" onClick={reset}>Nuevo draft</button>
+          <button className="reset" onClick={() => setEditingMastery(true)}>Tu maestría</button>
+        </div>
       </aside>
 
       <main className="results">
         <div className="results-head">
           <h2>Tu pick de roam</h2>
+          <span className="freshness">{roamPool.length} roamers</span>
         </div>
 
         {!meta && (
@@ -123,6 +128,15 @@ export default function App() {
 
         <Legend />
       </main>
+
+      {editingMastery && (
+        <MasteryEditor
+          pool={roamPool}
+          mastery={mastery}
+          onChange={saveMastery}
+          onClose={() => setEditingMastery(false)}
+        />
+      )}
 
       {sheet && (
         <HeroSheet
