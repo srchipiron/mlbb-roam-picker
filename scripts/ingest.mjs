@@ -37,37 +37,72 @@ const RANKS = (args.ranks ?? 'epic,legend,mythic,glory').split(',').map((r) => r
 const BASES = [
   args.base,
   process.env.MLBB_API_BASE,
-  'https://arena-hv.fastapicloud.dev/api',
+  'https://arena-hv.fastapicloud.dev/api',   // responde: /heroes/hero-rank/ existe
   'https://arena.rone.dev/api',
-  'https://openmlbb.fastapicloud.dev/api',
-  'https://mlbb.rone.dev/api',
-  'https://api-mobilelegends.vercel.app/api',
+  'https://api-mobilelegends.vercel.app/api', // legado
 ].filter(Boolean);
 
 /** Prefijos de grupo de rutas que ha usado el proyecto en distintas versiones. */
-const PREFIXES = ['/heroes', '/mlbb', ''];
+// '/heroes' confirmado: da 405 (existe, otro método) mientras '/mlbb' da 404.
+const PREFIXES = ['/heroes', '', '/mlbb'];
 
 const UA = 'mlbb-roam-picker (uso personal)';
 const TIMEOUT_MS = 15000;
 
 const diagnostics = { bases: BASES, ok: [], failed: [] };
-let LOCKED = null; // { base, prefix } en cuanto algo responde
+let LOCKED = null; // { base, prefix, method } en cuanto algo responde
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
-async function getUrl(url) {
+/**
+ * Una petición. En el error incluye el cuerpo de la respuesta recortado: cuando
+ * la API es FastAPI, un 422 dice exactamente qué campos esperaba, y eso vale más
+ * que el código de estado a secas para saber qué corregir.
+ */
+async function request(url, method, body) {
   const ctl = new AbortController();
   const timer = setTimeout(() => ctl.abort(), TIMEOUT_MS);
   try {
     const res = await fetch(url, {
-      headers: { 'User-Agent': UA, Accept: 'application/json' },
+      method,
+      headers: {
+        'User-Agent': UA,
+        Accept: 'application/json',
+        ...(body ? { 'Content-Type': 'application/json' } : {}),
+      },
+      body: body ? JSON.stringify(body) : undefined,
       signal: ctl.signal,
     });
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    if (!res.ok) {
+      let detail = '';
+      try {
+        detail = (await res.text()).replace(/\s+/g, ' ').slice(0, 240);
+      } catch { /* sin cuerpo */ }
+      const err = new Error(`HTTP ${res.status}${detail ? ` · ${detail}` : ''}`);
+      err.status = res.status;
+      throw err;
+    }
     return res.json();
   } finally {
     clearTimeout(timer);
   }
+}
+
+/** GET primero; si contesta 405, el endpoint existe pero quiere POST. */
+async function getUrl(url, params, forceMethod) {
+  const methods = forceMethod ? [forceMethod] : ['GET', 'POST'];
+  let lastErr;
+  for (const method of methods) {
+    try {
+      const data = await request(url, method, method === 'POST' ? params : undefined);
+      return { data, method };
+    } catch (err) {
+      lastErr = err;
+      // Solo tiene sentido reintentar con POST si el fallo fue "método no permitido".
+      if (err.status !== 405) throw err;
+    }
+  }
+  throw lastErr;
 }
 
 function buildUrl(base, prefix, path, params) {
@@ -92,14 +127,14 @@ async function fetchResource(paths, params = {}) {
     for (const path of paths) {
       const url = buildUrl(combo.base, combo.prefix, path, params);
       try {
-        const data = await getUrl(url);
+        const { data, method } = await getUrl(url, params, combo.method);
         const rows = firstArray(data);
         if (!rows || !rows.length) throw new Error('respuesta sin filas');
         if (!LOCKED) {
-          LOCKED = combo;
-          console.log(`  · base activa: ${combo.base}${combo.prefix}`);
+          LOCKED = { ...combo, method };
+          console.log(`  · base activa: ${method} ${combo.base}${combo.prefix}`);
         }
-        diagnostics.ok.push(`${combo.base}${combo.prefix}${path}`);
+        diagnostics.ok.push(`${method} ${combo.base}${combo.prefix}${path}`);
         return { data, rows, url };
       } catch (err) {
         lastErr = err;
@@ -284,7 +319,7 @@ async function main() {
     heroes: heroList,
     newHeroes,
     diagnostics: {
-      base: LOCKED ? LOCKED.base + LOCKED.prefix : null,
+      base: LOCKED ? `${LOCKED.method} ${LOCKED.base}${LOCKED.prefix}` : null,
       ok: [...new Set(diagnostics.ok)].slice(0, 6),
       failed: LOCKED ? [] : [...new Set(diagnostics.failed)].slice(0, 12),
     },
