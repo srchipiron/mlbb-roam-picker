@@ -2,15 +2,15 @@
 /**
  * Ingesta de datos meta de MLBB.
  *
- * Consulta la API publica de la comunidad (proyecto OpenMLBB / api-mobilelegends,
- * BSD-3), normaliza winrate / pickrate / banrate, counters y sinergias, y escribe
- * public/data/roam-meta.json.
+ * La API de la comunidad (proyecto Rone Arena, antes OpenMLBB / api-mobilelegends)
+ * ha cambiado de dominio y de prefijo de rutas más de una vez. En vez de fijar
+ * una URL que caduca, este script PRUEBA las bases y los prefijos conocidos y se
+ * queda con la primera combinación que responde. Lo que ha funcionado y lo que ha
+ * fallado queda anotado en el JSON de salida, para poder diagnosticar desde la app.
  *
- *   node scripts/ingest.mjs                # rango por defecto
+ *   node scripts/ingest.mjs
  *   node scripts/ingest.mjs --rank mythic --days 7
- *
- * Si un endpoint cambia de forma, este script NO revienta: avisa por consola y
- * conserva el fichero anterior para la parte que no ha podido refrescar.
+ *   node scripts/ingest.mjs --base https://otra.api/api
  */
 
 import { writeFile, readFile, mkdir } from 'node:fs/promises';
@@ -22,62 +22,97 @@ const ROOT = resolve(__dirname, '..');
 const OUT = resolve(ROOT, 'public/data/roam-meta.json');
 const HEROES = resolve(ROOT, 'public/data/heroes.json');
 
-const BASE = process.env.MLBB_API_BASE ?? 'https://mlbb.rone.dev/api';
-const UA = 'mlbb-roam-picker (personal use)';
-
 const args = Object.fromEntries(
   process.argv.slice(2).reduce((acc, cur, i, arr) => {
     if (cur.startsWith('--')) acc.push([cur.slice(2), arr[i + 1]]);
     return acc;
   }, []),
 );
+
 const RANK = args.rank ?? 'mythic';
-// Rangos que se descargan siempre: el meta de Glory no es el de Epic, y así
-// puedes cambiar al tuyo desde la app sin volver a ejecutar la ingesta.
-const RANKS = (args.ranks ?? 'epic,legend,mythic,glory').split(',').map((r) => r.trim());
 const DAYS = Number(args.days ?? 7);
+const RANKS = (args.ranks ?? 'epic,legend,mythic,glory').split(',').map((r) => r.trim());
 
-/** Traza de lo que ha funcionado y lo que no. Se guarda en el JSON de salida. */
-const diagnostics = { base: BASE, tried: [], ok: [], failed: [] };
+/** Bases conocidas, de la más actual a la más antigua. */
+const BASES = [
+  args.base,
+  process.env.MLBB_API_BASE,
+  'https://arena-hv.fastapicloud.dev/api',
+  'https://arena.rone.dev/api',
+  'https://openmlbb.fastapicloud.dev/api',
+  'https://mlbb.rone.dev/api',
+  'https://api-mobilelegends.vercel.app/api',
+].filter(Boolean);
 
-/**
- * La API ha movido rutas entre versiones y no puedo probarlas desde aquí, así que
- * en vez de fijar una, el script prueba las candidatas en orden y se queda con la
- * primera que responde. Lo que ha funcionado queda anotado en diagnostics.
- */
-async function tryPaths(paths, params = {}) {
-  let lastErr;
-  for (const path of paths) {
-    diagnostics.tried.push(path);
-    try {
-      const data = await get(path, params);
-      const rows = firstArray(data);
-      if (!rows || !rows.length) throw new Error('respuesta sin filas');
-      diagnostics.ok.push(path);
-      return { path, data, rows };
-    } catch (err) {
-      diagnostics.failed.push(`${path}: ${err.message}`);
-      lastErr = err;
-    }
+/** Prefijos de grupo de rutas que ha usado el proyecto en distintas versiones. */
+const PREFIXES = ['/heroes', '/mlbb', ''];
+
+const UA = 'mlbb-roam-picker (uso personal)';
+const TIMEOUT_MS = 15000;
+
+const diagnostics = { bases: BASES, ok: [], failed: [] };
+let LOCKED = null; // { base, prefix } en cuanto algo responde
+
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+
+async function getUrl(url) {
+  const ctl = new AbortController();
+  const timer = setTimeout(() => ctl.abort(), TIMEOUT_MS);
+  try {
+    const res = await fetch(url, {
+      headers: { 'User-Agent': UA, Accept: 'application/json' },
+      signal: ctl.signal,
+    });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    return res.json();
+  } finally {
+    clearTimeout(timer);
   }
-  throw lastErr ?? new Error('ninguna ruta candidata respondió');
 }
 
-async function get(path, params = {}) {
-  const url = new URL(BASE + path);
+function buildUrl(base, prefix, path, params) {
+  const url = new URL(base + prefix + path);
   for (const [k, v] of Object.entries(params)) {
     if (v != null) url.searchParams.set(k, String(v));
   }
-  const res = await fetch(url, { headers: { 'User-Agent': UA, Accept: 'application/json' } });
-  if (!res.ok) throw new Error(`${res.status} ${res.statusText} en ${url.pathname}`);
-  return res.json();
+  return url.toString();
 }
 
 /**
- * Los wrappers de esta API han cambiado de forma entre versiones (a veces
- * { data: { records: [...] } }, a veces { records: [...] }, a veces array pelado).
- * Esto encuentra el primer array de objetos que haya dentro, a cualquier profundidad.
+ * Pide un recurso probando combinaciones de base y prefijo. Una vez que una
+ * funciona se fija en LOCKED y las siguientes llamadas van directas.
  */
+async function fetchResource(paths, params = {}) {
+  const combos = LOCKED
+    ? [LOCKED]
+    : BASES.flatMap((base) => PREFIXES.map((prefix) => ({ base, prefix })));
+
+  let lastErr;
+  for (const combo of combos) {
+    for (const path of paths) {
+      const url = buildUrl(combo.base, combo.prefix, path, params);
+      try {
+        const data = await getUrl(url);
+        const rows = firstArray(data);
+        if (!rows || !rows.length) throw new Error('respuesta sin filas');
+        if (!LOCKED) {
+          LOCKED = combo;
+          console.log(`  · base activa: ${combo.base}${combo.prefix}`);
+        }
+        diagnostics.ok.push(`${combo.base}${combo.prefix}${path}`);
+        return { data, rows, url };
+      } catch (err) {
+        lastErr = err;
+        if (diagnostics.failed.length < 40) {
+          diagnostics.failed.push(`${combo.base}${combo.prefix}${path} → ${err.message}`);
+        }
+      }
+    }
+  }
+  throw lastErr ?? new Error('ninguna combinación respondió');
+}
+
+/** Encuentra el primer array de objetos, a cualquier profundidad del envoltorio. */
 function firstArray(node, depth = 0) {
   if (depth > 6 || node == null) return null;
   if (Array.isArray(node) && node.length && typeof node[0] === 'object') return node;
@@ -109,37 +144,35 @@ const asRate = (n) => {
   return x > 1 ? x / 100 : x; // la API mezcla 0.52 y 52
 };
 
-/**
- * Lista completa de heroes con su rol. Es lo que evita que el catalogo escrito
- * a mano se quede corto: cualquier heroe que exista en el juego aparece aqui.
- */
+const NAME_KEYS = ['name', 'hero_name', 'heroname', 'hero'];
+
 async function fetchHeroList() {
-  const { rows } = await tryPaths(
-    ['/mlbb/hero-position/', '/mlbb/hero-position', '/hero-position/', '/mlbb/heroes/', '/mlbb/heroes'],
+  const { rows } = await fetchResource(
+    ['/hero-position/', '/hero-position', '/hero-list/', '/list/', '/'],
     { size: 300, index: 1 },
   );
   const heroes = [];
   for (const row of rows) {
-    const name = pick(row, ['name', 'hero_name', 'heroname']);
+    const name = pick(row, NAME_KEYS);
     if (!name) continue;
     heroes.push({
       name: String(name).trim(),
-      role: String(pick(row, ['role', 'sort_id', 'hero_role']) ?? '').toLowerCase(),
-      lane: String(pick(row, ['lane', 'hero_lane']) ?? '').toLowerCase(),
+      role: String(pick(row, ['role', 'hero_role', 'primary_role']) ?? '').toLowerCase(),
+      lane: String(pick(row, ['lane', 'hero_lane', 'primary_lane']) ?? '').toLowerCase(),
     });
   }
   return heroes;
 }
 
-async function fetchStats(rank = RANK) {
-  const { rows } = await tryPaths(
-    ['/mlbb/hero-rank/', '/mlbb/hero-rank', '/hero-rank/', '/mlbb/hero-rate/'],
+async function fetchStats(rank) {
+  const { rows } = await fetchResource(
+    ['/hero-rank/', '/hero-rank', '/rank/', '/hero-rate/'],
     { days: DAYS, rank, size: 200, index: 1, sort_field: 'win_rate', sort_order: 'desc' },
   );
 
   const stats = {};
   for (const row of rows) {
-    const name = pick(row, ['name', 'hero_name', 'heroname']);
+    const name = pick(row, NAME_KEYS);
     if (!name) continue;
     stats[String(name).trim()] = {
       winRate: asRate(pick(row, ['win_rate', 'winRate', 'main_hero_win_rate'])),
@@ -152,7 +185,19 @@ async function fetchStats(rank = RANK) {
   return stats;
 }
 
-/** Counters y sinergias, hero a hero. Solo para el pool de roam: son ~30 llamadas. */
+function relationMap(rows) {
+  const map = {};
+  for (const row of rows) {
+    const name = pick(row, NAME_KEYS);
+    const rate = asRate(pick(row, ['increase_win_rate', 'win_rate', 'hero_win_rate']));
+    if (name && rate != null) {
+      // increase_win_rate viene como delta (+0.02); lo pasamos a winrate absoluto.
+      map[String(name).trim()] = Math.abs(rate) < 0.2 ? 0.5 + rate : rate;
+    }
+  }
+  return map;
+}
+
 async function fetchRelations(roamNames, stats) {
   const counters = {};
   const synergies = {};
@@ -162,11 +207,11 @@ async function fetchRelations(roamNames, stats) {
     if (!id) continue;
     try {
       const [c, s] = await Promise.all([
-        tryPaths([`/mlbb/hero-counter/${id}/`, `/mlbb/hero-counter/${id}`, `/hero-counter/${id}/`], { days: DAYS, rank: RANK }),
-        tryPaths([`/mlbb/hero-compatibility/${id}/`, `/mlbb/hero-compatibility/${id}`, `/hero-compatibility/${id}/`], { days: DAYS, rank: RANK }),
+        fetchResource([`/hero-counter/${id}/`, `/hero-counter/${id}`], { days: DAYS, rank: RANK }),
+        fetchResource([`/hero-compatibility/${id}/`, `/hero-compatibility/${id}`], { days: DAYS, rank: RANK }),
       ]);
-      counters[name] = relationMap(c.data);
-      synergies[name] = relationMap(s.data);
+      counters[name] = relationMap(c.rows);
+      synergies[name] = relationMap(s.rows);
     } catch (err) {
       console.warn(`  · sin relaciones para ${name}: ${err.message}`);
     }
@@ -175,24 +220,8 @@ async function fetchRelations(roamNames, stats) {
   return { counters, synergies };
 }
 
-function relationMap(raw) {
-  const rows = firstArray(raw) ?? [];
-  const map = {};
-  for (const row of rows) {
-    const name = pick(row, ['name', 'hero_name', 'heroname']);
-    const rate = asRate(pick(row, ['increase_win_rate', 'win_rate', 'hero_win_rate']));
-    if (name && rate != null) {
-      // increase_win_rate viene como delta (+0.02). Lo convertimos a winrate absoluto.
-      map[String(name).trim()] = Math.abs(rate) < 0.2 ? 0.5 + rate : rate;
-    }
-  }
-  return map;
-}
-
-const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
-
 async function main() {
-  console.log(`Ingesta MLBB · rango=${RANK} · ventana=${DAYS}d · base=${BASE}`);
+  console.log(`Ingesta MLBB · rangos=${RANKS.join(',')} · ventana=${DAYS}d`);
 
   const heroes = JSON.parse(await readFile(HEROES, 'utf8'));
   const roamNames = [...new Set(heroes.heroes.filter((h) => h.roam).map((h) => h.name))];
@@ -211,7 +240,7 @@ async function main() {
       if (Object.keys(s).length) statsByRank[rank] = s;
       console.log(`  · ${rank}: ${Object.keys(s).length} héroes`);
     } catch (err) {
-      console.warn(`  · ${rank}: fallo (${err.message}); conservo los datos anteriores`);
+      console.warn(`  · ${rank}: fallo (${err.message}); conservo lo anterior`);
     }
     await sleep(250);
   }
@@ -223,7 +252,7 @@ async function main() {
     if (fresh.length) heroList = fresh;
     console.log(`  · lista completa: ${heroList.length} héroes`);
   } catch (err) {
-    console.warn(`  · fallo al leer la lista de héroes (${err.message}); conservo la anterior`);
+    console.warn(`  · lista de héroes: fallo (${err.message}); conservo la anterior`);
   }
 
   let relations = { counters: previous?.counters ?? {}, synergies: previous?.synergies ?? {} };
@@ -232,17 +261,14 @@ async function main() {
     if (Object.keys(fresh.counters).length) relations = fresh;
     console.log(`  · relaciones de ${Object.keys(relations.counters).length} roamers`);
   } catch (err) {
-    console.warn(`  · fallo al leer relaciones (${err.message}); conservo las anteriores`);
+    console.warn(`  · relaciones: fallo (${err.message}); conservo las anteriores`);
   }
 
   const avgOf = (byName) => {
     const r = Object.values(byName).map((s) => s.winRate).filter((n) => n != null);
     return r.length ? r.reduce((a, b) => a + b, 0) / r.length : 0.5;
   };
-  const avgByRank = Object.fromEntries(Object.entries(statsByRank).map(([k, v]) => [k, avgOf(v)]));
-  const patchAvgWinRate = avgOf(stats);
 
-  // Héroes que la API conoce y nuestro catálogo no: normalmente, recién salidos.
   const known = new Set(heroes.heroes.map((h) => h.name));
   const seen = new Set([...Object.keys(stats), ...heroList.map((h) => h.name)]);
   const newHeroes = [...seen].filter((n) => !known.has(n));
@@ -250,18 +276,18 @@ async function main() {
   const out = {
     generatedAt: new Date().toISOString(),
     rank: RANK,
-    days: DAYS,
     ranks: Object.keys(statsByRank),
-    diagnostics: {
-      base: diagnostics.base,
-      ok: [...new Set(diagnostics.ok)],
-      failed: [...new Set(diagnostics.failed)].slice(0, 12),
-    },
-    patchAvgWinRate,
-    avgByRank,
+    days: DAYS,
+    patchAvgWinRate: avgOf(stats),
+    avgByRank: Object.fromEntries(Object.entries(statsByRank).map(([k, v]) => [k, avgOf(v)])),
     heroCount: Object.keys(stats).length,
     heroes: heroList,
     newHeroes,
+    diagnostics: {
+      base: LOCKED ? LOCKED.base + LOCKED.prefix : null,
+      ok: [...new Set(diagnostics.ok)].slice(0, 6),
+      failed: LOCKED ? [] : [...new Set(diagnostics.failed)].slice(0, 12),
+    },
     stats,
     statsByRank,
     counters: relations.counters,
@@ -270,13 +296,12 @@ async function main() {
 
   await mkdir(dirname(OUT), { recursive: true });
   await writeFile(OUT, JSON.stringify(out, null, 2) + '\n');
+
   console.log(`Escrito ${OUT}`);
-  console.log(`Rutas que respondieron: ${[...new Set(diagnostics.ok)].join(', ') || 'ninguna'}`);
   if (!Object.keys(statsByRank).length) {
-    console.warn('SIN ESTADÍSTICAS. Fallos:');
-    for (const f of [...new Set(diagnostics.failed)].slice(0, 10)) console.warn(`  ${f}`);
-  }
-  if (newHeroes.length) {
+    console.warn('SIN ESTADÍSTICAS. Combinaciones probadas que fallaron:');
+    for (const f of [...new Set(diagnostics.failed)].slice(0, 12)) console.warn(`  ${f}`);
+  } else if (newHeroes.length) {
     console.log(`Héroes sin tags propios (usan los de su rol): ${newHeroes.join(', ')}`);
   }
 }

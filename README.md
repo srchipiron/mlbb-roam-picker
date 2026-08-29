@@ -41,10 +41,14 @@ cuáles son. Escribirle sus tags propios lo hace mejor, pero es opcional, no un 
 API pública de la comunidad (proyecto OpenMLBB / api-mobilelegends, licencia BSD-3): winrate, pickrate,
 banrate por rango, además de counters y compatibilidad por héroe. No es oficial de Moonton.
 
-`scripts/ingest.mjs` está escrito a la defensiva porque esa API ha cambiado de forma entre versiones:
-busca los campos por varios nombres posibles y, si un endpoint falla, conserva los datos anteriores en
-lugar de dejarte sin nada. **Comprueba las rutas contra el Swagger vivo** (`https://mlbb.rone.dev/api/docs`)
-la primera vez; si alguna cambió, se ajusta en `fetchStats` y `fetchRelations`.
+El proyecto ha cambiado de dominio y de prefijo de rutas más de una vez (era `mlbb.rone.dev/api/mlbb/`,
+ahora `arena.rone.dev/api/heroes/`), así que `scripts/ingest.mjs` **no fija ninguna URL**: prueba las
+bases y prefijos conocidos, se queda con la primera que responde y lo anota en `diagnostics` dentro del
+JSON. Los campos también se buscan por varios nombres posibles, y si un endpoint falla se conservan los
+datos anteriores en vez de dejarte sin nada.
+
+Si algún día dejan de funcionar todas, la app lo dice y el JSON lleva la lista de lo que se probó.
+Se añade la nueva base a `BASES` en `scripts/ingest.mjs`, o se pasa con `--base https://loquesea/api`.
 
 Para cruzar con una segunda fuente, añade un módulo en `scripts/sources/` que devuelva el mismo formato
 `{ nombre: { winRate, pickRate, banRate, matches } }` y promedia en `main()`.
