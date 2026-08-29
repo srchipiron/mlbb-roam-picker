@@ -236,6 +236,47 @@ export function mergeCatalog(catalogHeroes, apiHeroes = []) {
   return [...byName.values()];
 }
 
+/**
+ * A quién banear. No es "el héroe con más winrate": es el que más te duele a ti,
+ * así que pesa el banrate global (lo que la gente ya considera peligroso) junto
+ * con lo mal que le va a tu composición ya elegida.
+ */
+export function suggestBans(allHeroes, ctx) {
+  const { allies = [], enemies = [], bans = [], meta = {} } = ctx;
+  const taken = new Set([...allies, ...enemies, ...bans].map((h) => h.name));
+
+  return allHeroes
+    .filter((h) => !taken.has(h.name) && meta.stats?.[h.name])
+    .map((hero) => {
+      const stat = meta.stats[hero.name];
+      const power = metaScore(stat, meta.patchAvgWinRate ?? 0.5).value;
+      const consensus = stat.banRate ?? 0;
+
+      // Cuánto castiga a los aliados que ya has elegido.
+      let danger = 0;
+      const reasons = [];
+      for (const ally of allies) {
+        for (const rule of COUNTER_RULES) {
+          if (rule.weight <= 0) continue;
+          if (hero.tags.includes(rule.roamTag) && ally.tags.includes(rule.enemyTag)) {
+            danger += rule.weight;
+            reasons.push({ text: `castiga a ${ally.name}`, good: false, w: rule.weight });
+          }
+        }
+      }
+      const dangerNorm = Math.min(1, danger / 3.5);
+
+      return {
+        hero,
+        stat,
+        score: power * 0.45 + consensus * 0.40 + dangerNorm * 0.15,
+        reasons: dedupe(reasons).slice(0, 1),
+      };
+    })
+    .sort((a, b) => b.score - a.score)
+    .slice(0, 5);
+}
+
 function dedupe(reasons) {
   const seen = new Set();
   return reasons.filter((r) => {

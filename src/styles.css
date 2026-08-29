@@ -48,9 +48,40 @@ button:focus-visible, [tabindex]:focus-visible { outline: 2px solid var(--gold);
   height: 100%;
 }
 
+/* En móvil el draft es una tira compacta arriba y las recomendaciones ocupan
+   el resto: en 30 segundos hay que ver el pick sin desplazarse. */
 @media (max-width: 820px) {
-  .app { grid-template-columns: 1fr; grid-template-rows: auto 1fr; }
+  .app { grid-template-columns: 1fr; grid-template-rows: auto minmax(0, 1fr); }
+  .draft {
+    border-right: none; border-bottom: 1px solid var(--line);
+    padding: 10px 12px; overflow: visible;
+  }
+  .brand h1 { font-size: 17px; }
+  .side { margin-top: 8px; }
+  .side-label { font-size: 10px; margin-bottom: 3px; }
+  .slot { min-height: 34px; min-width: 0; flex: 1 1 62px; padding: 6px 8px; font-size: 12px; }
+  .slot .x { display: none; }
+  .side.bans { display: none; }          /* los baneos caben en el panel desplegable */
+  .tools { margin-top: 10px; }
+  .tools .reset { padding: 8px; font-size: 11px; }
+  .results { padding: 10px 12px; }
+  .pick { grid-template-columns: 28px 1fr auto; gap: 8px; padding: 9px 10px; }
+  .pick-name { font-size: 16px; }
+  .pick.top .pick-name { font-size: 20px; }
+  .rank { font-size: 15px; }
+  .pick.top .rank { font-size: 19px; }
+  .mastery-row { grid-template-columns: 1fr 74px 74px; }
 }
+
+/* Panel plegable: en móvil los baneos y los ajustes se esconden hasta que hacen falta. */
+.more { margin-top: 10px; }
+.more > summary {
+  list-style: none; cursor: pointer;
+  font-family: var(--font-display); text-transform: uppercase; letter-spacing: 0.14em;
+  font-size: 11px; color: var(--muted); padding: 6px 0;
+}
+.more > summary::-webkit-details-marker { display: none; }
+.more[open] > summary { color: var(--text); }
 
 .draft {
   background: var(--panel);
@@ -222,3 +253,27 @@ button:focus-visible, [tabindex]:focus-visible { outline: 2px solid var(--gold);
 .tools .reset { margin-top: 0; }
 
 .inferred { font-size: 11px; color: var(--muted); margin-left: 6px; }
+
+/* ---------- selector de rango ---------- */
+
+.rank-picker { display: flex; gap: 4px; flex-wrap: wrap; margin-top: 6px; }
+.rank-picker button {
+  border: 1px solid var(--line); border-radius: var(--r);
+  padding: 6px 10px; font-size: 11px; color: var(--muted);
+  font-family: var(--font-display); letter-spacing: 0.1em; text-transform: uppercase;
+}
+.rank-picker button[aria-pressed='true'] { border-color: var(--gold); color: var(--gold); }
+
+/* ---------- baneos sugeridos ---------- */
+
+.bans-suggested { margin-top: 18px; border-top: 1px solid var(--line); padding-top: 12px; }
+.ban-row {
+  display: flex; align-items: center; justify-content: space-between; gap: 8px;
+  padding: 7px 0; font-size: 13px;
+}
+.ban-row .rate { font-family: var(--font-num); font-size: 12px; color: var(--muted); }
+.ban-row button {
+  border: 1px solid var(--line); border-radius: var(--r); padding: 5px 10px;
+  font-size: 11px; color: var(--muted);
+}
+.ban-row button:hover { border-color: var(--enemy); color: var(--enemy); }

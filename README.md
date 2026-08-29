@@ -77,10 +77,16 @@ el score se acerca a neutro. Sin esa corrección la app siempre recomendaría al
 Tu maestría se edita desde el botón **Tu maestría**: partidas y winrate de cada roamer, tal como
 salen en tu perfil del juego. Se guarda en `localStorage` y no sale del móvil.
 
+## Baneos
+
+En "Baneos y ajustes" hay una lista de a quién conviene banear: mezcla lo fuerte que está el héroe,
+cuánto lo banea el resto de la gente y lo mal que le va a los aliados que ya has elegido. Un toque en
+"Banear" lo saca del pool y recalcula.
+
 ## Lo que esto no hace
 
-- **El winrate global no es tu winrate.** El meta de Mythical Glory no es el de tu rango; ajusta
-  `--rank` en la ingesta al tuyo.
+- **El winrate global no es tu winrate.** Elige tu rango en "Baneos y ajustes": la ingesta descarga
+  Epic, Legend, Mythic y Glory, y el meta cambia bastante entre ellos.
 - **Los counters de estas webs son ruidosos.** Por eso pesan un 22% y no un 50%.
 - **No lee la pantalla del juego.** Los picks enemigos los metes tú a mano. En 30 segundos de draft
   da tiempo a tres o cuatro toques, no a más: por eso la rejilla tiene botones grandes y buscador.

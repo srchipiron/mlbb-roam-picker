@@ -125,6 +125,44 @@ export function Pick({ result, index, stat }) {
   );
 }
 
+const RANK_LABELS = { all: 'Todos', epic: 'Epic', legend: 'Legend', mythic: 'Mythic', honor: 'Honor', glory: 'Glory' };
+
+/** Selector del rango del que salen los winrates. El meta de Glory no es el de Epic. */
+export function RankPicker({ ranks, value, onChange }) {
+  if (!ranks?.length) return null;
+  return (
+    <div className="rank-picker">
+      {ranks.map((r) => (
+        <button key={r} aria-pressed={r === value} onClick={() => onChange(r)}>
+          {RANK_LABELS[r] ?? r}
+        </button>
+      ))}
+    </div>
+  );
+}
+
+/** A quién banear, con el motivo cuando lo hay. */
+export function BanSuggestions({ items, onBan }) {
+  if (!items.length) return null;
+  return (
+    <section className="bans-suggested">
+      <div className="side-label"><span>Merece la pena banear</span></div>
+      {items.map((b) => (
+        <div className="ban-row" key={b.hero.name}>
+          <span>
+            {b.hero.name}
+            {b.reasons[0] && <span className="inferred">{b.reasons[0].text}</span>}
+          </span>
+          <span className="rate">
+            {b.stat.banRate != null ? `${Math.round(b.stat.banRate * 100)}% ban` : ''}
+          </span>
+          <button onClick={() => onBan(b.hero)}>Banear</button>
+        </div>
+      ))}
+    </section>
+  );
+}
+
 export function Legend() {
   return (
     <div className="legend">

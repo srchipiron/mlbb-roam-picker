@@ -32,6 +32,9 @@ const args = Object.fromEntries(
   }, []),
 );
 const RANK = args.rank ?? 'mythic';
+// Rangos que se descargan siempre: el meta de Glory no es el de Epic, y así
+// puedes cambiar al tuyo desde la app sin volver a ejecutar la ingesta.
+const RANKS = (args.ranks ?? 'epic,legend,mythic,glory').split(',').map((r) => r.trim());
 const DAYS = Number(args.days ?? 7);
 
 async function get(path, params = {}) {
@@ -100,10 +103,10 @@ async function fetchHeroList() {
   return heroes;
 }
 
-async function fetchStats() {
+async function fetchStats(rank = RANK) {
   const raw = await get('/mlbb/hero-rank/', {
     days: DAYS,
-    rank: RANK,
+    rank,
     size: 200,
     index: 1,
     sort_field: 'win_rate',
@@ -179,13 +182,18 @@ async function main() {
     /* primera ejecución */
   }
 
-  let stats = previous?.stats ?? {};
-  try {
-    stats = await fetchStats();
-    console.log(`  · estadísticas de ${Object.keys(stats).length} héroes`);
-  } catch (err) {
-    console.warn(`  · fallo al leer estadísticas (${err.message}); conservo las anteriores`);
+  const statsByRank = { ...(previous?.statsByRank ?? {}) };
+  for (const rank of RANKS) {
+    try {
+      const s = await fetchStats(rank);
+      if (Object.keys(s).length) statsByRank[rank] = s;
+      console.log(`  · ${rank}: ${Object.keys(s).length} héroes`);
+    } catch (err) {
+      console.warn(`  · ${rank}: fallo (${err.message}); conservo los datos anteriores`);
+    }
+    await sleep(250);
   }
+  const stats = statsByRank[RANK] ?? Object.values(statsByRank)[0] ?? previous?.stats ?? {};
 
   let heroList = previous?.heroes ?? [];
   try {
@@ -205,8 +213,12 @@ async function main() {
     console.warn(`  · fallo al leer relaciones (${err.message}); conservo las anteriores`);
   }
 
-  const rates = Object.values(stats).map((s) => s.winRate).filter((n) => n != null);
-  const patchAvgWinRate = rates.length ? rates.reduce((a, b) => a + b, 0) / rates.length : 0.5;
+  const avgOf = (byName) => {
+    const r = Object.values(byName).map((s) => s.winRate).filter((n) => n != null);
+    return r.length ? r.reduce((a, b) => a + b, 0) / r.length : 0.5;
+  };
+  const avgByRank = Object.fromEntries(Object.entries(statsByRank).map(([k, v]) => [k, avgOf(v)]));
+  const patchAvgWinRate = avgOf(stats);
 
   // Héroes que la API conoce y nuestro catálogo no: normalmente, recién salidos.
   const known = new Set(heroes.heroes.map((h) => h.name));
@@ -217,11 +229,14 @@ async function main() {
     generatedAt: new Date().toISOString(),
     rank: RANK,
     days: DAYS,
+    ranks: Object.keys(statsByRank),
     patchAvgWinRate,
+    avgByRank,
     heroCount: Object.keys(stats).length,
     heroes: heroList,
     newHeroes,
     stats,
+    statsByRank,
     counters: relations.counters,
     synergies: relations.synergies,
   };
