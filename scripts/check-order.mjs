@@ -37,8 +37,13 @@ for (const file of files) {
     for (const [name, declLine] of declared) {
       const re = new RegExp(`\\b${name.replace(/\$/g, '\\$')}\\b`);
       for (let i = start; i < declLine; i++) {
-        const line = lines[i];
-        if (!re.test(line) || /^\s*(\/\/|\*|import)/.test(line)) continue;
+        // Fuera los accesos a propiedad (.enemies), las claves de objeto
+        // (enemies:) y las cadenas: no son usos de la variable.
+        const line = lines[i]
+          .replace(/\.\s*[A-Za-z_$][\w$]*/g, '')
+          .replace(/([A-Za-z_$][\w$]*)\s*:/g, '')
+          .replace(/'[^']*'|"[^"]*"|`[^`]*`/g, '');
+        if (!re.test(line) || /^\s*(\/\/|\*|import)/.test(lines[i])) continue;
         console.error(`${file}:${i + 1} usa "${name}", declarada en la línea ${declLine + 1}`);
         fallos++;
         break;

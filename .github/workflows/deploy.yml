@@ -35,6 +35,12 @@ jobs:
       - name: Comprobar orden de declaraciones
         run: node scripts/check-order.mjs src/App.jsx src/components/ui.jsx
 
+      - name: Comprobar estilos
+        run: node scripts/check-css.mjs
+
+      - name: Pruebas del motor
+        run: node scripts/test-engine.mjs
+
       - name: Compilar
         env:
           BASE_PATH: /${{ github.event.repository.name }}/

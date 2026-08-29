@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
-import { rankRoamers, mergeCatalog, suggestBans, indexByName, coverage, empatados } from './engine/score.js';
-import { Side, HeroSheet, Pick, Legend, MasteryEditor, RankPicker, BanSuggestions } from './components/ui.jsx';
+import { rankRoamers, mergeCatalog, suggestBans, indexByName, coverage, empatados, normName } from './engine/score.js';
+import { Side, HeroSheet, Pick, Legend, MasteryEditor, RankPicker, BanSuggestions, Footer } from './components/ui.jsx';
 
 const MASTERY_KEY = 'roam-picker:mastery';
 const RANK_KEY = 'roam-picker:rank';
@@ -20,9 +20,12 @@ export default function App() {
 
   // El draft sobrevive a que Android mate la pestaña al cambiar de app:
   // volver al juego y perder los picks que ya habías metido sería inaceptable.
-  const [enemies, setEnemies] = useState(() => load(DRAFT_KEY, {}).enemies ?? []);
-  const [allies, setAllies] = useState(() => load(DRAFT_KEY, {}).allies ?? []);
-  const [bans, setBans] = useState(() => load(DRAFT_KEY, {}).bans ?? []);
+  // Se guardan NOMBRES, no objetos. Guardar el héroe entero congelaba sus tags:
+  // tras una actualización del catálogo, el draft seguía usando los viejos.
+  const [enemyNames, setEnemyNames] = useState(() => load(DRAFT_KEY, {}).enemies ?? []);
+  const [allyNames, setAllyNames] = useState(() => load(DRAFT_KEY, {}).allies ?? []);
+  const [banNames, setBanNames] = useState(() => load(DRAFT_KEY, {}).bans ?? []);
+  const [enemyRoam, setEnemyRoam] = useState(() => load(DRAFT_KEY, {}).enemyRoam ?? null);
   const [rank, setRank] = useState(() => load(RANK_KEY, null));
   const [sheet, setSheet] = useState(null); // 'enemy' | 'ally' | 'ban'
 
@@ -31,18 +34,20 @@ export default function App() {
 
   const saveMastery = (next) => { setMastery(next); save(MASTERY_KEY, next); };
 
-  useEffect(() => { save(DRAFT_KEY, { enemies, allies, bans }); }, [enemies, allies, bans]);
+  useEffect(() => {
+    save(DRAFT_KEY, { enemies: enemyNames, allies: allyNames, bans: banNames, enemyRoam });
+  }, [enemyNames, allyNames, banNames, enemyRoam]);
   useEffect(() => { if (rank) save(RANK_KEY, rank); }, [rank]);
 
   useEffect(() => {
-    const load = async (path) => {
+    const fetchJson = async (path) => {
       const res = await fetch(path, { cache: 'no-cache' });
       if (!res.ok) throw new Error(`${path}: ${res.status}`);
       return res.json();
     };
-    load('./data/heroes.json').then(setCatalog).catch((e) => setError(e.message));
+    fetchJson('./data/heroes.json').then(setCatalog).catch((e) => setError(e.message));
     // El meta puede faltar en el primer arranque: la app sigue siendo útil sin él.
-    load('./data/roam-meta.json').then(setMeta).catch(() => setMeta(null));
+    fetchJson('./data/roam-meta.json').then(setMeta).catch(() => setMeta(null));
   }, []);
 
   // Catálogo escrito a mano + todo lo que conozca la API, con tags deducidos
@@ -54,12 +59,29 @@ export default function App() {
 
   const roamPool = useMemo(() => allHeroes.filter((h) => h.roam), [allHeroes]);
 
+  const resolve = useMemo(() => {
+    const byName = new Map(allHeroes.map((h) => [h.name, h]));
+    return (names) => names.map((n) => byName.get(n)).filter(Boolean);
+  }, [allHeroes]);
+
+  const enemies = useMemo(() => resolve(enemyNames), [resolve, enemyNames]);
+  const allies = useMemo(() => resolve(allyNames), [resolve, allyNames]);
+  const bans = useMemo(() => resolve(banNames), [resolve, banNames]);
+
   const taken = useMemo(
-    () => new Set([...enemies, ...allies, ...bans].map((h) => h.name)),
-    [enemies, allies, bans],
+    () => new Set([...enemyNames, ...allyNames, ...banNames]),
+    [enemyNames, allyNames, banNames],
   );
 
-  const activeRank = rank && meta?.statsByRank?.[rank] ? rank : meta?.rank;
+  // Si el rango elegido (o el de por defecto) no está en los datos descargados,
+  // se cae al primero disponible. Antes se quedaba sin estadísticas y la app
+  // mostraba "sin datos" teniéndolos.
+  const activeRank = useMemo(() => {
+    const disponibles = meta?.statsByRank ?? {};
+    if (rank && disponibles[rank]) return rank;
+    if (meta?.rank && disponibles[meta.rank]) return meta.rank;
+    return Object.keys(disponibles)[0] ?? meta?.rank;
+  }, [rank, meta]);
 
   // Todo se indexa por nombre normalizado: la API y el catálogo escriben algunos
   // héroes distinto y si no, se quedarían sin datos sin dar ningún error.
@@ -76,8 +98,10 @@ export default function App() {
   );
 
   const ranked = useMemo(
-    () => (catalog ? rankRoamers(roamPool, { enemies, allies, bans, mastery, meta: metaCtx }) : []),
-    [catalog, roamPool, metaCtx, enemies, allies, bans, mastery],
+    () => (catalog
+      ? rankRoamers(roamPool, { enemies, allies, bans, mastery, meta: metaCtx, enemyRoam })
+      : []),
+    [catalog, roamPool, metaCtx, enemies, allies, bans, mastery, enemyRoam],
   );
 
   const empate = useMemo(() => empatados(ranked), [ranked]);
@@ -90,17 +114,23 @@ export default function App() {
   );
 
   const addTo = (hero) => {
-    const setter = { enemy: setEnemies, ally: setAllies, ban: setBans }[sheet];
-    setter?.((prev) => [...prev, hero]);
+    const setter = { enemy: setEnemyNames, ally: setAllyNames, ban: setBanNames }[sheet];
+    setter?.((prev) => [...prev, hero.name]);
     setSheet(null);
   };
 
-  const remove = (setter) => (hero) =>
-    setter((prev) => prev.filter((h) => h.name !== hero.name));
+  const remove = (setter) => (hero) => {
+    setter((prev) => prev.filter((n) => n !== hero.name));
+    setEnemyRoam((r) => (r === hero.name ? null : r));
+  };
 
-  const reset = () => { setEnemies([]); setAllies([]); setBans([]); };
+  const reset = () => {
+    setEnemyNames([]); setAllyNames([]); setBanNames([]); setEnemyRoam(null);
+  };
 
-  const ageHours = meta ? (Date.now() - new Date(meta.generatedAt)) / 3.6e6 : null;
+  const generado = meta?.generatedAt ? new Date(meta.generatedAt) : null;
+  const fechaValida = generado && !Number.isNaN(generado.getTime());
+  const ageHours = fechaValida ? (Date.now() - generado) / 3.6e6 : null;
 
   if (error) {
     return (
@@ -117,26 +147,29 @@ export default function App() {
         <div className="brand">
           <h1>Roam</h1>
           <span className={`freshness ${ageHours > 36 ? 'stale' : ''}`}>
-            {meta ? `${Math.round(ageHours)}h` : 'sin datos meta'}
+            {ageHours != null ? `${Math.round(ageHours)}h` : 'sin datos meta'}
           </span>
         </div>
 
         <Side title="Enemigos" kind="enemy" picks={enemies} max={5}
-              onAdd={() => setSheet('enemy')} onRemove={remove(setEnemies)} />
+              onAdd={() => setSheet('enemy')} onRemove={remove(setEnemyNames)}
+              markedName={enemyRoam}
+              onMark={(h) => setEnemyRoam((r) => (r === h.name ? null : h.name))}
+              markHint="Marca su roam" />
         <Side title="Tu equipo" kind="ally" picks={allies} max={4}
-              onAdd={() => setSheet('ally')} onRemove={remove(setAllies)} />
+              onAdd={() => setSheet('ally')} onRemove={remove(setAllyNames)} />
         <details className="more">
           <summary>Baneos y ajustes</summary>
 
           <Side title="Baneados" kind="bans" picks={bans} max={6}
-                onAdd={() => setSheet('ban')} onRemove={remove(setBans)} />
+                onAdd={() => setSheet('ban')} onRemove={remove(setBanNames)} />
 
           <div className="side" >
             <div className="side-label"><span>Rango</span></div>
             <RankPicker ranks={meta?.ranks} value={activeRank} onChange={setRank} />
           </div>
 
-          <BanSuggestions items={banIdeas} onBan={(h) => setBans((p) => [...p, h])} />
+          <BanSuggestions items={banIdeas} onBan={(h) => setBanNames((p) => [...p, h.name])} />
         </details>
 
         <div className="tools">
@@ -185,7 +218,7 @@ export default function App() {
         )}
 
         {ranked.slice(0, 8).map((r, i) => (
-          <Pick key={r.hero.name} result={r} index={i} stat={metaCtx.stats?.[r.hero.name]} />
+          <Pick key={r.hero.name} result={r} index={i} stat={metaCtx.stats?.[normName(r.hero.name)]} />
         ))}
 
         <Legend />
@@ -200,9 +233,12 @@ export default function App() {
         />
       )}
 
+      <Footer meta={meta} generado={fechaValida ? generado : null} ageHours={ageHours} rango={activeRank} />
+
       {sheet && (
         <HeroSheet
           heroes={allHeroes}
+          stats={metaCtx.stats}
           taken={taken}
           onPick={addTo}
           onClose={() => setSheet(null)}

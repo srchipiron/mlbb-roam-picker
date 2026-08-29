@@ -9,9 +9,13 @@
  */
 export const COUNTER_RULES = [
   {
-    enemyTag: 'mobile',
+    // La relación más decisiva del juego: contra Fanny o Ling, quien le corta el
+    // dash gana la partida. Va contra 'dash', no contra 'mobile': esa etiqueta
+    // servía a la vez para asesinos de blink y para héroes que solo rotan bien,
+    // y hacía que un anti-dash saliera recomendado contra Esmeralda o Uranus.
+    enemyTag: 'dash',
     roamTag: 'anti_mobility',
-    weight: 1.0,
+    weight: 0.95,
     why: (e) => `bloquea los dashes de ${e}`,
   },
   {
@@ -23,7 +27,7 @@ export const COUNTER_RULES = [
   {
     enemyTag: 'dive',
     roamTag: 'anti_dive',
-    weight: 0.8,
+    weight: 0.55,
     why: (e) => `castiga el salto de ${e}`,
   },
   {
@@ -71,6 +75,13 @@ export const COUNTER_RULES = [
     why: (e) => `quita la sorpresa a ${e}`,
   },
   {
+    // Movilidad general (rotar, esquivar zonas), sin dashes de por medio.
+    enemyTag: 'mobile',
+    roamTag: 'anti_mobility',
+    weight: 0.4,
+    why: (e) => `estorba las rotaciones de ${e}`,
+  },
+  {
     enemyTag: 'zone',
     roamTag: 'mobile',
     weight: 0.4,
@@ -106,6 +117,22 @@ export const ROLE_DEFAULTS = {
   marksman: ['hypercarry', 'immobile'],
 };
 
+/**
+ * Qué hace peligroso a un heroe enemigo contra TU equipo ya elegido.
+ * Es una tabla propia porque la de counters describe lo contrario: lo que un
+ * roamer le hace a un enemigo. Reutilizarla al revés daba avisos sin sentido.
+ */
+export const DANGER_RULES = [
+  { allyTag: 'immobile', enemyTag: 'dive', weight: 1.0, why: (a) => `salta encima de ${a}` },
+  { allyTag: 'immobile', enemyTag: 'burst', weight: 0.9, why: (a) => `revienta a ${a}` },
+  { allyTag: 'hypercarry', enemyTag: 'assassin_late', weight: 0.9, why: (a) => `caza a ${a} en late` },
+  { allyTag: 'heal', enemyTag: 'antiheal', weight: 0.8, why: (a) => `anula la curación de ${a}` },
+  { allyTag: 'sustain', enemyTag: 'antiheal', weight: 0.8, why: (a) => `anula la curación de ${a}` },
+  { allyTag: 'mobile', enemyTag: 'anti_mobility', weight: 0.7, why: (a) => `bloquea los dashes de ${a}` },
+  { allyTag: 'poke', enemyTag: 'dive', weight: 0.6, why: (a) => `no deja a ${a} pokear` },
+  { allyTag: 'engage', enemyTag: 'zone', weight: 0.5, why: (a) => `corta los inicios de ${a}` },
+];
+
 /** Umbral de partidas a partir del cual la maestría personal se considera fiable. */
 export const MASTERY_CONFIDENCE_GAMES = 20;
 
@@ -113,10 +140,16 @@ export const MASTERY_CONFIDENCE_GAMES = 20;
  * Pesos por defecto de cada componente del score final.
  * Suman 1. Ajustables desde la app (pantalla de Ajustes).
  */
+/**
+ * Pesos por defecto. Salen de un barrido sobre 200 drafts aleatorios, midiendo
+ * tres cosas: que contra asesinos móviles gane un anti-dash, que contra héroes
+ * de curación gane un antiheal, y que ningún roamer acapare las recomendaciones.
+ * No son intuición: cambiarlos a ojo suele empeorar alguna de las tres.
+ */
 export const DEFAULT_WEIGHTS = {
-  meta: 0.30,      // winrate global ajustado por muestra
-  counter: 0.22,   // matchup contra los picks enemigos
-  synergy: 0.13,   // sinergia con tus aliados
-  comp: 0.20,      // huecos de composición que rellena
-  mastery: 0.15,   // tu propio historial con el héroe
+  meta: 0.22,      // winrate global ajustado por muestra
+  counter: 0.36,   // matchup contra los picks enemigos
+  synergy: 0.10,   // sinergia con tus aliados
+  comp: 0.15,      // huecos de composición que rellena
+  mastery: 0.17,   // tu propio historial con el héroe
 };

@@ -1,0 +1,223 @@
+#!/usr/bin/env node
+/**
+ * Pruebas del motor. Sin dependencias: se ejecutan con `npm test` y en el
+ * workflow ANTES de compilar, así que un cambio que rompa la lógica no llega
+ * a publicarse.
+ */
+import { readFileSync } from 'node:fs';
+import { resolve, dirname } from 'node:path';
+import { fileURLToPath } from 'node:url';
+import {
+  metaScore, counterScore, compScore, masteryScore, rankRoamers,
+  suggestBans, mergeCatalog, indexByName, normName, coverage, empatados,
+} from '../src/engine/score.js';
+
+const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
+const cat = JSON.parse(readFileSync(resolve(ROOT, 'public/data/heroes.json'), 'utf8'));
+const all = mergeCatalog(cat.heroes, []);
+const pool = all.filter((h) => h.roam);
+const by = new Map(all.map((h) => [h.name, h]));
+const h = (n) => {
+  const x = by.get(n);
+  if (!x) throw new Error(`el catálogo no tiene a ${n}`);
+  return x;
+};
+
+let pasadas = 0;
+let fallos = 0;
+const test = (nombre, fn) => {
+  try {
+    fn();
+    pasadas++;
+  } catch (err) {
+    fallos++;
+    console.error(`  FALLA  ${nombre}\n         ${err.message}`);
+  }
+};
+const ok = (cond, msg) => { if (!cond) throw new Error(msg); };
+const rnd = (() => { let s = 99; return () => (s = (s * 1103515245 + 12345) % 2147483648) / 2147483648; })();
+
+console.log('Motor de recomendación');
+
+test('el catálogo no tiene nombres repetidos', () => {
+  const n = cat.heroes.map((x) => x.name);
+  ok(new Set(n).size === n.length, 'hay nombres duplicados');
+});
+
+test('todos los tags del catálogo están documentados', () => {
+  const conocidos = new Set(Object.keys(cat.tagLegend));
+  const malos = cat.heroes.flatMap((x) => x.tags).filter((t) => !conocidos.has(t));
+  ok(!malos.length, `tags sin definir: ${[...new Set(malos)].join(', ')}`);
+});
+
+test('los nombres se normalizan pese a puntuación y variantes', () => {
+  const pares = [['X.Borg', 'X Borg'], ['Yi Sun-shin', 'Yi Sun Shin'], ["Chang'e", 'Change'],
+    ['Popol and Kupa', 'Popol & Kupa'], ['Lapu-Lapu', 'LapuLapu']];
+  for (const [a, b] of pares) ok(normName(a) === normName(b), `${a} ≠ ${b}`);
+});
+
+test('el winrate se encoge según la muestra', () => {
+  const mucha = metaScore({ winRate: 0.54, matches: 9000 }, 0.50).value;
+  const poca = metaScore({ winRate: 0.58, matches: 30 }, 0.50).value;
+  ok(mucha > poca, '30 partidas al 58% no pueden valer más que 9000 al 54%');
+});
+
+test('sin número de partidas, el pickrate hace de muestra', () => {
+  const alto = metaScore({ winRate: 0.54, pickRate: 0.03 }, 0.497).value;
+  const bajo = metaScore({ winRate: 0.54, pickRate: 0.002 }, 0.497).value;
+  ok(alto > bajo, 'el pickrate no está diferenciando la confianza');
+});
+
+test('el dato real de la API puede contradecir a las reglas por tags', () => {
+  // Por tags, Belerick contraataca a Fanny (peel + anti_dive). Si las partidas
+  // reales dicen que pierde el matchup, debe mandar el dato, no mi regla.
+  const malo = counterScore(h('Belerick'), [h('Fanny')], indexByName({ Belerick: { Fanny: 0.44 } }, 2)).value;
+  const porTags = counterScore(h('Belerick'), [h('Fanny')], undefined).value;
+  const bueno = counterScore(h('Belerick'), [h('Fanny')], indexByName({ Belerick: { Fanny: 0.58 } }, 2)).value;
+  ok(malo < porTags, 'un matchup perdido no baja la puntuación');
+  ok(bueno > malo, 'el dato real no ordena los matchups');
+});
+
+test('el roamer enemigo marcado pesa el doble', () => {
+  const m = indexByName({ Khufra: { Fanny: 0.58, Layla: 0.42 } }, 2);
+  const neutro = counterScore(h('Khufra'), [h('Fanny'), h('Layla')], m).value;
+  const marcado = counterScore(h('Khufra'), [h('Fanny'), h('Layla')], m, 'Fanny').value;
+  ok(marcado > neutro, 'marcar al enemigo bueno no sube el score');
+});
+
+test('la composición no premia huecos que un aliado ya cubre', () => {
+  const solo = compScore(h('Tigreal'), [h('Layla')]).value;
+  const conOtroTanque = compScore(h('Tigreal'), [h('Layla'), h('Atlas')]).value;
+  ok(conOtroTanque < solo, 'con otro iniciador ya en el equipo debería bajar');
+});
+
+test('la maestría personal sube el puesto de un héroe', () => {
+  const sin = rankRoamers(pool, { meta: {} });
+  const con = rankRoamers(pool, { meta: {}, mastery: { Belerick: { games: 80, winRate: 0.62 } } });
+  const puesto = (r) => r.findIndex((x) => x.hero.name === 'Belerick');
+  ok(puesto(con) < puesto(sin), 'llevarlo al 62% no mejora su puesto');
+});
+
+test('pocas partidas apenas mueven la maestría', () => {
+  const muchas = masteryScore(h('Belerick'), { Belerick: { games: 80, winRate: 0.62 } }).value;
+  const pocas = masteryScore(h('Belerick'), { Belerick: { games: 3, winRate: 1.0 } }).value;
+  ok(pocas < muchas, '3 partidas al 100% no pueden pesar tanto');
+});
+
+test('los héroes ya cogidos o baneados no se recomiendan', () => {
+  const r = rankRoamers(pool, { bans: [h('Khufra')], allies: [h('Atlas')], meta: {} });
+  ok(!r.some((x) => x.hero.name === 'Khufra'), 'recomienda un héroe baneado');
+  ok(!r.some((x) => x.hero.name === 'Atlas'), 'recomienda un héroe ya cogido');
+});
+
+test('el orden es determinista ante empates', () => {
+  const a = rankRoamers(pool, { meta: {} }).map((x) => x.hero.name);
+  const b = rankRoamers([...pool].reverse(), { meta: {} }).map((x) => x.hero.name);
+  ok(JSON.stringify(a) === JSON.stringify(b), 'el resultado depende del orden del catálogo');
+});
+
+test('contra dashes sube un anti-mobility; contra curación, un antiheal', () => {
+  const vsFanny = rankRoamers(pool, { enemies: [h('Fanny')], meta: {} }).slice(0, 8).map((x) => x.hero.name);
+  ok(vsFanny.some((n) => h(n).tags.includes('anti_mobility')),
+    `sin anti-mobility en el top 8: ${vsFanny.join(', ')}`);
+  const vsEsme = rankRoamers(pool, { enemies: [h('Esmeralda')], meta: {} }).slice(0, 8).map((x) => x.hero.name);
+  ok(vsEsme.some((n) => h(n).tags.includes('antiheal')),
+    `sin antiheal en el top 8: ${vsEsme.join(', ')}`);
+});
+
+test('la recomendación responde al equipo enemigo', () => {
+  const stats = indexByName(Object.fromEntries(
+    all.map((x) => [x.name, { winRate: 0.497 + (rnd() - 0.5) * 0.05, matches: 5000 }])));
+  const meta = { stats, patchAvgWinRate: 0.497 };
+  const top3 = (nombres) =>
+    rankRoamers(pool, { enemies: nombres.map(h), meta }).slice(0, 3).map((x) => x.hero.name);
+
+  const vsDashes = top3(['Fanny', 'Ling', 'Lancelot']);
+  const vsCuracion = top3(['Esmeralda', 'Uranus', 'Thamuz']);
+
+  ok(h(vsDashes[0]).tags.includes('anti_mobility'),
+    `contra tres asesinos móviles el nº1 debería frenar dashes: ${vsDashes.join(', ')}`);
+  ok(h(vsCuracion[0]).tags.includes('antiheal'),
+    `contra tres héroes de curación el nº1 debería cortar curación: ${vsCuracion.join(', ')}`);
+  ok(vsDashes[0] !== vsCuracion[0],
+    'la recomendación no cambia entre dos composiciones enemigas opuestas');
+});
+
+test('ningún héroe acapara las recomendaciones', () => {
+  // Con su propio generador y varios sorteos de winrates: si dependiera de un
+  // único sorteo, el resultado cambiaría según cuántas pruebas corran antes.
+  const otros = all.filter((x) => !x.roam);
+  const cuotas = [];
+
+  for (let sorteo = 0; sorteo < 5; sorteo++) {
+    let semilla = 1000 + sorteo * 77;
+    const r = () => (semilla = (semilla * 1103515245 + 12345) % 2147483648) / 2147483648;
+    const stats = indexByName(Object.fromEntries(
+      all.map((x) => [x.name, { winRate: 0.497 + (r() - 0.5) * 0.05, matches: 5000 }])));
+    const meta = { stats, patchAvgWinRate: 0.497 };
+    // Fisher-Yates. Con `sort(() => r() - 0.5)` el barajado está sesgado hacia
+    // el orden original, así que salían casi siempre los mismos enemigos y la
+    // concentración medida era mayor que la real.
+    const pick = (arr, n) => {
+      const c = [...arr];
+      for (let i = c.length - 1; i > 0; i--) {
+        const j = Math.floor(r() * (i + 1));
+        [c[i], c[j]] = [c[j], c[i]];
+      }
+      return c.slice(0, n);
+    };
+
+    const cuenta = {};
+    for (let i = 0; i < 100; i++) {
+      const top = rankRoamers(pool, { enemies: pick(otros, 3), allies: pick(otros, 3), meta })[0].hero.name;
+      cuenta[top] = (cuenta[top] ?? 0) + 1;
+    }
+    cuotas.push(Math.max(...Object.values(cuenta)) / 100);
+  }
+
+  const media = cuotas.reduce((a, b) => a + b, 0) / cuotas.length;
+  // Algo de concentración es normal: un roamer completo y con buen winrate
+  // merece salir a menudo. Lo que no vale es lo de antes, un 94% fijo.
+  ok(media < 0.55, `el líder acapara de media el ${Math.round(media * 100)}% (${cuotas.map((c) => Math.round(c * 100)).join(', ')})`);
+});
+
+test('los baneos señalan la amenaza real contra tu equipo', () => {
+  const stats = Object.fromEntries(all.map((x) => [x.name, { winRate: 0.50, banRate: 0.04, matches: 5000 }]));
+  stats.Fanny = { winRate: 0.53, banRate: 0.60, matches: 9000 };
+  const r = suggestBans(all, { allies: [h('Melissa')], meta: { stats: indexByName(stats), patchAvgWinRate: 0.50 } });
+  ok(r[0].hero.name === 'Fanny', `esperaba Fanny la primera, salió ${r[0].hero.name}`);
+});
+
+test('la cobertura detecta héroes sin datos', () => {
+  const c = coverage([h('Khufra'), h('Atlas')], indexByName({ Khufra: { winRate: 0.5 } }));
+  ok(c.withData === 1 && c.missing[0] === 'Atlas', JSON.stringify(c));
+});
+
+test('los empates técnicos se agrupan', () => {
+  const e = empatados([{ score: 0.60 }, { score: 0.595 }, { score: 0.50 }]);
+  ok(e.length === 2, `esperaba 2 empatados, hubo ${e.length}`);
+});
+
+test('las estadísticas indexadas solo se leen con el nombre normalizado', () => {
+  // Este fallo estuvo publicado: la tarjeta buscaba stats[hero.name] contra un
+  // mapa indexado en minúsculas, así que TODAS mostraban "sin datos".
+  const idx = indexByName({ 'X.Borg': { winRate: 0.53 } });
+  ok(idx['X.Borg'] === undefined, 'el nombre crudo no debería encontrar nada');
+  ok(idx[normName('X Borg')]?.winRate === 0.53, 'el normalizado sí debe encontrarlo');
+});
+
+test('la app no busca estadísticas con el nombre crudo', () => {
+  const app = readFileSync(resolve(ROOT, 'src/App.jsx'), 'utf8');
+  const crudos = app.match(/stats\??\.\[[^\]]*hero\.name\]/g) ?? [];
+  const sinNormalizar = crudos.filter((x) => !x.includes('normName'));
+  ok(!sinNormalizar.length, `sin normalizar: ${sinNormalizar.join(', ')}`);
+});
+
+test('un héroe nuevo de la API entra con los tags de su rol', () => {
+  const merged = mergeCatalog(cat.heroes, [{ name: 'HeroeNuevo', role: 'tank' }]);
+  const nuevo = merged.find((x) => x.name === 'HeroeNuevo');
+  ok(nuevo?.roam && nuevo.tags.length, 'no hereda tags de tanque ni entra al pool de roam');
+});
+
+console.log(`\n${pasadas} pruebas correctas, ${fallos} fallos.`);
+process.exit(fallos ? 1 : 0);

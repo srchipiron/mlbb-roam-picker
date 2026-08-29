@@ -1,12 +1,16 @@
 import {
   ROLE_DEFAULTS,
   COUNTER_RULES,
+  DANGER_RULES,
   TEAM_NEEDS,
   MASTERY_CONFIDENCE_GAMES,
   DEFAULT_WEIGHTS,
 } from './rules.js';
 
 const clamp01 = (n) => Math.max(0, Math.min(1, n));
+
+/** Ventaja máxima que un roamer puede acumular contra un enemigo: 1.4 + 0.9/2. */
+const SUB_MAX = 1.85;
 
 /**
  * Clave normalizada de un nombre de héroe. La API y el catálogo escriben lo
@@ -22,14 +26,17 @@ export const normName = (name) =>
     .replace(/&/g, 'and')          // "Popol & Kupa" = "Popol and Kupa"
     .replace(/[^a-z0-9]/g, '');
 
-/** Reindexa un objeto {nombre: valor} por clave normalizada. */
-export function indexByName(obj) {
+/**
+ * Reindexa {nombre: valor} por clave normalizada.
+ * `depth` dice cuántos niveles de nombres hay: 1 para las estadísticas,
+ * 2 para las matrices de counters y sinergias. Antes se adivinaba mirando si el
+ * valor tenía winRate, y una estadística sin ese campo se rompía en silencio.
+ */
+export function indexByName(obj, depth = 1) {
   if (!obj) return undefined;
   const out = {};
   for (const [k, v] of Object.entries(obj)) {
-    out[normName(k)] = v && typeof v === 'object' && !Array.isArray(v) && !('winRate' in v)
-      ? indexByName(v)   // matrices de counters/sinergias: normaliza los dos niveles
-      : v;
+    out[normName(k)] = depth > 1 ? indexByName(v, depth - 1) : v;
   }
   return out;
 }
@@ -51,11 +58,17 @@ const lookup = (map, name) => {
  */
 export function metaScore(stat, patchAvgWinRate = 0.5) {
   if (!stat || stat.winRate == null) return { value: 0.5, confident: false };
-  const n = stat.matches ?? 0;
-  const prior = 400; // partidas equivalentes de la media; sube esto si quieres ser más conservador
+
+  // Muestra: partidas reales si la API las da. Muchas no las dan, y entonces
+  // n=0 encogía TODOS los winrates a la media y el componente meta valía lo
+  // mismo para todo el mundo. El pickrate sirve de proxy: un héroe con 3% de
+  // presencia tiene mucha más muestra que uno con 0,2%.
+  const n = stat.matches ?? (stat.pickRate != null ? stat.pickRate * 40000 : 1500);
+  const prior = 400;
   const shrunk = (stat.winRate * n + patchAvgWinRate * prior) / (n + prior);
-  // Mapea 44%..56% a 0..1. Fuera de ese rango casi nunca hay nada.
-  const value = clamp01((shrunk - 0.44) / 0.12);
+
+  // Centrado en la media del parche: ±6 puntos cubre casi todo el reparto.
+  const value = clamp01((shrunk - (patchAvgWinRate - 0.06)) / 0.12);
   return { value, confident: n >= 200, shrunkWinRate: shrunk };
 }
 
@@ -63,18 +76,22 @@ export function metaScore(stat, patchAvgWinRate = 0.5) {
  * Counter. Primero intenta el dato real de la API (winrate del heroe A contra B).
  * Si no existe para ese par, cae a las reglas por tags.
  */
-export function counterScore(roamHero, enemies, counterMatrix) {
+export function counterScore(roamHero, enemies, counterMatrix, enemyRoamName = null) {
   if (!enemies.length) return { value: 0.5, reasons: [] };
 
   const reasons = [];
   let total = 0;
+  let pesoTotal = 0;
 
   for (const enemy of enemies) {
+    // El roamer rival es con quien más vas a chocar: su matchup pesa el doble.
+    const peso = enemyRoamName && normName(enemy.name) === normName(enemyRoamName) ? 2 : 1;
+    pesoTotal += peso;
     const pair = lookup(lookup(counterMatrix, roamHero.name), enemy.name);
     if (pair != null) {
       // pair = winrate de roamHero contra enemy (0..1). 0.50 es neutro.
       const delta = clamp01((pair - 0.44) / 0.12);
-      total += delta;
+      total += delta * peso;
       if (pair >= 0.53) reasons.push({ text: `gana el matchup contra ${enemy.name}`, good: true, w: 1.2 });
       if (pair <= 0.47) reasons.push({ text: `pierde contra ${enemy.name}`, good: false, w: 1.3 });
       continue;
@@ -94,10 +111,14 @@ export function counterScore(roamHero, enemies, counterMatrix) {
     }
     positivas.sort((a, b) => b - a);
     const sub = (positivas[0] ?? 0) + (positivas[1] ?? 0) * 0.5 + penalizacion;
-    total += clamp01(0.5 + sub * 0.28);
+    // Escalado, no recortado. Con un multiplicador fijo la puntuación se pegaba
+    // al tope: media plantilla marcaba 1.00 y dejaba de distinguir a quien corta
+    // dashes de quien solo protege al carry. SUB_MAX es la ventaja máxima que
+    // puede acumular un héroe (la mejor regla más media de la segunda).
+    total += (0.5 + clamp01(sub / SUB_MAX) * 0.5) * peso;
   }
 
-  return { value: total / enemies.length, reasons: dedupe(reasons) };
+  return { value: total / pesoTotal, reasons: dedupe(reasons) };
 }
 
 /** Sinergia con aliados ya elegidos. Mismo patron: dato real, si no, tags. */
@@ -127,7 +148,7 @@ export function synergyScore(roamHero, allies, synergyMatrix) {
       sub += 0.5;
       reasons.push({ text: `mantiene vivo a ${ally.name}`, good: true, w: 0.5 });
     }
-    total += clamp01(0.5 + sub * 0.2);
+    total += clamp01(0.5 + sub * 0.20);
   }
 
   return { value: total / allies.length, reasons: dedupe(reasons) };
@@ -213,7 +234,7 @@ export function scoreHero(roamHero, ctx) {
 
   const parts = {
     meta: metaScore(lookup(meta.stats, roamHero.name), meta.patchAvgWinRate ?? 0.5),
-    counter: counterScore(roamHero, enemies, meta.counters),
+    counter: counterScore(roamHero, enemies, meta.counters, ctx.enemyRoam),
     synergy: synergyScore(roamHero, allies, meta.synergies),
     comp: compScore(roamHero, allies),
     mastery: masteryScore(roamHero, mastery),
@@ -249,16 +270,26 @@ export function scoreHero(roamHero, ctx) {
 
 /** Ordena todo el pool de roam para el estado actual del draft. */
 export function rankRoamers(pool, ctx) {
+  // Normalizado: un pick guardado con otra grafía seguiría apareciendo como
+  // recomendación disponible aunque ya esté cogido.
   const taken = new Set([
-    ...(ctx.enemies ?? []).map((h) => h.name),
-    ...(ctx.allies ?? []).map((h) => h.name),
-    ...(ctx.bans ?? []).map((h) => h.name),
-  ]);
+    ...(ctx.enemies ?? []),
+    ...(ctx.allies ?? []),
+    ...(ctx.bans ?? []),
+  ].map((h) => normName(h.name)));
 
-  return pool
-    .filter((h) => !taken.has(h.name))
-    .map((h) => scoreHero(h, ctx))
-    .sort((a, b) => b.score - a.score);
+  const resultados = pool
+    .filter((h) => !taken.has(normName(h.name)))
+    .map((h) => scoreHero(h, ctx));
+
+  return resultados
+    .sort((a, b) =>
+      // Empate exacto: primero lo que mejor lleves, luego el winrate, y por
+      // último el nombre. Sin esto el orden dependía del orden del catálogo.
+      b.score - a.score ||
+      b.parts.mastery.value - a.parts.mastery.value ||
+      b.parts.meta.value - a.parts.meta.value ||
+      a.hero.name.localeCompare(b.hero.name));
 }
 
 /** Un motivo por tipo de razón: repetir "bloquea los dashes de X" tres veces no informa. */
@@ -310,25 +341,27 @@ export function suggestBans(allHeroes, ctx) {
       const power = metaScore(stat, meta.patchAvgWinRate ?? 0.5).value;
       const consensus = stat.banRate ?? 0;
 
-      // Cuánto castiga a los aliados que ya has elegido.
-      let danger = 0;
+      // Cuánto castiga a los aliados que ya has elegido. Con la tabla propia de
+      // peligro, no con la de counters puesta del revés.
+      const positivas = [];
       const reasons = [];
       for (const ally of allies) {
-        for (const rule of COUNTER_RULES) {
-          if (rule.weight <= 0) continue;
-          if (hero.tags.includes(rule.roamTag) && ally.tags.includes(rule.enemyTag)) {
-            danger += rule.weight;
-            reasons.push({ text: `castiga a ${ally.name}`, good: false, w: rule.weight });
-          }
+        for (const rule of DANGER_RULES) {
+          if (!ally.tags.includes(rule.allyTag) || !hero.tags.includes(rule.enemyTag)) continue;
+          positivas.push(rule.weight);
+          reasons.push({ text: rule.why(ally.name), good: false, w: rule.weight });
         }
       }
-      const dangerNorm = Math.min(1, danger / 3.5);
+      // La amenaza más fuerte y media la segunda, como en el resto del motor.
+      positivas.sort((a, b) => b - a);
+      const danger = (positivas[0] ?? 0) + (positivas[1] ?? 0) * 0.5;
+      const dangerNorm = Math.min(1, danger / 1.5);
 
       return {
         hero,
         stat,
-        score: power * 0.45 + consensus * 0.40 + dangerNorm * 0.15,
-        reasons: dedupe(reasons).slice(0, 1),
+        score: power * 0.40 + consensus * 0.35 + dangerNorm * 0.25,
+        reasons: dedupe(reasons).sort((a, b) => b.w - a.w).slice(0, 1),
       };
     })
     .sort((a, b) => b.score - a.score)

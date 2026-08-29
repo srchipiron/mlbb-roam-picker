@@ -249,11 +249,16 @@ function pick(obj, keys, depth = 0) {
   return undefined;
 }
 
+/**
+ * La API mezcla 0.52 y 52 para decir lo mismo. Con Math.abs, además, un delta
+ * negativo (-2.5, o sea -2,5 puntos) se convierte bien: antes se quedaba en
+ * -2.5 y acababa guardado como si fuera un winrate.
+ */
 const asRate = (n) => {
   if (n == null) return null;
   const x = Number(n);
   if (Number.isNaN(x)) return null;
-  return x > 1 ? x / 100 : x; // la API mezcla 0.52 y 52
+  return Math.abs(x) > 1 ? x / 100 : x;
 };
 
 const NAME_KEYS = ['name', 'hero_name', 'heroname', 'hero'];
@@ -305,14 +310,27 @@ async function fetchStats(rank) {
   return stats;
 }
 
+/**
+ * Pares héroe→rival. Unos campos son winrate absoluto y otros un delta sobre la
+ * media, y distinguirlos por su tamaño fallaba: un delta de +0.25 se tomaba por
+ * un winrate del 25%. Ahora se mira QUÉ campo vino, que es lo que lo determina.
+ */
+const DELTA_KEYS = ['increase_win_rate', 'increase_winrate', 'win_rate_increase'];
+const ABS_KEYS = ['win_rate', 'hero_win_rate', 'winRate'];
+
 function relationMap(rows) {
   const map = {};
   for (const row of rows) {
     const name = pick(row, NAME_KEYS);
-    const rate = asRate(pick(row, ['increase_win_rate', 'win_rate', 'hero_win_rate']));
-    if (name && rate != null) {
-      // increase_win_rate viene como delta (+0.02); lo pasamos a winrate absoluto.
-      map[String(name).trim()] = Math.abs(rate) < 0.2 ? 0.5 + rate : rate;
+    if (!name) continue;
+
+    const delta = asRate(pick(row, DELTA_KEYS));
+    const abs = asRate(pick(row, ABS_KEYS));
+    const valor = delta != null ? 0.5 + delta : abs;
+
+    // Un winrate de pareja fuera de 20%-80% es un dato mal leído, no un matchup.
+    if (valor != null && valor > 0.2 && valor < 0.8) {
+      map[String(name).trim()] = valor;
     }
   }
   return map;

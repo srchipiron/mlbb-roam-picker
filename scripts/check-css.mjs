@@ -1,0 +1,32 @@
+// Comprobaciones sobre el CSS que no requieren navegador.
+import { readFileSync } from 'node:fs';
+import { resolve, dirname } from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
+const css = readFileSync(resolve(ROOT, 'src/styles.css'),'utf8');
+const fallos = [];
+
+// 1) nada esencial oculto en movil
+for (const sel of ['.slot .x', '.pie', '.reset', '.hero-grid']) {
+  const re = new RegExp(`\\${sel.replace(/\./g,'\\.')}[^{]*\\{[^}]*display:\\s*none`);
+  if (re.test(css)) fallos.push(`${sel} se oculta en algún sitio`);
+}
+// 2) toda variable var(--x) usada debe estar declarada
+const usadas = [...css.matchAll(/var\((--[\w-]+)\)/g)].map(m=>m[1]);
+const declaradas = new Set([...css.matchAll(/^\s*(--[\w-]+):/gm)].map(m=>m[1]));
+const huerfanas = [...new Set(usadas)].filter(v=>!declaradas.has(v));
+if (huerfanas.length) fallos.push('variables sin declarar: '+huerfanas.join(', '));
+// 3) llaves balanceadas
+if ((css.match(/{/g)||[]).length !== (css.match(/}/g)||[]).length) fallos.push('llaves desbalanceadas');
+// 4) clases usadas en los JSX que no existen en el CSS
+const jsx = ['src/App.jsx','src/components/ui.jsx','src/main.jsx']
+  .map(f=>readFileSync(resolve(ROOT, f),'utf8')).join('\n');
+const clases = new Set([...jsx.matchAll(/className=[{"`]([^"`}]*)/g)]
+  .flatMap(m=>m[1].split(/[\s${]+/)).filter(c=>/^[a-z][\w-]*$/.test(c)));
+const sinEstilo = [...clases].filter(c=>!css.includes('.'+c));
+if (sinEstilo.length) fallos.push('clases sin estilo: '+sinEstilo.join(', '));
+
+console.log(fallos.length ? 'FALLOS:\n  '+fallos.join('\n  ') : 'CSS correcto: sin ocultaciones, variables declaradas, clases con estilo.');
+
+process.exit(fallos.length ? 1 : 0);

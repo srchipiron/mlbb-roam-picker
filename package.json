@@ -1,6 +1,6 @@
 {
   "name": "mlbb-roam-picker",
-  "version": "0.1.0",
+  "version": "0.3.0",
   "private": true,
   "type": "module",
   "scripts": {
@@ -8,7 +8,8 @@
     "build": "vite build",
     "preview": "vite preview --host",
     "ingest": "node scripts/ingest.mjs",
-    "check": "node scripts/check-order.mjs src/App.jsx src/components/ui.jsx"
+    "check": "node scripts/check-order.mjs src/App.jsx src/components/ui.jsx",
+    "test": "node scripts/check-order.mjs src/App.jsx src/components/ui.jsx && node scripts/check-css.mjs && node scripts/test-engine.mjs"
   },
   "dependencies": {
     "react": "^18.3.1",

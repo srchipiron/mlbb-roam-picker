@@ -21,7 +21,8 @@
     "heal": "curacion propia alta",
     "shield": "escudo propio alto",
     "hypercarry": "escala a late game",
-    "assassin_late": "amenaza al backline en late"
+    "assassin_late": "amenaza al backline en late",
+    "dash": "depende de dashes o parpadeos para entrar y salir"
   },
   "heroes": [
     {
@@ -423,7 +424,8 @@
         "cc_hard",
         "mobile",
         "peel",
-        "anti_mobility"
+        "anti_mobility",
+        "dash"
       ],
       "roam": true
     },
@@ -433,7 +435,8 @@
       "tags": [
         "burst",
         "mobile",
-        "dive"
+        "dive",
+        "dash"
       ]
     },
     {
@@ -470,7 +473,8 @@
       "tags": [
         "heal",
         "dive",
-        "burst"
+        "burst",
+        "dash"
       ]
     },
     {
@@ -480,7 +484,8 @@
         "dive",
         "burst",
         "heal",
-        "mobile"
+        "mobile",
+        "dash"
       ]
     },
     {
@@ -490,7 +495,8 @@
         "cc_hard",
         "dive",
         "burst",
-        "mobile"
+        "mobile",
+        "dash"
       ]
     },
     {
@@ -499,7 +505,8 @@
       "tags": [
         "dive",
         "burst",
-        "mobile"
+        "mobile",
+        "dash"
       ]
     },
     {
@@ -546,7 +553,8 @@
         "poke",
         "burst",
         "hypercarry",
-        "immobile"
+        "immobile",
+        "dash"
       ]
     },
     {
@@ -556,7 +564,8 @@
         "mobile",
         "dive",
         "burst",
-        "shield"
+        "shield",
+        "dash"
       ]
     },
     {
@@ -658,7 +667,8 @@
         "mobile",
         "dive",
         "burst",
-        "assassin_late"
+        "assassin_late",
+        "dash"
       ]
     },
     {
@@ -667,7 +677,8 @@
       "tags": [
         "dive",
         "burst",
-        "mobile"
+        "mobile",
+        "dash"
       ]
     },
     {
@@ -685,7 +696,8 @@
       "tags": [
         "burst",
         "hypercarry",
-        "mobile"
+        "mobile",
+        "dash"
       ]
     },
     {
@@ -695,7 +707,8 @@
         "cc_hard",
         "burst",
         "mobile",
-        "dive"
+        "dive",
+        "dash"
       ]
     },
     {
@@ -704,7 +717,8 @@
       "tags": [
         "mobile",
         "dive",
-        "burst"
+        "burst",
+        "dash"
       ]
     },
     {
@@ -722,7 +736,8 @@
       "tags": [
         "burst",
         "dive",
-        "mobile"
+        "mobile",
+        "dash"
       ]
     },
     {
@@ -731,7 +746,8 @@
       "tags": [
         "mobile",
         "hypercarry",
-        "dive"
+        "dive",
+        "dash"
       ]
     },
     {
@@ -740,7 +756,8 @@
       "tags": [
         "mobile",
         "dive",
-        "burst"
+        "burst",
+        "dash"
       ]
     },
     {
@@ -750,7 +767,8 @@
         "mobile",
         "dive",
         "burst",
-        "assassin_late"
+        "assassin_late",
+        "dash"
       ]
     },
     {
@@ -760,7 +778,8 @@
         "dive",
         "burst",
         "mobile",
-        "vision"
+        "vision",
+        "dash"
       ]
     },
     {
@@ -796,7 +815,8 @@
       "tags": [
         "mobile",
         "dive",
-        "burst"
+        "burst",
+        "dash"
       ]
     },
     {
@@ -805,7 +825,8 @@
       "tags": [
         "burst",
         "cc_hard",
-        "dive"
+        "dive",
+        "dash"
       ]
     },
     {
@@ -815,7 +836,8 @@
         "burst",
         "cc_hard",
         "mobile",
-        "dive"
+        "dive",
+        "dash"
       ]
     },
     {
@@ -825,7 +847,8 @@
         "poke",
         "burst",
         "mobile",
-        "cc_hard"
+        "cc_hard",
+        "dash"
       ]
     },
     {
@@ -835,7 +858,8 @@
         "dive",
         "burst",
         "mobile",
-        "heal"
+        "heal",
+        "dash"
       ]
     },
     {
@@ -852,7 +876,8 @@
       "tags": [
         "mobile",
         "heal",
-        "engage"
+        "engage",
+        "dash"
       ]
     },
     {
@@ -870,7 +895,8 @@
       "tags": [
         "mobile",
         "dive",
-        "burst"
+        "burst",
+        "dash"
       ]
     },
     {
@@ -897,7 +923,8 @@
       "tags": [
         "burst",
         "cc_hard",
-        "mobile"
+        "mobile",
+        "dash"
       ]
     },
     {
@@ -917,7 +944,8 @@
         "mobile",
         "dive",
         "burst",
-        "assassin_late"
+        "assassin_late",
+        "dash"
       ]
     },
     {
@@ -927,7 +955,8 @@
         "heal",
         "dive",
         "burst",
-        "mobile"
+        "mobile",
+        "dash"
       ]
     },
     {
@@ -954,7 +983,8 @@
       "tags": [
         "poke",
         "zone",
-        "mobile"
+        "mobile",
+        "dash"
       ]
     },
     {
@@ -963,7 +993,8 @@
       "tags": [
         "cc_hard",
         "dive",
-        "mobile"
+        "mobile",
+        "dash"
       ]
     },
     {
@@ -1017,7 +1048,8 @@
       "tags": [
         "mobile",
         "dive",
-        "burst"
+        "burst",
+        "dash"
       ]
     },
     {
@@ -1035,7 +1067,8 @@
       "tags": [
         "mobile",
         "dive",
-        "burst"
+        "burst",
+        "dash"
       ]
     },
     {
@@ -1064,7 +1097,8 @@
         "burst",
         "cc_hard",
         "dive",
-        "mobile"
+        "mobile",
+        "dash"
       ]
     },
     {
@@ -1073,7 +1107,8 @@
       "tags": [
         "poke",
         "burst",
-        "mobile"
+        "mobile",
+        "dash"
       ]
     },
     {
@@ -1100,7 +1135,8 @@
       "tags": [
         "dive",
         "burst",
-        "mobile"
+        "mobile",
+        "dash"
       ]
     },
     {
@@ -1109,7 +1145,8 @@
       "tags": [
         "dive",
         "burst",
-        "cc_hard"
+        "cc_hard",
+        "dash"
       ]
     },
     {
@@ -1128,7 +1165,8 @@
       "tags": [
         "cc_hard",
         "dive",
-        "burst"
+        "burst",
+        "dash"
       ]
     },
     {
@@ -1147,7 +1185,8 @@
       "tags": [
         "mobile",
         "dive",
-        "burst"
+        "burst",
+        "dash"
       ]
     },
     {
@@ -1174,7 +1213,8 @@
       "tags": [
         "poke",
         "burst",
-        "mobile"
+        "mobile",
+        "dash"
       ]
     },
     {
@@ -1194,7 +1234,8 @@
         "mobile",
         "hypercarry",
         "assassin_late",
-        "dive"
+        "dive",
+        "dash"
       ]
     },
     {
@@ -1221,7 +1262,8 @@
       "tags": [
         "hypercarry",
         "mobile",
-        "vision"
+        "vision",
+        "dash"
       ]
     },
     {
@@ -1230,7 +1272,8 @@
       "tags": [
         "dive",
         "burst",
-        "cc_hard"
+        "cc_hard",
+        "dash"
       ]
     },
     {
@@ -1276,7 +1319,8 @@
       "tags": [
         "dive",
         "mobile",
-        "burst"
+        "burst",
+        "dash"
       ]
     }
   ]

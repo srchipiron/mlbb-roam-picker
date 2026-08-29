@@ -17,26 +17,32 @@ const PART_LABELS = {
 };
 
 /** Fila de huecos de un bando. Tocar un hueco abre el selector. */
-export function Side({ title, kind, picks, max, onAdd, onRemove }) {
+export function Side({ title, kind, picks, max, onAdd, onRemove, markedName, onMark, markHint }) {
   const slots = [...picks, ...Array(Math.max(0, max - picks.length)).fill(null)];
   return (
     <section className={`side ${kind}`}>
       <div className="side-label">
         <span>{title}</span>
-        <span>{picks.length}/{max}</span>
+        <span>{onMark && picks.length ? markHint : `${picks.length}/${max}`}</span>
       </div>
       <div className="slots">
         {slots.map((hero, i) =>
           hero ? (
-            <button
-              key={hero.name}
-              className="slot"
-              onClick={() => onRemove(hero)}
-              aria-label={`Quitar ${hero.name}`}
-            >
-              <span>{hero.name}</span>
-              <span className="x" aria-hidden>×</span>
-            </button>
+            <div key={hero.name} className={`slot ${markedName === hero.name ? 'marked' : ''}`}>
+              {onMark ? (
+                <button
+                  className="mark"
+                  onClick={() => onMark(hero)}
+                  aria-pressed={markedName === hero.name}
+                  aria-label={`Marcar a ${hero.name} como su roam`}
+                  title="Marcar como su roam"
+                >
+                  {markedName === hero.name ? '◉' : '○'}
+                </button>
+              ) : null}
+              <span className="slot-name">{hero.name}</span>
+              <button className="x" onClick={() => onRemove(hero)} aria-label={`Quitar ${hero.name}`}>×</button>
+            </div>
           ) : (
             <button key={`empty-${i}`} className="slot empty" onClick={onAdd}>
               Añadir
@@ -49,7 +55,7 @@ export function Side({ title, kind, picks, max, onAdd, onRemove }) {
 }
 
 /** Selector a pantalla completa. Buscador enfocado y rejilla de toque grande. */
-export function HeroSheet({ heroes, taken, onPick, onClose }) {
+export function HeroSheet({ heroes, taken, stats, onPick, onClose }) {
   const [q, setQ] = useState('');
   const inputRef = useRef(null);
 
@@ -62,11 +68,15 @@ export function HeroSheet({ heroes, taken, onPick, onClose }) {
 
   const list = useMemo(() => {
     const norm = (s) => s.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+    const key = (s) => norm(s).replace(/[^a-z0-9]/g, '');
     const needle = norm(q.trim());
+    const pickRate = (h) => stats?.[key(h.name)]?.pickRate ?? -1;
     return heroes
       .filter((h) => !needle || norm(h.name).includes(needle))
-      .sort((a, b) => a.name.localeCompare(b.name));
-  }, [heroes, q]);
+      // Sin buscar, primero los más jugados: en 30 segundos de draft, el pick
+      // que necesitas suele estar entre los veinte primeros y te ahorras teclear.
+      .sort((a, b) => (q ? 0 : pickRate(b) - pickRate(a)) || a.name.localeCompare(b.name));
+  }, [heroes, q, stats]);
 
   return (
     <div className="sheet" role="dialog" aria-label="Elegir héroe">
@@ -260,5 +270,41 @@ export function MasteryEditor({ pool, mastery, onChange, onClose }) {
         ))}
       </div>
     </div>
+  );
+}
+
+/**
+ * Pie fijo abajo a la derecha: versión de la app y cuándo se descargaron los
+ * datos. La hora es la LOCAL del móvil, convertida desde la marca UTC que deja
+ * la ingesta, para que se lea de un vistazo sin hacer cuentas.
+ */
+export function Footer({ meta, generado, ageHours, rango }) {
+  const [abierto, setAbierto] = useState(false);
+
+  const fecha = generado
+    ? generado.toLocaleString('es-ES', {
+        day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit',
+      })
+    : null;
+
+  const viejo = ageHours != null && ageHours > 36;
+
+  return (
+    <footer className={`pie ${viejo ? 'stale' : ''}`} onClick={() => setAbierto((v) => !v)}>
+      {abierto && meta && (
+        <div className="pie-detalle">
+          <div>Datos de la API: {fecha ?? 'nunca'}</div>
+          <div>Antigüedad: {ageHours != null ? `${Math.round(ageHours)} h` : '—'}</div>
+          <div>Rango: {rango ?? '—'} · ventana {meta.days ?? '?'} días</div>
+          <div>Héroes con estadísticas: {meta.heroCount ?? 0}</div>
+          <div>Compilada: {new Date(__BUILD_TIME__).toLocaleString('es-ES')}</div>
+          {meta.diagnostics?.base && <div className="pie-api">{meta.diagnostics.base}</div>}
+        </div>
+      )}
+      <span className="pie-linea">
+        v{__APP_VERSION__}
+        {fecha ? ` · datos ${fecha}` : ' · sin datos'}
+      </span>
+    </footer>
   );
 }

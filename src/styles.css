@@ -59,9 +59,11 @@ button:focus-visible, [tabindex]:focus-visible { outline: 2px solid var(--gold);
   .brand h1 { font-size: 17px; }
   .side { margin-top: 8px; }
   .side-label { font-size: 10px; margin-bottom: 3px; }
-  .slot { min-height: 34px; min-width: 0; flex: 1 1 62px; padding: 6px 8px; font-size: 12px; }
-  .slot .x { display: none; }
-  .side.bans { display: none; }          /* los baneos caben en el panel desplegable */
+  /* La × es la ÚNICA forma de quitar un pick desde el móvil: no se oculta. */
+  .slot { min-height: 38px; min-width: 0; flex: 1 1 96px; padding: 6px 7px; font-size: 12px; gap: 3px; }
+  .slot .x { font-size: 20px; padding: 0 4px; }
+  /* Fuera del desplegable no caben; dentro sí, y ahí deben verse. */
+  .draft > .side.bans { display: none; }
   .tools { margin-top: 10px; }
   .tools .reset { padding: 8px; font-size: 11px; }
   .results { padding: 10px 12px; }
@@ -82,8 +84,8 @@ button:focus-visible, [tabindex]:focus-visible { outline: 2px solid var(--gold);
   .brand h1 { font-size: 16px; }
   .side { margin-top: 8px; }
   .side-label { font-size: 10px; margin-bottom: 3px; }
-  .slot { min-height: 32px; flex: 1 1 60px; padding: 5px 7px; font-size: 12px; }
-  .slot .x { display: none; }
+  .slot { min-height: 34px; flex: 1 1 92px; padding: 5px 6px; font-size: 12px; gap: 3px; }
+  .slot .x { font-size: 18px; padding: 0 4px; }
   .pick { padding: 8px 10px; gap: 8px; margin-bottom: 6px; }
   .pick-name { font-size: 16px; }
   .pick.top .pick-name { font-size: 19px; }
@@ -156,7 +158,11 @@ button:focus-visible, [tabindex]:focus-visible { outline: 2px solid var(--gold);
   display: flex; align-items: center; justify-content: space-between; gap: 6px;
 }
 .slot.empty { color: var(--muted); border-style: dashed; }
-.slot .x { color: var(--muted); font-size: 16px; line-height: 1; }
+.slot .x { color: var(--muted); font-size: 18px; line-height: 1; padding: 0 2px; }
+.slot .slot-name { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.slot .mark { color: var(--muted); font-size: 13px; line-height: 1; padding: 0 1px; }
+.slot.marked { border-color: var(--gold) !important; }
+.slot.marked .mark { color: var(--gold); }
 .side.enemy .slot:not(.empty) { border-color: var(--enemy); }
 .side.ally  .slot:not(.empty) { border-color: var(--ally); }
 .side.bans  .slot:not(.empty) { border-color: var(--ban); text-decoration: line-through; color: var(--muted); }
@@ -339,3 +345,24 @@ button:focus-visible, [tabindex]:focus-visible { outline: 2px solid var(--gold);
   padding: 11px 18px; margin-top: 12px;
   font-family: var(--font-display); text-transform: uppercase; letter-spacing: 0.12em; font-size: 12px;
 }
+
+/* ---------- pie de versión y frescura ---------- */
+
+.pie {
+  position: fixed; right: 8px; bottom: 6px; z-index: 5;
+  font-family: var(--font-num); font-size: 10px; color: var(--muted);
+  background: rgba(11, 14, 23, 0.88); border: 1px solid var(--line);
+  border-radius: var(--r); padding: 4px 8px; cursor: pointer;
+  max-width: min(92vw, 340px); text-align: right;
+}
+.pie.stale { color: var(--gold); border-color: var(--gold); }
+.pie-detalle {
+  text-align: left; margin-bottom: 5px; padding-bottom: 5px;
+  border-bottom: 1px solid var(--line); line-height: 1.5; color: var(--text);
+}
+.pie-api { color: var(--muted); word-break: break-all; margin-top: 3px; }
+.pie-linea { white-space: nowrap; }
+
+/* Que el pie no tape la última recomendación ni el botón de guardar. */
+.results { padding-bottom: 38px; }
+.mastery-list { padding-bottom: 34px; }

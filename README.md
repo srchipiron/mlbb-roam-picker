@@ -102,13 +102,32 @@ cuánto lo banea el resto de la gente y lo mal que le va a los aliados que ya ha
 - **No lee la pantalla del juego.** Los picks enemigos los metes tú a mano. En 30 segundos de draft
   da tiempo a tres o cuatro toques, no a más: por eso la rejilla tiene botones grandes y buscador.
 
+## Comprobaciones
+
+```bash
+npm test    # orden de declaraciones + estilos + 21 pruebas del motor
+```
+
+Las tres corren en GitHub **antes** de compilar, así que un cambio que rompa la
+lógica no llega a publicarse: te quedas con la versión anterior funcionando.
+
+- `check-order.mjs` — consts usadas antes de declararse. Ese fallo no da error al
+  compilar: deja la pantalla en negro al arrancar, y en el móvil no hay consola.
+- `check-css.mjs` — que nada esencial quede oculto en móvil (la × de quitar un
+  pick llegó a estarlo), variables sin declarar y clases sin estilo.
+- `test-engine.mjs` — desde el encogido del winrate hasta que ningún roamer
+  acapare las recomendaciones. Varias son regresiones de fallos ya publicados.
+
 ## Estructura
 
 ```
 scripts/ingest.mjs        descarga y normaliza el meta
 src/engine/rules.js       reglas de counter, necesidades de equipo, pesos
 src/engine/score.js       el motor: cinco componentes -> un número y su desglose
-src/components/ui.jsx     selector de héroes, slots, tarjeta de recomendación
+src/components/ui.jsx     selector de héroes, slots, tarjeta, pie de versión
+scripts/test-engine.mjs   pruebas del motor
+scripts/check-order.mjs   uso antes de declarar
+scripts/check-css.mjs     estilos y clases
 public/data/heroes.json   catálogo de roles y tags escrito a mano (esto es el activo real)
 ```
 
