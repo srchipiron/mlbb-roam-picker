@@ -233,7 +233,13 @@ export default function App() {
         />
       )}
 
-      <Footer meta={meta} generado={fechaValida ? generado : null} ageHours={ageHours} rango={activeRank} />
+      <Footer
+        meta={meta}
+        generado={fechaValida ? generado : null}
+        ageHours={ageHours}
+        rango={activeRank}
+        cov={cov}
+      />
 
       {sheet && (
         <HeroSheet

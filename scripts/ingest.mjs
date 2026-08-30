@@ -418,12 +418,17 @@ async function main() {
   }
 
   const statsByRank = { ...(previous?.statsByRank ?? {}) };
+  diagnostics.rangos = {};
   for (const rank of RANKS) {
     try {
       const s = await fetchStats(rank);
       if (Object.keys(s).length) statsByRank[rank] = s;
+      diagnostics.rangos[rank] = `${Object.keys(s).length} héroes`;
       console.log(`  · ${rank}: ${Object.keys(s).length} héroes`);
     } catch (err) {
+      // Antes solo salía por consola y en la app no había forma de saber que
+      // faltaban tres de los cuatro rangos.
+      diagnostics.rangos[rank] = `fallo: ${err.message.slice(0, 120)}`;
       console.warn(`  · ${rank}: fallo (${err.message}); conservo lo anterior`);
     }
     await sleep(250);
@@ -470,6 +475,7 @@ async function main() {
       schema: diagnostics.schema ?? null,
       routes: diagnostics.routes ?? null,
       relations: diagnostics.relations ?? null,
+      rangos: diagnostics.rangos ?? null,
       ok: [...new Set(diagnostics.ok)].slice(0, 6),
       failed: Object.keys(statsByRank).length ? [] : [...new Set(diagnostics.failed)].slice(0, 12),
     },

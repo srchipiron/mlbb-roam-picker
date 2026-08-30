@@ -278,7 +278,7 @@ export function MasteryEditor({ pool, mastery, onChange, onClose }) {
  * datos. La hora es la LOCAL del móvil, convertida desde la marca UTC que deja
  * la ingesta, para que se lea de un vistazo sin hacer cuentas.
  */
-export function Footer({ meta, generado, ageHours, rango }) {
+export function Footer({ meta, generado, ageHours, rango, cov }) {
   const [abierto, setAbierto] = useState(false);
 
   const fecha = generado
@@ -297,6 +297,29 @@ export function Footer({ meta, generado, ageHours, rango }) {
           <div>Antigüedad: {ageHours != null ? `${Math.round(ageHours)} h` : '—'}</div>
           <div>Rango: {rango ?? '—'} · ventana {meta.days ?? '?'} días</div>
           <div>Héroes con estadísticas: {meta.heroCount ?? 0}</div>
+          <div>Rangos descargados: {meta.ranks?.join(', ') || 'ninguno'}</div>
+          {meta.diagnostics?.rangos && Object.entries(meta.diagnostics.rangos)
+            .filter(([, v]) => String(v).startsWith('fallo'))
+            .map(([k, v]) => <div key={k} className="pie-aviso">{k}: {v}</div>)}
+
+          {/* Si faltan los counters, el motivo se enseña aquí: leer el JSON
+              en un móvil no es una opción razonable. */}
+          {cov && !cov.conCounters && (
+            <div className="pie-aviso">
+              Sin counters.
+              {meta.diagnostics?.relations ? (
+                <>
+                  {' '}Ruta: {meta.diagnostics.relations.rutaCounter ?? 'no encontrada'}.
+                  {' '}Intentos: {meta.diagnostics.relations.conId} por id,
+                  {' '}{meta.diagnostics.relations.porNombre} por nombre,
+                  {' '}{meta.diagnostics.relations.ok} con datos.
+                  {meta.diagnostics.relations.errores?.map((e) => (
+                    <div key={e} className="pie-api">{e}</div>
+                  ))}
+                </>
+              ) : ' La ingesta no dejó diagnóstico: reejecútala.'}
+            </div>
+          )}
           <div>Compilada: {new Date(__BUILD_TIME__).toLocaleString('es-ES')}</div>
           {meta.diagnostics?.base && <div className="pie-api">{meta.diagnostics.base}</div>}
         </div>

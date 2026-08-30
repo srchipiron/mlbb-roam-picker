@@ -362,6 +362,8 @@ button:focus-visible, [tabindex]:focus-visible { outline: 2px solid var(--gold);
 }
 .pie-api { color: var(--muted); word-break: break-all; margin-top: 3px; }
 .pie-linea { white-space: nowrap; }
+.pie-aviso { color: var(--gold); margin-top: 5px; }
+.pie-detalle { max-height: 46vh; overflow-y: auto; }
 
 /* Que el pie no tape la última recomendación ni el botón de guardar. */
 .results { padding-bottom: 38px; }
