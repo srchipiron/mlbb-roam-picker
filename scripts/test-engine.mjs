@@ -10,6 +10,7 @@ import { fileURLToPath } from 'node:url';
 import {
   metaScore, counterScore, compScore, masteryScore, rankRoamers,
   suggestBans, mergeCatalog, indexByName, normName, coverage, empatados,
+  riesgoContrapick, densidadCounters,
 } from '../src/engine/score.js';
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
@@ -252,6 +253,39 @@ test('la app no busca estadísticas con el nombre crudo', () => {
   const crudos = app.match(/stats\??\.\[[^\]]*hero\.name\]/g) ?? [];
   const sinNormalizar = crudos.filter((x) => !x.includes('normName'));
   ok(!sinNormalizar.length, `sin normalizar: ${sinNormalizar.join(', ')}`);
+});
+
+test('la matriz de counters se indexa en sus DOS niveles', () => {
+  // Este fallo estuvo publicado: App.jsx indexaba con profundidad 1, el segundo
+  // nivel se quedaba crudo ("Wanwan") y todo lo que lo buscaba normalizado
+  // fallaba en silencio.
+  const crudo = { 'X.Borg': { Wanwan: 0.44 } };
+  ok(indexByName(crudo)[normName('X Borg')]?.[normName('Wanwan')] === undefined,
+    'con profundidad 1 el segundo nivel NO queda normalizado');
+  ok(indexByName(crudo, 2)[normName('X Borg')]?.[normName('Wanwan')] === 0.44,
+    'con profundidad 2 debe encontrarse por clave normalizada');
+});
+
+test('la app indexa las matrices con los dos niveles', () => {
+  const app = readFileSync(resolve(ROOT, 'src/App.jsx'), 'utf8');
+  for (const m of ['counters', 'synergies']) {
+    const linea = app.match(new RegExp(`${m}: indexByName\\([^)]*\\)`))?.[0] ?? '';
+    ok(/,\s*2\s*\)/.test(linea), `${m} debe indexarse con profundidad 2, no con ${linea}`);
+  }
+});
+
+test('el riesgo de contrapick y la densidad leen la matriz con nombres crudos', () => {
+  // Con acceso crudo (fila[normName(x)]) contra un segundo nivel sin normalizar
+  // no acertaban ni un matchup: riesgoContrapick devolvia null para los 34
+  // roamers y el diagnostico anunciaba 0% de cobertura. Ambos deben usar lookup.
+  const rivales = pool.slice(0, 12);
+  const fila = Object.fromEntries(rivales.map((x, i) => [x.name, 0.40 + i * 0.01]));
+  const matriz = indexByName({ [pool[0].name]: fila }); // a proposito: solo nivel 1
+
+  ok(riesgoContrapick(pool[0], matriz, rivales) != null,
+    'riesgoContrapick devuelve null: no encuentra los matchups');
+  ok(densidadCounters([pool[0]], matriz, rivales).cobertura > 0,
+    'densidadCounters da 0%: no encuentra los matchups');
 });
 
 test('un héroe nuevo de la API entra con los tags de su rol', () => {

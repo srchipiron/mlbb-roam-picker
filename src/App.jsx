@@ -90,8 +90,11 @@ export default function App() {
   // héroes distinto y si no, se quedarían sin datos sin dar ningún error.
   const metaCtx = useMemo(() => ({
     stats: indexByName(meta?.statsByRank?.[activeRank] ?? meta?.stats),
-    counters: indexByName(meta?.counters),
-    synergies: indexByName(meta?.synergies),
+    // Profundidad 2: las matrices tienen nombre de heroe en los DOS niveles.
+    // Con 1 el segundo se quedaba crudo ("Wanwan"), y todo lo que buscaba ahi
+    // por clave normalizada fallaba en silencio.
+    counters: indexByName(meta?.counters, 2),
+    synergies: indexByName(meta?.synergies, 2),
     patchAvgWinRate: meta?.avgByRank?.[activeRank] ?? meta?.patchAvgWinRate ?? 0.5,
   }), [meta, activeRank]);
 

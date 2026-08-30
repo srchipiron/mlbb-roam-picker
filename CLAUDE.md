@@ -12,7 +12,7 @@ comprobaciones automáticas importan más de lo normal.
 
 ## Reglas de trabajo
 
-**Nunca subas nada sin pasar `npm test`.** Son tres comprobaciones y 28 pruebas
+**Nunca subas nada sin pasar `npm test`.** Son tres comprobaciones y 31 pruebas
 (orden de declaraciones, CSS y motor). El despliegue corre esas tres más una
 cuarta que no está en `npm test`: que `roam-meta.json` se haya regenerado hace
 menos de media hora. Si algo falla, el despliegue se detiene y la app se queda
@@ -52,7 +52,12 @@ Todos estos llegaron a producción y costaron rondas enteras de ida y vuelta:
   `check-css.mjs`.
 - **Nombres de héroe** — la API y el catálogo escriben distinto ("X.Borg" /
   "X Borg"). Todo se busca con `normName`. La matriz de counters tiene DOS
-  niveles y hay que indexar los dos: `indexByName(m, 2)`.
+  niveles y hay que indexar los dos: `indexByName(m, 2)`. Esto volvió en 0.4.0:
+  `App.jsx` indexaba con profundidad 1, el segundo nivel se quedaba crudo y
+  `riesgoContrapick` devolvía `null` para los 34 roamers sin que nada chillara.
+  El motor no se enteró porque `counterScore` busca con `lookup` en los dos
+  niveles y `lookup` prueba también la clave cruda. Dentro de una fila, usa
+  siempre `lookup(fila, nombre)`, nunca `fila[normName(nombre)]`.
 - **`main_hero_channel.id` (2678829) colándose por `main_heroid` (93)** — la API
   devolvía 422 en las 133 peticiones. Los ids de héroe se validan por rango.
 - **Motivos que le salían a todo el pool** ("no hay primera línea" es cierto

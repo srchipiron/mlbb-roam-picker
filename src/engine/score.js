@@ -510,7 +510,7 @@ export function riesgoContrapick(roamHero, counterMatrix, candidatos) {
   if (!fila) return null;
 
   const valores = candidatos
-    .map((h) => fila[normName(h.name)])
+    .map((h) => lookup(fila, h.name))
     .filter((v) => v != null)
     .sort((a, b) => a - b);
 
@@ -541,7 +541,7 @@ export function densidadCounters(pool, counters, candidatos) {
     const fila = lookup(counters, h.name) ?? {};
     for (const e of candidatos ?? []) {
       total++;
-      if (fila[normName(e.name)] != null) conDato++;
+      if (lookup(fila, e.name) != null) conDato++;
     }
   }
   return { media, cobertura: total ? conDato / total : 0 };
