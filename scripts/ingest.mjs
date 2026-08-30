@@ -98,7 +98,16 @@ async function request(url, method, body) {
     if (!res.ok) {
       let detail = '';
       try {
-        detail = (await res.text()).replace(/\s+/g, ' ').slice(0, 240);
+        const texto = await res.text();
+        // En un 422 lo único que importa es `details`: dice qué parámetro falla.
+        // El resto del cuerpo (soporte, timestamps) ocupaba todo el hueco y
+        // dejaba el dato útil fuera del recorte.
+        try {
+          const j = JSON.parse(texto);
+          detail = j.details ? JSON.stringify(j.details).slice(0, 400) : texto.slice(0, 300);
+        } catch {
+          detail = texto.replace(/\s+/g, ' ').slice(0, 300);
+        }
       } catch { /* sin cuerpo */ }
       const err = new Error(`HTTP ${res.status}${detail ? ` · ${detail}` : ''}`);
       err.status = res.status;
@@ -235,21 +244,40 @@ async function discoverRoutes() {
 }
 
 /** Llama a una ruta ya descubierta, mandando solo los parámetros que acepta. */
-async function callRoute(route, values, pathValue) {
-  const url = new URL(route.template.replace(/\{[^}]+\}/, encodeURIComponent(pathValue ?? '')));
-  const accepted = route.params.length
+export async function callRoute(route, values, pathValue) {
+  const base = route.template.replace(/\{[^}]+\}/, encodeURIComponent(pathValue ?? ''));
+  const declarados = route.params.length
     ? Object.fromEntries(Object.entries(values).filter(([k]) => route.params.includes(k)))
     : values;
 
-  if (route.method === 'GET') {
-    for (const [k, v] of Object.entries(accepted)) {
-      if (v != null) url.searchParams.set(k, String(v));
+  // Intentos en orden decreciente de exigencia. Un 422 significa que algún
+  // parámetro no le vale, y los valores por defecto del endpoint suelen
+  // funcionar: antes bastaba un parámetro mal para perder TODOS los counters.
+  const intentos = [
+    declarados,
+    Object.fromEntries(Object.entries(declarados).filter(([k]) => k === 'rank')),
+    {},
+  ];
+
+  let ultimoError;
+  for (const params of intentos) {
+    const url = new URL(base);
+    try {
+      if (route.method === 'GET') {
+        for (const [k, v] of Object.entries(params)) {
+          if (v != null) url.searchParams.set(k, String(v));
+        }
+        const data = await request(url.toString(), 'GET');
+        return { data, rows: firstArray(data) ?? [] };
+      }
+      const data = await request(url.toString(), route.method, params);
+      return { data, rows: firstArray(data) ?? [] };
+    } catch (err) {
+      ultimoError = err;
+      if (err.status !== 422) throw err; // solo tiene sentido aflojar ante validación
     }
-    const data = await request(url.toString(), 'GET');
-    return { data, rows: firstArray(data) ?? [] };
   }
-  const data = await request(url.toString(), route.method, accepted);
-  return { data, rows: firstArray(data) ?? [] };
+  throw ultimoError;
 }
 
 /** Encuentra el primer array de objetos, a cualquier profundidad del envoltorio. */
@@ -506,7 +534,16 @@ async function main() {
   }
 }
 
-main().catch((err) => {
-  console.error('Ingesta fallida:', err.message);
-  process.exit(1);
-});
+// Solo se ejecuta al lanzarlo directamente, para poder importar sus funciones
+// desde las pruebas sin disparar una ingesta entera.
+const ejecutadoDirectamente = process.argv[1]
+  && resolve(process.argv[1]) === fileURLToPath(import.meta.url);
+
+if (ejecutadoDirectamente) {
+  main().catch((err) => {
+    console.error('Ingesta fallida:', err.message);
+    process.exit(1);
+  });
+}
+
+export { main };

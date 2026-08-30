@@ -250,6 +250,37 @@ test('un pick volátil se penaliza a ciegas pero no con el draft completo', () =
   ok(completo < ciego, `volátil: puesto ${ciego} a ciegas y ${completo} con todo visto`);
 });
 
+test('un 422 se reintenta con menos parámetros en vez de perderlo todo', async () => {
+  const { createServer } = await import('node:http');
+  const { callRoute } = await import('./ingest.mjs');
+
+  const peticiones = [];
+  const srv = createServer((req, res) => {
+    const u = new URL(req.url, 'http://x');
+    peticiones.push(u.search);
+    res.setHeader('content-type', 'application/json');
+    // Imita a la API real: rechaza el parámetro days con error de validación.
+    if (u.searchParams.has('days')) {
+      res.statusCode = 422;
+      return res.end(JSON.stringify({ code: 'VALIDATION_ERROR', details: [{ loc: ['query', 'days'] }] }));
+    }
+    return res.end(JSON.stringify({ code: 0, data: { records: [{ data: { main_heroid: 93 } }] } }));
+  });
+  await new Promise((r) => srv.listen(8815, r));
+
+  try {
+    const ruta = {
+      template: 'http://127.0.0.1:8815/api/heroes/{hero_identifier}/counters',
+      method: 'GET', params: ['rank', 'days'],
+    };
+    const { data } = await callRoute(ruta, { rank: 'glory', days: 7 }, 'Atlas');
+    ok(peticiones.length === 2, `esperaba 2 intentos, hubo ${peticiones.length}`);
+    ok(data?.data?.records?.length, 'no recupera los datos tras el 422');
+  } finally {
+    srv.close();
+  }
+});
+
 test('la ingesta arranca sin errores de programación', async () => {
   // Comprobar solo la sintaxis no basta: un `ROUTES is not defined` pasaba
   // node --check y reventaba en la primera línea, dejando los datos congelados
