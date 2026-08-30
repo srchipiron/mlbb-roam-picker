@@ -316,6 +316,9 @@ export function Footer({ meta, generado, ageHours, rango, cov }) {
                   {meta.diagnostics.relations.errores?.map((e) => (
                     <div key={e} className="pie-api">{e}</div>
                   ))}
+                  {meta.diagnostics.relations.muestra && (
+                    <div className="pie-api">Respuesta: {meta.diagnostics.relations.muestra}</div>
+                  )}
                 </>
               ) : ' La ingesta no dejó diagnóstico: reejecútala.'}
               {meta.diagnostics?.schema?.heroPaths && (

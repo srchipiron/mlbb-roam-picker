@@ -75,6 +75,9 @@ export function runSelfTest({ catalog, meta, metaCtx, allHeroes, roamPool, maste
   if (!cov.conCounters && meta?.diagnostics) {
     lineas.push(`  ruta counter: ${meta.diagnostics.relations?.rutaCounter ?? 'no encontrada en el esquema'}`);
     for (const e of meta.diagnostics.relations?.errores ?? []) lineas.push(`  ${e}`);
+    if (meta.diagnostics.relations?.muestra) {
+      lineas.push(`  respuesta tal cual: ${meta.diagnostics.relations.muestra}`);
+    }
     if (meta.diagnostics.schema?.heroPaths) {
       lineas.push(`  rutas de héroes en la API: ${meta.diagnostics.schema.heroPaths.join(' ')}`);
     }

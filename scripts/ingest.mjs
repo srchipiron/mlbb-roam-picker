@@ -284,7 +284,10 @@ const asRate = (n) => {
   return Math.abs(x) > 1 ? x / 100 : x;
 };
 
-const NAME_KEYS = ['name', 'hero_name', 'heroname', 'hero'];
+const NAME_KEYS = [
+  'name', 'hero_name', 'heroname', 'hero', 'heroName',
+  'target_name', 'opponent', 'enemy_name', 'against', 'title', 'label',
+];
 
 let ROUTES = null;
 
@@ -338,8 +341,13 @@ async function fetchStats(rank) {
  * media, y distinguirlos por su tamaño fallaba: un delta de +0.25 se tomaba por
  * un winrate del 25%. Ahora se mira QUÉ campo vino, que es lo que lo determina.
  */
-const DELTA_KEYS = ['increase_win_rate', 'increase_winrate', 'win_rate_increase'];
-const ABS_KEYS = ['win_rate', 'hero_win_rate', 'winRate'];
+const DELTA_KEYS = [
+  'increase_win_rate', 'increase_winrate', 'win_rate_increase',
+  'winRateIncrease', 'delta', 'advantage', 'diff',
+];
+const ABS_KEYS = [
+  'win_rate', 'hero_win_rate', 'winRate', 'winrate', 'wr', 'rate', 'value', 'score',
+];
 
 /**
  * Recorre la respuesta entera y recoge cualquier objeto que tenga un nombre de
@@ -348,7 +356,19 @@ const ABS_KEYS = ['win_rate', 'hero_win_rate', 'winRate'];
  * lista de objetos con una sola clave `data` y no había pares que leer.
  */
 function recogerPares(node, out = [], depth = 0) {
-  if (depth > 8 || node == null || typeof node !== 'object') return out;
+  if (depth > 10 || node == null) return out;
+
+  // Algunas APIs devuelven el contenido bueno como texto JSON dentro de un
+  // campo. Sin esto, el recorrido se paraba en la cadena y no veía los pares.
+  if (typeof node === 'string') {
+    const t = node.trim();
+    if ((t.startsWith('{') || t.startsWith('[')) && t.length < 200000) {
+      try { return recogerPares(JSON.parse(t), out, depth + 1); } catch { /* no era JSON */ }
+    }
+    return out;
+  }
+
+  if (typeof node !== 'object') return out;
   if (Array.isArray(node)) {
     for (const v of node) recogerPares(v, out, depth + 1);
     return out;
@@ -417,11 +437,12 @@ async function fetchRelations(roamNames, stats, heroList) {
       synergies[name] = relationMap(recogerPares(s.data));
       if (Object.keys(counters[name]).length) {
         diagnostics.relations.ok++;
-      } else if (diagnostics.relations.errores.length < 4) {
-        // Respondió pero no supimos leerlo: guardamos los campos que traía.
-        diagnostics.relations.errores.push(
-          `${name}: respuesta sin pares legibles · campos: ${Object.keys(c.rows?.[0] ?? {}).join(',') || 'vacío'}`,
-        );
+      } else if (diagnostics.relations.errores.length < 2) {
+        // Respondió pero no supimos leerlo. Guardamos un trozo de la respuesta
+        // TAL CUAL: los nombres de campo son lo único que falta por saber, y
+        // adivinarlos de uno en uno cuesta un despliegue por intento.
+        diagnostics.relations.errores.push(`${name}: respuesta sin pares legibles`);
+        diagnostics.relations.muestra = JSON.stringify(c.data).slice(0, 900);
       }
     } catch (err) {
       if (diagnostics.relations.errores.length < 4) {
