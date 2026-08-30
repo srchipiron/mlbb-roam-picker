@@ -8,6 +8,12 @@ que esto no se olvida.
 Criterio: `0.X.0` cuando cambia cómo decide la app o qué hace; `0.0.X` para
 correcciones.
 
+## 0.5.1
+
+- Las recomendaciones avisan con un "tags de su rol" cuando el héroe no está en
+  el catálogo escrito a mano y juega con los tags genéricos de su rol. Hoy le
+  toca a Marcel, que acaba de entrar al pool.
+
 ## 0.5.0
 
 - La ingesta ya lee el **rol y la línea** de los 133 héroes. Antes salían vacíos

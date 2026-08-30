@@ -112,7 +112,16 @@ export function Pick({ result, index, stat }) {
     <article className={`pick ${index === 0 ? 'top' : ''}`}>
       <div className="rank">{index + 1}</div>
       <div>
-        <h3 className="pick-name">{result.hero.name}</h3>
+        <h3 className="pick-name">
+          {result.hero.name}
+          {/* Un héroe que no está en el catálogo escrito a mano juega con los tags
+              genéricos de su rol. Se recomienda igual, pero conviene saberlo. */}
+          {result.hero.inferred && (
+            <span className="inferred" title="No está en el catálogo: usa los tags genéricos de su rol">
+              tags de su rol
+            </span>
+          )}
+        </h3>
         <div className="why-bar" aria-hidden>
           {Object.entries(result.contributions).map(([key, v]) => (
             <span key={key} style={{ width: `${(v / total) * 100}%`, background: PART_COLORS[key] }} />

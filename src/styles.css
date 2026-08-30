@@ -298,6 +298,8 @@ button:focus-visible, [tabindex]:focus-visible { outline: 2px solid var(--gold);
 .tools .reset { margin-top: 0; }
 
 .inferred { font-size: 11px; color: var(--muted); margin-left: 6px; }
+/* Dentro del titular, que no herede mayusculas ni el espaciado del display. */
+.pick-name .inferred { text-transform: none; letter-spacing: normal; font-weight: 400; }
 
 /* ---------- selector de rango ---------- */
 
