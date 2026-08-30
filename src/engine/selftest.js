@@ -257,7 +257,7 @@ export function runSelfTest({ catalog, meta, metaCtx, allHeroes, roamPool, maste
 
   // ---------- resumen ----------
   const cabecera = [
-    `ROAM PICKER · DIAGNÓSTICO`,
+    `MOBILE LEGENDS PICK ASSIST · DIAGNÓSTICO`,
     new Date().toLocaleString('es-ES'),
     fallos ? `${fallos} FALLOS, ${avisos} avisos` : `Todo correcto (${avisos} avisos)`,
   ];
