@@ -8,6 +8,42 @@ que esto no se olvida.
 Criterio: `0.X.0` cuando cambia cómo decide la app o qué hace; `0.0.X` para
 correcciones.
 
+## 1.6.0
+
+Repaso a fondo de la estadística. Dos constantes del motor estaban puestas
+contra una suposición que resultó ser falsa, y se han medido.
+
+- **La app ya no castiga a los héroes poco jugados sin motivo.** Cuando miraba
+  el cruce entre tu héroe y un enemigo, se fiaba menos si el enemigo se juega
+  poco — la idea era que con menos partidas detrás el número es más tembloroso.
+  Suena sensato y es falso: medido, los cruces de los héroes raros se mueven
+  1,16 veces lo que los de los populares, y si de verdad fuera falta de muestra
+  tendrían que moverse 2,65 veces. Además dos descargas separadas nueve minutos
+  dan los mismos números con tres cienmilésimas de diferencia. La app estaba
+  descontando diez veces más de lo que toca. Cambia el héroe recomendado en el
+  14,5% de los drafts.
+- **Las sinergias dejan de aplastarse.** El 5,3% de las parejas caía por debajo
+  del mínimo de la escala, así que la peor combinación del juego (Chip con
+  Lolita) y una mala del montón valían exactamente lo mismo. Ahora se recorta el
+  1,1%, que son los cuatro casos extremos de verdad.
+- **El Diagnóstico vigila las dos cosas.** Si la fuente de datos cambia de
+  comportamiento y los números pasan a ser temblorosos, avisa en vez de dejar
+  las constantes mal calibradas en silencio.
+
+Y una corrección de lo que dije en 1.5.0. Escribí que solo una de las doce
+reglas tácticas se veía en las partidas. **Estaba mal medido**: promediaba todos
+los héroes con una etiqueta contra todos los que no, y si la etiqueta está
+puesta a nueve héroes y solo la cumplen cuatro, el promedio los diluye.
+Midiendo héroe por héroe, siete reglas encuentran más héroes de los que daría el
+azar. Lo que está mal no es la regla: es la etiqueta. `anti_mobility` se lo
+pierde a Obsidia, Hilda, Cyclops y catorce más.
+
+Pero el hallazgo de verdad es otro: **las once reglas miden lo mismo**. La
+ventaja de un héroe contra los que hacen dash y contra los que se lanzan encima
+correlacionan a 0,93. No hay doce relaciones tácticas en el juego: hay una — a
+quién te comes y quién te come — con los asesinos en un extremo y los supports
+en el otro.
+
 ## 1.5.2
 
 - **El buscador de héroes ya no te deja tirado.** Si lo que escribes no encaja

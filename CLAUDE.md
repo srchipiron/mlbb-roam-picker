@@ -43,11 +43,49 @@ sensatez táctica, no solo que "parezca mejor".
 counters está COMPLETA (17.556 cruces, el 100%), así que las reglas de
 `rules.js` ya no deciden ningún counter: solo entran con un héroe tan nuevo que
 la API no publica ni un cruce suyo. Y hay con qué medirlas:
-`node scripts/medir-reglas.mjs` compara cada regla con las partidas reales. Hoy
-solo una de las doce se ve en el dato (cortar dashes, +0,43 puntos); las once
-restantes no se distinguen del ruido. No se han borrado porque el dato es de
-presencia en la partida y no del duelo de carril, y eso diluye los efectos
-reales — pero no te apoyes en ellas. Cada regla nueva es deuda.
+`node scripts/medir-reglas.mjs` hace una t de Welch por HÉROE y controla la tasa
+de falsos hallazgos con Benjamini-Hochberg.
+
+Lo que dice hoy, y conviene leerlo entero antes de tocar `rules.js`:
+
+- Siete de las once reglas medibles encuentran más héroes de los que daría el
+  azar. El efecto existe.
+- Pero el TAG los captura fatal. `anti_mobility` está puesto a 9 héroes: lo
+  cumplen 4, y hay 17 sin la etiqueta que lo cumplen -Obsidia (+1,17pp, t=5,96),
+  Hilda, Cyclops, Jawhead...-. La regla es cierta y la etiqueta está mal, que es
+  otro problema y se arregla de otra manera.
+- **Y sobre todo: las once reglas miden UN SOLO EJE.** La ventaja de un héroe
+  contra `dash` y contra `dive` correlacionan a r=0,93; contra `mobile` e
+  `immobile`, a −0,87. Los grupos de enemigos se solapan al 68%. No hay doce
+  relaciones tácticas: hay una, "a quién te comes tú y quién te come a ti", con
+  los asesinos en un extremo y los supports en el otro. Una regla nueva no añade
+  información: repite esa misma.
+
+Cada regla nueva es deuda, y ahora además está medido.
+
+## Qué son los datos, de verdad
+
+Medido, no supuesto. Si cambias de fuente, vuelve a medir esto ANTES de tocar
+ninguna constante.
+
+- **`pickRate` es cuota de picks, no presencia.** Los 133 suman exactamente
+  1,0000. La presencia real en una partida es diez veces eso (hay diez picks).
+- **La matriz de counters está orientada como se espera**: `counters[A][B] > 0.5`
+  significa que A va por delante. Comprobado con héroes de diseño público:
+  Phoveus saca +1,66 puntos contra los que hacen dash y −0,22 contra Layla, que
+  no tiene dash. Khufra +0,98, Minsitthar +0,49.
+- **Los cruces NO llevan dentro la fuerza general de ninguno de los dos.** La
+  media de los 132 cruces de cada héroe es 0,494 tanto si su winrate global es
+  0,445 como si es 0,543, y la correlación dentro de cada fila con el winrate
+  del rival es −0,003. Son índices de cruce ya centrados, así que `counter` NO
+  duplica lo que mide `meta`.
+- **Los cruces no son estimaciones ruidosas.** Dos comprobaciones: (1) si el
+  ruido fuera de muestreo, el cuartil menos jugado tendría sus cruces 2,65 veces
+  más dispersos que el más jugado, y lo que se mide es 1,16; (2) dos corridas de
+  la ingesta separadas nueve minutos dan los mismos cruces con una diferencia
+  mediana de 0,00003. Por eso `PICKRATE_FIABLE` bajó de 0,004 a 0,00041: el
+  valor viejo encogía a los héroes raros diez veces más de lo que el dato
+  justifica. El diagnóstico vigila las dos cosas y avisa si cambian.
 
 ## Errores ya cometidos, para no repetirlos
 
@@ -125,6 +163,17 @@ Todos estos llegaron a producción y costaron rondas enteras de ida y vuelta:
   la que más pares trae. Si añades un objetivo a `WANTED`, recoge TODOS los
   candidatos de todos los patrones, no solo los del primero que acierte: por
   cortar ahí, la ruta de `teammates` no llegaba a compararse nunca.
+- **Constantes calibradas contra una suposición, no contra el dato** — la
+  confianza en un cruce se encogía con `pickRate/(pickRate+0.004)`, y ese 0.004
+  salía de dar por hecho que el dato venía de unos pocos miles de partidas.
+  Nunca se comprobó. Medido, el ruido no crece con lo raro que sea el héroe ni
+  de lejos como supone esa fórmula: la constante castigaba a los héroes poco
+  jugados el doble de lo que toca, y cambiaba el nº1 en el 14,5% de los drafts.
+  Antes de encoger nada por muestra, MIDE que la muestra sea el problema.
+- **Un `clamp01` comiéndose el 5% de los datos** — la sinergia se mapeaba con
+  `(x-0.46)/0.10`, y el 5,3% de las parejas caía por debajo de 0.46: la peor
+  sinergia del juego (0.20) y una mala del montón (0.45) salían las dos a cero.
+  Hoy el rango es (0.42, 0.16) y recorta el 1,1%. El diagnóstico lo vigila.
 - **Constantes calibradas sobre una muestra sesgada** — `riesgoContrapick`
   dividía por 0.08 porque el p10 de los cruces parecía 0.467. Ese p10 salía de
   los cinco cruces MÁS EXTREMOS de cada héroe, que era todo lo que daba la ruta

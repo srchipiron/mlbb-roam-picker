@@ -1,93 +1,151 @@
 #!/usr/bin/env node
 /**
- * ¿Las reglas escritas a mano las sostiene el dato?
+ * ¿Las reglas escritas a mano las sostiene el dato? Y sobre todo: ¿a QUIÉN?
  *
- * Desde que la matriz de counters viene completa (17.556 cruces reales, no los
- * 1.330 de antes) se puede preguntar por fin lo que CLAUDE.md lleva pidiendo
- * desde el principio: cada regla de `rules.js` dice que tener cierto tag te da
- * ventaja contra cierto otro. ¿Se nota en las partidas de verdad?
+ * Desde 1.5.0 la matriz de counters viene completa (17.556 cruces reales), así
+ * que por fin se puede comprobar lo que CLAUDE.md lleva pidiendo desde el
+ * principio. Cada regla de `rules.js` dice que tener cierto tag te da ventaja
+ * contra los enemigos que tienen otro. Aquí se mide.
  *
- * Para cada regla compara la media de cruce de los héroes QUE tienen el tag
- * contra los enemigos con el tag enemigo, con la de los que NO lo tienen.
+ *   node scripts/medir-reglas.mjs           resumen por regla
+ *   node scripts/medir-reglas.mjs --tags    además, qué tags habría que tocar
  *
- *   node scripts/medir-reglas.mjs
+ * MÉTODO. Para cada héroe se comparan sus cruces contra los enemigos CON el tag
+ * enemigo y contra los demás, con una t de Welch (dos grupos, varianzas
+ * distintas). Y como se hacen cientos de comparaciones a la vez, se controla la
+ * tasa de falsos hallazgos con Benjamini-Hochberg al 5%: sin eso, con 133
+ * héroes saldrían ~3 "hallazgos" por regla solo por azar.
  *
- * Aviso importante sobre lo que este número puede y no puede decir: la API da
- * el winrate de A en las partidas donde estaba B, no el de su duelo de carril.
- * Ahí dentro van partidas en las que ni se cruzaron, así que un efecto real de
- * carril sale DILUIDO. Un "+0.02pp" no demuestra que la regla sea falsa;
- * demuestra que, medido así, no se ve. Sirve para ordenar las reglas de más a
- * menos sostenida, no para borrarlas.
+ * QUÉ MIDE ESA t, exactamente. La API no dice de cuántas partidas sale cada
+ * cruce, así que no es un error de muestreo: es la variación del héroe ENTRE
+ * rivales. La pregunta que responde es "¿este héroe va mejor contra ese
+ * arquetipo de lo que varía normalmente de un rival a otro?". Que es justo la
+ * pregunta de la regla.
  *
- * Solo se miran los héroes con tags escritos a mano: los deducidos meterían
- * su propio error dentro de la medida.
+ * POR QUÉ POR HÉROE Y NO EN BLOQUE. La primera versión de este script promediaba
+ * todos los héroes con el tag contra todos los que no, y le salía que once de
+ * las doce reglas "no se ven". Estaba mal planteado: si el tag está puesto a
+ * nueve héroes y solo seis lo cumplen, el promedio diluye a los seis con los
+ * tres que no. La regla puede ser cierta y el TAG estar mal, que es cosa
+ * distinta y se arregla de otra manera.
  */
 
 import { readFileSync } from 'node:fs';
 import { resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { indexByName, mergeCatalog, matchup } from '../src/engine/score.js';
+import { indexByName, matchup } from '../src/engine/score.js';
 import { COUNTER_RULES } from '../src/engine/rules.js';
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const leer = (f) => JSON.parse(readFileSync(resolve(ROOT, 'public/data', f), 'utf8'));
-
 const raw = leer('roam-meta.json');
 const catalogo = leer('heroes.json').heroes;
-const heroes = mergeCatalog(catalogo, raw.heroes ?? []);
 const counters = indexByName(raw.counters ?? {}, 2);
 
-const propios = new Set(catalogo.map((h) => h.name));
-const conTags = heroes.filter((h) => propios.has(h.name));
-
-/** A partir de aquí la diferencia deja de ser ruido, en puntos de winrate. */
-const NOTABLE = 0.004;
+/** Tasa de falsos hallazgos que se acepta. */
+const FDR = 0.05;
+/** Mínimo de rivales en cada grupo para que la comparación signifique algo. */
+const MINIMO = 20;
 
 const media = (a) => a.reduce((x, y) => x + y, 0) / a.length;
+const varianza = (a) => {
+  const m = media(a);
+  return a.reduce((s, x) => s + (x - m) ** 2, 0) / (a.length - 1);
+};
 
-const cruces = Object.keys(raw.counters ?? {})
-  .reduce((n, k) => n + Object.keys(raw.counters[k] ?? {}).length, 0);
+/** Aproximación normal a la cola de la t. Con n>40 por grupo se parecen. */
+const pValor = (t) => {
+  const z = Math.abs(t);
+  // Zelen & Severo: error < 7.5e-8, de sobra para ordenar hallazgos.
+  const d = 1 / (1 + 0.2316419 * z);
+  const phi = Math.exp(-z * z / 2) / Math.sqrt(2 * Math.PI);
+  const cola = phi * d * (0.319381530 + d * (-0.356563782 + d * (1.781477937
+    + d * (-1.821255978 + d * 1.330274429))));
+  return 2 * cola;
+};
 
-console.log(`Reglas de counter contra ${cruces} cruces reales · ${conTags.length} héroes con tags escritos a mano\n`);
-console.log('regla                          n con/sin   con tag   sin tag   ventaja   peso');
-console.log('-'.repeat(78));
+/** Benjamini-Hochberg: devuelve el p por debajo del cual se acepta el hallazgo. */
+const corteBH = (ps) => {
+  const orden = [...ps].sort((a, b) => a - b);
+  let corte = 0;
+  orden.forEach((p, i) => { if (p <= FDR * (i + 1) / orden.length) corte = p; });
+  return corte;
+};
 
-const filas = [];
-for (const regla of COUNTER_RULES) {
-  const enemigos = conTags.filter((h) => h.tags.includes(regla.enemyTag));
-  if (!enemigos.length) continue;
-
-  const con = [];
-  const sin = [];
-  for (const yo of conTags) {
-    const vals = enemigos
-      .filter((e) => e.name !== yo.name)
-      .map((e) => matchup(counters, yo.name, e.name))
-      .filter((v) => v != null);
-    if (!vals.length) continue;
-    (yo.tags.includes(regla.roamTag) ? con : sin).push(media(vals));
-  }
-  if (con.length < 3 || !sin.length) continue;
-
-  const dif = media(con) - media(sin);
-  // La regla puede ser un castigo (peso negativo): entonces lo que la sostiene
-  // es que los que tienen el tag vayan PEOR.
-  const esperada = Math.sign(regla.weight) * dif;
-  filas.push({ regla, con: con.length, sin: sin.length, mCon: media(con), mSin: media(sin), dif, esperada });
+/** Compara los cruces de `heroe` contra dos grupos de rivales. */
+function comparar(heroe, conTag, sinTag) {
+  const vals = (ns) => ns.filter((n) => n !== heroe)
+    .map((n) => matchup(counters, heroe, n)).filter((v) => v != null);
+  const a = vals(conTag);
+  const b = vals(sinTag);
+  if (a.length < MINIMO || b.length < MINIMO) return null;
+  const dif = media(a) - media(b);
+  const se = Math.sqrt(varianza(a) / a.length + varianza(b) / b.length);
+  if (!(se > 0)) return null;
+  return { dif, se, t: dif / se, n: a.length };
 }
 
-filas.sort((a, b) => b.esperada - a.esperada);
-for (const f of filas) {
-  const veredicto = f.esperada >= NOTABLE ? 'la sostiene'
-    : f.esperada <= -NOTABLE ? 'LA CONTRADICE' : 'no se ve';
+const propios = new Set(catalogo.map((h) => h.name));
+const conTags = catalogo.filter((h) => propios.has(h.name));
+
+const informe = [];
+for (const regla of COUNTER_RULES) {
+  const enemigos = conTags.filter((h) => h.tags.includes(regla.enemyTag)).map((h) => h.name);
+  const otros = conTags.filter((h) => !h.tags.includes(regla.enemyTag)).map((h) => h.name);
+  if (enemigos.length < MINIMO || otros.length < MINIMO) continue;
+
+  const medidas = [];
+  for (const h of conTags) {
+    const m = comparar(h.name, enemigos, otros);
+    if (m) medidas.push({ ...m, hero: h.name, tag: h.tags.includes(regla.roamTag), p: pValor(m.t) });
+  }
+  if (!medidas.length) continue;
+
+  const corte = corteBH(medidas.map((m) => m.p));
+  // El signo esperado lo marca el peso: una regla de peso negativo es un castigo.
+  const signo = Math.sign(regla.weight) || 1;
+  for (const m of medidas) m.destaca = m.p <= corte && Math.sign(m.dif) === signo;
+
+  const conTag = medidas.filter((m) => m.tag);
+  const sinTag = medidas.filter((m) => !m.tag);
+  informe.push({
+    regla,
+    medidas,
+    conTag,
+    sinTag,
+    cumplen: conTag.filter((m) => m.destaca),
+    faltan: sinTag.filter((m) => m.destaca).sort((a, b) => b.t - a.t),
+    esperadosPorAzar: medidas.length * FDR,
+  });
+}
+
+const cruces = Object.values(raw.counters ?? {}).reduce((n, f) => n + Object.keys(f).length, 0);
+console.log(`Reglas de counter contra ${cruces} cruces reales · ${conTags.length} héroes con tags escritos a mano`);
+console.log(`Welch por héroe · Benjamini-Hochberg al ${FDR * 100}%\n`);
+console.log('regla                        etiquetados  lo cumplen   sin etiquetar y lo cumplen   veredicto');
+console.log('-'.repeat(96));
+
+for (const f of informe.sort((a, b) => (b.cumplen.length / (b.conTag.length || 1)) - (a.cumplen.length / (a.conTag.length || 1)))) {
+  const total = f.cumplen.length + f.faltan.length;
+  const veredicto = total <= f.esperadosPorAzar ? 'no se distingue del azar'
+    : f.conTag.length && f.cumplen.length / f.conTag.length >= 0.5 ? 'la regla y el tag valen'
+      : f.cumplen.length ? 'la regla vale, el tag flojea'
+        : 'el efecto existe pero el tag no lo captura';
   console.log(
-    `${f.regla.why.padEnd(28)} ${String(f.con).padStart(3)}/${String(f.sin).padEnd(4)} `
-    + `${f.mCon.toFixed(4)}    ${f.mSin.toFixed(4)}   ${((f.dif >= 0 ? '+' : '') + (f.dif * 100).toFixed(2) + 'pp').padStart(8)}   `
-    + `${String(f.regla.weight).padStart(5)}  ${veredicto}`,
+    `${f.regla.why.padEnd(26)} ${String(f.conTag.length).padStart(8)} ${String(f.cumplen.length).padStart(11)} `
+    + `${String(f.faltan.length).padStart(20)}        ${veredicto}`,
   );
 }
 
-const sostenidas = filas.filter((f) => f.esperada >= NOTABLE);
-console.log(`\n${sostenidas.length} de ${filas.length} reglas se ven en el dato.`);
-console.log('Recuerda: "no se ve" no es "es falsa". El dato es de presencia en la');
-console.log('partida, no del duelo de carril, y eso diluye los efectos reales.');
+console.log('\nDetalle por regla:\n');
+for (const f of informe) {
+  const total = f.cumplen.length + f.faltan.length;
+  if (total <= f.esperadosPorAzar) continue;
+  console.log(`${f.regla.why}  (${f.regla.roamTag} contra ${f.regla.enemyTag}, peso ${f.regla.weight})`);
+  const linea = (m) => `${m.hero.padEnd(13)} ${(m.dif >= 0 ? '+' : '') + (m.dif * 100).toFixed(2)}pp  t=${m.t.toFixed(2)}`;
+  if (f.cumplen.length) console.log('   lo cumplen:      ' + f.cumplen.sort((a, b) => b.t - a.t).map((m) => m.hero).join(', '));
+  const fallan = f.conTag.filter((m) => !m.destaca);
+  if (fallan.length) console.log('   NO lo cumplen:   ' + fallan.map((m) => `${m.hero} (${(m.dif * 100).toFixed(2)}pp)`).join(', '));
+  if (f.faltan.length) console.log('   sin el tag pero lo cumplen: ' + f.faltan.slice(0, 10).map((m) => linea(m).trim()).join(' · '));
+  console.log(`   (por azar cabrian ~${f.esperadosPorAzar.toFixed(1)} hallazgos; hay ${total})\n`);
+}

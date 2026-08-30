@@ -135,18 +135,31 @@ export function metaScore(stat, patchAvgWinRate = 0.5) {
  * Si no existe para ese par, cae a las reglas por tags.
  */
 /**
- * Pickrate a partir del cual el matchup de una pareja se considera fiable.
+ * Presencia del rival a partir de la cual su cruce se cree entero.
  *
- * Sustituye a la mezcla fija que había antes (65% dato, 35% mis reglas). Ese
- * 35% era criterio mío escrito a mano, y envejece: cuando Moonton reequilibra
- * un héroe o saca uno nuevo, mis etiquetas siguen diciendo lo de siempre.
+ * La idea es sana: contra un héroe que casi nadie juega hay menos partidas
+ * detrás y el número se mueve más. Lo que estaba mal era CUÁNTO. La constante
+ * valía 0.004 y salía de suponer que el dato venía de unos pocos miles de
+ * partidas; nunca se comprobó.
  *
- * Ahora la confianza en el dato la decide el propio dato: contra un héroe muy
- * jugado hay muestra de sobra y se usa tal cual; contra uno raro el matchup se
- * encoge hacia el empate, que es lo honesto. Mis reglas solo entran cuando NO
- * hay dato de la pareja, como red de seguridad para héroes recién salidos.
+ * Comprobado ahora, con la matriz completa y de dos formas:
+ *
+ *  1. Si el ruido fuera de muestreo, el cuartil MENOS jugado debería tener sus
+ *     cruces 2.65 veces más dispersos que el más jugado (va con 1/raíz de n).
+ *     Medido: 1.16 veces. O sea que casi toda la dispersión de un héroe entre
+ *     sus rivales es REAL -a unos les gana y a otros no-, no ruido.
+ *  2. Dos corridas de la ingesta separadas nueve minutos dan los mismos cruces
+ *     con una diferencia mediana de 0.00003. No son estimaciones temblorosas.
+ *
+ * Con 0.004, un héroe del cuartil raro veía su cruce encogido al 0.35 y uno
+ * popular al 0.79: los castigaba el DOBLE de lo que el dato justifica. La
+ * constante de aquí sale de resolver que esa razón sea justo el 1.16 medido,
+ * en vez de un número inventado. Deja al héroe mediano en 0.94 y solo encoge
+ * de verdad a los rarísimos.
+ *
+ * Si cambias de fuente de datos, vuelve a medir las dos cosas antes de tocarla.
  */
-const PICKRATE_FIABLE = 0.004;
+const PICKRATE_FIABLE = 4.1e-4;
 
 /** Confianza en el matchup cuando no se sabe cuánto se juega al rival. */
 const CONFIANZA_SIN_MUESTRA = 0.7;
@@ -257,7 +270,17 @@ export function synergyScore(roamHero, allies, synergyMatrix) {
   for (const ally of allies) {
     const pair = sinergia(synergyMatrix, roamHero.name, ally.name);
     if (pair != null) {
-      total += clamp01((pair - 0.46) / 0.10);
+      // Centrado en el empate y con medio ancho de 0.08. Estaba en (0.46, 0.10),
+      // que aplastaba a CERO el 5,3% de las parejas: la peor sinergia del juego
+      // (Chip con Lolita, 0.20) y una mala del montón (0.45) valían lo mismo.
+      // Con este rango se recorta el 1,1%, que son los cuatro extremos de
+      // verdad, y es la misma holgura que ya tienen los counters.
+      //
+      // NO se encoge por presencia, y eso es una decisión medida, no un olvido:
+      // la dispersión de las sinergias de un héroe raro es solo 1.05 veces la
+      // de uno popular (en los counters, 1.16), así que aquí no hay ni ese poco
+      // ruido que corregir.
+      total += clamp01((pair - 0.42) / 0.16);
       if (pair >= 0.53) reasons.push({ clave: 'regla.combinaCon', params: { a: ally.name }, good: true, w: 0.7 });
       continue;
     }

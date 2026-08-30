@@ -1,5 +1,5 @@
 import {
-  rankRoamers, metaScore, masteryScore, coverage, normName, densidadCounters, matchup,
+  rankRoamers, metaScore, masteryScore, coverage, normName, densidadCounters, matchup, sinergia,
 } from './score.js';
 import { DEFAULT_WEIGHTS } from './rules.js';
 import { resumen, MINIMO_PARA_CONCLUIR } from './registro.js';
@@ -113,6 +113,74 @@ export function runSelfTest({ catalog, meta, metaCtx, allHeroes, roamPool, maste
   check(huerfanos.length < 12,
     `Nombres: ${nombresApi.length} de la API, ${huerfanos.length} sin tags propios`,
     `Nombres: ${huerfanos.length} sin casar (${huerfanos.slice(0, 10).join(', ')})`, true);
+
+  // ---------- salud estadistica de los datos ----------
+  //
+  // Estas dos comprobaciones no van en `npm test` a proposito: no miran el
+  // codigo, miran los DATOS, y los datos se regeneran dos veces al dia. Una
+  // prueba del arnes que dependa de ellos falla por el mundo, no por el
+  // repositorio. Aqui, en cambio, es justo lo que toca: la vigilancia corre
+  // esto contra lo publicado y avisa si la fuente cambia de comportamiento.
+  if (metaCtx.counters && metaCtx.stats) {
+    const nombres = Object.keys(meta?.stats ?? {});
+    const med = (a) => a.reduce((x, y) => x + y, 0) / a.length;
+    const desv = (a) => Math.sqrt(a.reduce((s, x) => s + (x - med(a)) ** 2, 0) / (a.length - 1));
+
+    // 1. Que las transformaciones no aplasten datos contra el tope. Un clamp
+    //    se come informacion en silencio: dos cruces distintos salen iguales.
+    const recorte = (leer, lo, ancho) => {
+      let n = 0; let fuera = 0;
+      for (const a of nombres) {
+        for (const b of nombres) {
+          if (a === b) continue;
+          const v = leer(a, b);
+          if (v == null) continue;
+          n++;
+          const x = (v - lo) / ancho;
+          if (x <= 0 || x >= 1) fuera++;
+        }
+      }
+      return n ? fuera / n : 0;
+    };
+    const rc = recorte((a, b) => matchup(metaCtx.counters, a, b), 0.44, 0.12);
+    check(rc < 0.02,
+      `Escala de counters bien ajustada (se recorta el ${(rc * 100).toFixed(1)}%)`,
+      `Los counters se recortan contra el tope en el ${(rc * 100).toFixed(1)}% de los cruces: se pierde informacion`,
+      true);
+    if (metaCtx.synergies) {
+      const rs = recorte((a, b) => sinergia(metaCtx.synergies, a, b), 0.42, 0.16);
+      check(rs < 0.02,
+        `Escala de sinergias bien ajustada (se recorta el ${(rs * 100).toFixed(1)}%)`,
+        `Las sinergias se recortan contra el tope en el ${(rs * 100).toFixed(1)}% de las parejas`,
+        true);
+    }
+
+    // 2. Que el ruido siga sin crecer con lo poco jugado que sea el heroe. Es
+    //    lo que sostiene PICKRATE_FIABLE: si la fuente pasa a dar estimaciones
+    //    temblorosas para los heroes raros, la constante se queda mal calibrada
+    //    y hay que volver a medirla.
+    const filas = [];
+    for (const n of nombres) {
+      const pr = meta.stats[n]?.pickRate;
+      if (!(pr > 0)) continue;
+      const v = nombres.filter((o) => o !== n)
+        .map((o) => matchup(metaCtx.counters, n, o)).filter((x) => x != null);
+      if (v.length > 50) filas.push({ pr, sd: desv(v) });
+    }
+    if (filas.length >= 100) {
+      filas.sort((a, b) => a.pr - b.pr);
+      const corte = Math.floor(filas.length / 4);
+      const raros = filas.slice(0, corte);
+      const comunes = filas.slice(-corte);
+      const razon = med(raros.map((f) => f.sd)) / med(comunes.map((f) => f.sd));
+      const siFueraRuido = Math.sqrt(med(comunes.map((f) => f.pr)) / med(raros.map((f) => f.pr)));
+      lineas.push(`Ruido: los héroes raros dispersan ${razon.toFixed(2)}x lo que los populares (muestreo puro daría ${siFueraRuido.toFixed(2)}x)`);
+      check(razon < 1 + (siFueraRuido - 1) * 0.4,
+        'El dato de los héroes poco jugados sigue siendo firme',
+        `Los cruces de los héroes raros se han vuelto ruidosos (${razon.toFixed(2)}x): hay que recalibrar PICKRATE_FIABLE`,
+        true);
+    }
+  }
 
   // ---------- motor ----------
   seccion('MOTOR');
