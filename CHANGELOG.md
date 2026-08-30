@@ -8,6 +8,22 @@ que esto no se olvida.
 Criterio: `0.X.0` cuando cambia cómo decide la app o qué hace; `0.0.X` para
 correcciones.
 
+## 0.9.0
+
+- **La app se vigila sola.** Dos veces al día, y después de cada despliegue, una
+  comprobación automática ejecuta el mismo diagnóstico del botón contra lo que
+  la app está sirviendo de verdad. Si algo falla, abre una incidencia en GitHub
+  con el informe entero dentro. Si vuelve a estar sano, la cierra.
+- Botón **"A GitHub"** en el diagnóstico: abre el formulario de incidencia ya
+  relleno con el informe. Un toque para confirmar, y sin ninguna credencial
+  dentro de la app.
+- **Mantenimiento los lunes**: si Moonton saca héroes nuevos, avisa; si las
+  tablas de deducción se han quedado viejas, las regenera, pasa las pruebas y
+  deja un pull request. Lo que necesita criterio —escribirle los tags a un
+  héroe mirando sus habilidades— no lo toca nadie automáticamente.
+- `npm run diagnostico` hace lo mismo desde Termux, contra lo publicado o con
+  `--local` contra tus datos.
+
 ## 0.8.0
 
 - **Botón "Apuntar partida"**: dos toques al acabar —con quién jugaste y si

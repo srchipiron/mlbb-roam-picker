@@ -1,0 +1,103 @@
+name: Vigilar la app publicada
+
+# Comprueba lo que la app SIRVE DE VERDAD, no lo que hay en el repositorio.
+# Un despliegue puede publicar datos degradados con el repo impecable: pasó dos
+# veces el 30/8/2026. Si algo falla, abre una incidencia con el diagnóstico
+# entero dentro, para no tener que pedirlo desde el móvil.
+on:
+  schedule:
+    - cron: '40 6,18 * * *'    # una hora después de cada actualización de datos
+  workflow_run:
+    workflows: ["Publicar la app"]
+    types: [completed]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  vigilar:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - run: npm ci
+
+      # 1) El motor sigue siendo correcto.
+      - name: Pruebas
+        id: pruebas
+        run: npm test 2>&1 | tee /tmp/pruebas.txt
+
+      # 2) Y lo publicado está sano. Se reintenta: justo después de un
+      #    despliegue, Pages puede tardar en servir lo nuevo.
+      - name: Diagnóstico de lo publicado
+        id: diag
+        run: |
+          for intento in 1 2 3; do
+            if node scripts/diagnostico.mjs > /tmp/diagnostico.txt 2>&1; then
+              echo "estado=bien" >> "$GITHUB_OUTPUT"
+              cat /tmp/diagnostico.txt
+              exit 0
+            fi
+            echo "intento $intento sin éxito; espero"
+            sleep 45
+          done
+          echo "estado=mal" >> "$GITHUB_OUTPUT"
+          cat /tmp/diagnostico.txt
+          exit 1
+
+      - name: Abrir incidencia si algo falla
+        if: failure()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const leer = (f) => { try { return fs.readFileSync(f, 'utf8').slice(-5000); } catch { return '(sin salida)'; } };
+            const cuerpo = [
+              'La vigilancia automática ha encontrado algo. Esto NO lo ha pulsado nadie:',
+              'lo ha detectado la comprobación programada contra la app publicada.',
+              '',
+              '## Diagnóstico de lo publicado', '```', leer('/tmp/diagnostico.txt'), '```',
+              '## Pruebas', '```', leer('/tmp/pruebas.txt'), '```',
+              '',
+              `[Ver la ejecución](${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId})`,
+            ].join('\n');
+
+            const titulo = 'Vigilancia: la app publicada falla';
+            const abiertas = await github.rest.issues.listForRepo({
+              ...context.repo, state: 'open', labels: 'vigilancia',
+            });
+
+            // Se reutiliza la incidencia abierta en vez de crear una por
+            // ejecución: doce avisos al día del mismo problema no son doce
+            // problemas, y enterrarían el que sí importa.
+            if (abiertas.data.length) {
+              await github.rest.issues.createComment({
+                ...context.repo, issue_number: abiertas.data[0].number, body: cuerpo,
+              });
+            } else {
+              await github.rest.issues.create({
+                ...context.repo, title: titulo, body: cuerpo, labels: ['vigilancia'],
+              });
+            }
+
+      - name: Cerrar la incidencia si ya está sano
+        if: success()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const abiertas = await github.rest.issues.listForRepo({
+              ...context.repo, state: 'open', labels: 'vigilancia',
+            });
+            for (const inc of abiertas.data) {
+              await github.rest.issues.createComment({
+                ...context.repo, issue_number: inc.number,
+                body: 'Resuelto: la vigilancia vuelve a pasar sin fallos.',
+              });
+              await github.rest.issues.update({
+                ...context.repo, issue_number: inc.number, state: 'closed', state_reason: 'completed',
+              });
+            }

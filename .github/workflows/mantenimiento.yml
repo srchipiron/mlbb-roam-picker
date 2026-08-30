@@ -1,0 +1,119 @@
+name: Mantenimiento automático
+
+# Lo que se puede arreglar sin criterio humano, se arregla solo y se deja en una
+# rama con su pull request. Lo que necesita criterio (escribir los tags de un
+# héroe nuevo mirando sus habilidades) NO se toca: se avisa y ya está.
+on:
+  schedule:
+    - cron: '20 7 * * 1'      # lunes por la mañana
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+  issues: write
+
+jobs:
+  mantener:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - run: npm ci
+
+      # Los datos de hoy, que es de donde salen las etiquetas de Moonton.
+      - name: Ingesta
+        run: node scripts/ingest.mjs --rank glory --days 7
+
+      # ¿Hay héroes nuevos sin tags escritos a mano? Eso NO se automatiza:
+      # inventarle tags a un héroe que nadie ha mirado es justo lo que este
+      # proyecto no quiere. Se avisa para que se haga a conciencia.
+      - name: Avisar de héroes sin tags
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const meta = require('./public/data/roam-meta.json');
+            const nuevos = meta.newHeroes ?? [];
+            if (!nuevos.length) return;
+            const titulo = `Héroes nuevos sin tags propios: ${nuevos.join(', ')}`;
+            const previas = await github.rest.issues.listForRepo({
+              ...context.repo, state: 'open', labels: 'tags',
+            });
+            if (previas.data.some((i) => i.title === titulo)) return;
+            await github.rest.issues.create({
+              ...context.repo, title: titulo, labels: ['tags'],
+              body: [
+                `La API conoce a ${nuevos.length} héroe(s) que no están en heroes.json:`,
+                '', nuevos.map((n) => `- ${n}`).join('\n'), '',
+                'Mientras tanto juegan con los tags de su rol más lo que se deduzca',
+                'de su `speciality`, que acierta el 54% de sus tags reales.',
+                '',
+                'Para escribirlos bien: la API publica la descripción de sus',
+                'habilidades en `/api/heroes/{id}`. De ahí salieron los de Marcel,',
+                'Hirara, Sora, Zetian, Obsidia, Cici y Valir; no de la memoria de',
+                'nadie. Después toca reejecutar `node scripts/derivar-tags.mjs`.',
+              ].join('\n'),
+            });
+
+      # Las tablas derivadas SÍ se regeneran solas: no llevan criterio, salen
+      # del catálogo. Si cambian, se propone el cambio; no se mete a la brava.
+      - name: Regenerar tablas de deducción
+        id: tablas
+        run: |
+          node scripts/derivar-tags.mjs > /tmp/tablas.txt 2>/dev/null || {
+            echo "no se pudieron derivar (¿API caída?); no es un fallo"; exit 0; }
+          node - <<'JS'
+          const fs = require('fs');
+          const nuevas = fs.readFileSync('/tmp/tablas.txt', 'utf8');
+          const rules = fs.readFileSync('src/engine/rules.js', 'utf8');
+          const bloque = (txt, nombre) =>
+            txt.match(new RegExp(`export const ${nombre} = \\{[\\s\\S]*?\\n\\};`))?.[0] ?? '';
+          let salida = rules;
+          let cambio = false;
+          for (const nombre of ['SPECIALITY_TAGS', 'ROLE_VETO']) {
+            const viejo = bloque(rules, nombre);
+            const nuevo = bloque(nuevas, nombre);
+            if (viejo && nuevo && viejo !== nuevo) { salida = salida.replace(viejo, nuevo); cambio = true; }
+          }
+          if (cambio) fs.writeFileSync('src/engine/rules.js', salida);
+          fs.appendFileSync(process.env.GITHUB_OUTPUT, `cambio=${cambio}\n`);
+          JS
+
+      # Nada se propone sin pasar las pruebas: una tabla regenerada también
+      # puede romper una invariante.
+      - name: Pruebas
+        if: steps.tablas.outputs.cambio == 'true'
+        run: npm test
+
+      # Con git y gh, no con una acción de terceros: darle permiso de escritura
+      # al repositorio a un tercero es justo lo que este proyecto ha decidido no
+      # hacer con la cuenta del juego, y aquí aplica el mismo criterio.
+      - name: Proponer el cambio
+        if: steps.tablas.outputs.cambio == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -e
+          RAMA=mantenimiento/tablas-de-tags
+          git config user.name  "meta-bot"
+          git config user.email "meta-bot@users.noreply.github.com"
+          git checkout -B "$RAMA"
+          git add src/engine/rules.js
+          git commit -m "regenerar SPECIALITY_TAGS y ROLE_VETO del catalogo"
+          git push -f -u origin "$RAMA"
+          if [ -z "$(gh pr list --head "$RAMA" --state open --json number --jq '.[].number')" ]; then
+            gh pr create --head "$RAMA" --base main \
+              --title "Tablas de deducción regeneradas del catálogo" \
+              --body "\
+          \`scripts/derivar-tags.mjs\` produce tablas distintas a las de \`rules.js\`.
+          Pasa cuando crece el catálogo o Moonton cambia sus etiquetas, que es
+          exactamente cuando toca regenerarlas.
+
+          No llevan criterio humano: salen de qué tags tienen en el catálogo los
+          héroes que llevan cada etiqueta. Las pruebas ya han pasado con ellas.
+
+          Antes de fusionar, mirar que la medición documentada en el comentario
+          de \`SPECIALITY_TAGS\` siga cuadrando."
+          fi

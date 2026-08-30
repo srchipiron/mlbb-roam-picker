@@ -94,6 +94,25 @@ Todos estos llegaron a producción y costaron rondas enteras de ida y vuelta:
   así que Marcel entraba en las recomendaciones sin que nadie le pidiera
   counters. Ahora la ingesta importa `mergeCatalog`. No vuelvas a duplicarlo.
 
+## La vigilancia automática
+
+Desde 0.9.0 la app no espera a que Javi note algo raro. `vigilancia.yml` corre
+dos veces al día y tras cada despliegue: ejecuta `npm test` y
+`scripts/diagnostico.mjs`, que es el MISMO `runSelfTest` del botón pero contra
+**lo que la app sirve**, no contra el repositorio. Esa distinción es la clave:
+dos veces en un mismo día el repo estaba impecable y lo publicado estaba roto.
+
+Si falla, abre una incidencia con la etiqueta `vigilancia` y el informe dentro;
+si ya hay una abierta, comenta en ella en vez de crear otra. Cuando vuelve a
+pasar, la cierra sola.
+
+En modo automático no hay móvil, así que la maestría y las partidas no se ven.
+Esas comprobaciones se apagan con `env.sinDatosPersonales` en vez de convertirse
+en avisos: si no, todos los informes vendrían con avisos y dejaríamos de leerlos.
+
+`mantenimiento.yml` (lunes) regenera las tablas de deducción y propone el cambio
+en un pull request, y avisa de héroes nuevos SIN inventarles tags.
+
 ## La API
 
 Proyecto comunitario (Rone Arena), retransmite los datos internos de Moonton.

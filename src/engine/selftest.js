@@ -152,9 +152,17 @@ export function runSelfTest({ catalog, meta, metaCtx, allHeroes, roamPool, maste
   // ---------- maestría ----------
   seccion('MAESTRÍA');
   const conMaestria = Object.keys(mastery ?? {}).length;
-  check(conMaestria >= 5,
-    `${conMaestria} héroes con datos tuyos`,
-    `Solo ${conMaestria} héroes con datos tuyos: rellena más para que la app se ajuste a ti`, true);
+  // En la vigilancia automática no hay móvil: la maestría y las partidas viven
+  // en el almacenamiento de Javi. Ahí no son un aviso, porque no hay nada que
+  // arreglar; si lo fueran, TODOS los informes automáticos vendrían con avisos
+  // y dejaríamos de leerlos.
+  if (env.sinDatosPersonales) {
+    lineas.push('Sin acceso: la maestría vive en el móvil');
+  } else {
+    check(conMaestria >= 5,
+      `${conMaestria} héroes con datos tuyos`,
+      `Solo ${conMaestria} héroes con datos tuyos: rellena más para que la app se ajuste a ti`, true);
+  }
 
   if (conMaestria) {
     const [nombre] = Object.keys(mastery);
@@ -173,8 +181,10 @@ export function runSelfTest({ catalog, meta, metaCtx, allHeroes, roamPool, maste
   // ---------- partidas apuntadas ----------
   seccion('TUS PARTIDAS');
   const reg = resumen(partidas);
-  lineas.push(`Apuntadas: ${reg.total}`);
-  if (reg.total) {
+  lineas.push(env.sinDatosPersonales
+    ? 'Sin acceso: las partidas viven en el móvil'
+    : `Apuntadas: ${reg.total}`);
+  if (reg.total && !env.sinDatosPersonales) {
     const pct = (v) => (v == null ? '—' : `${Math.round(v * 100)}%`);
     lineas.push(`Siguiendo la recomendación: ${reg.siguiendo} · ganadas ${pct(reg.wrSiguiendo)}`);
     lineas.push(`Por libre: ${reg.porLibre} · ganadas ${pct(reg.wrPorLibre)}`);
@@ -182,9 +192,11 @@ export function runSelfTest({ catalog, meta, metaCtx, allHeroes, roamPool, maste
   // Una línea, NO un aviso. No hay nada que arreglar: es que aún no has jugado
   // bastante. Un aviso encendido de forma permanente deja de avisar, que es el
   // error que ya tenía el umbral de cobertura de counters.
-  lineas.push(reg.concluyente
-    ? `Hay muestra para comparar los dos winrates (${MINIMO_PARA_CONCLUIR}+ de cada tipo)`
-    : `Faltan ${reg.faltan} para poder comparar: hasta entonces, no toques los pesos`);
+  if (!env.sinDatosPersonales) {
+    lineas.push(reg.concluyente
+      ? `Hay muestra para comparar los dos winrates (${MINIMO_PARA_CONCLUIR}+ de cada tipo)`
+      : `Faltan ${reg.faltan} para poder comparar: hasta entonces, no toques los pesos`);
+  }
 
   // ---------- autonomía ----------
   seccion('AUTONOMÍA');

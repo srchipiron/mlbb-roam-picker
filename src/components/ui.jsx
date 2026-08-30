@@ -374,6 +374,20 @@ export function SelfTest({ resultado, onClose }) {
 
   const compartir = () => navigator.share?.({ text: resultado.texto }).catch(() => {});
 
+  /**
+   * Deja el informe como incidencia en GitHub, que es donde se puede trabajar
+   * con él después. Se abre el formulario YA RELLENO y tú solo confirmas: así
+   * no hace falta ninguna credencial dentro de la app, que en una web pública
+   * sería una credencial regalada.
+   */
+  const aGitHub = () => {
+    const url = new URL('https://github.com/srchipiron/mlbb-roam-picker/issues/new');
+    url.searchParams.set('title', `Diagnóstico ${new Date().toLocaleDateString('es-ES')}: ${resultado.fallos ? `${resultado.fallos} fallos` : `${resultado.avisos} avisos`}`);
+    url.searchParams.set('labels', 'diagnostico');
+    url.searchParams.set('body', `Enviado desde el móvil con el botón Diagnóstico.\n\n\`\`\`\n${resultado.texto}\n\`\`\``);
+    window.open(url.toString(), '_blank', 'noopener');
+  };
+
   return (
     <div className="sheet" role="dialog" aria-label="Diagnóstico">
       <div className="sheet-head">
@@ -382,6 +396,7 @@ export function SelfTest({ resultado, onClose }) {
           {resultado.avisos ? ` · ${resultado.avisos} avisos` : ''}
         </strong>
         {navigator.share && <button className="close" onClick={compartir}>Enviar</button>}
+        <button className="close" onClick={aGitHub}>A GitHub</button>
         <button className="close" style={{ color: 'var(--gold)' }} onClick={copiar}>
           {copiado ? 'Copiado' : 'Copiar'}
         </button>
