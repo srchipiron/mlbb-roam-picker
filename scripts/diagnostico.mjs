@@ -16,14 +16,21 @@ import { readFileSync } from 'node:fs';
 import { resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { runSelfTest } from '../src/engine/selftest.js';
-import { mergeCatalog, indexByName } from '../src/engine/score.js';
+import { mergeCatalog, indexByName, poolDeLinea, LINEAS } from '../src/engine/score.js';
+import { indiceDeLineas } from '../src/engine/rival-de-linea.js';
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const arg = (k, def) => {
   const i = process.argv.indexOf(k);
   return i > -1 ? process.argv[i + 1] : def;
 };
-const BASE = arg('--url', 'https://srchipiron.github.io/mlbb-roam-picker');
+// En GitHub Actions, GITHUB_REPOSITORY viene como "duenno/repo", que es
+// justo lo que hace falta para armar la URL de Pages. Asi el renombrado del
+// repositorio no obliga a tocar este fichero.
+const DEL_ENTORNO = process.env.GITHUB_REPOSITORY
+  ? `https://${process.env.GITHUB_REPOSITORY.split('/')[0]}.github.io/${process.env.GITHUB_REPOSITORY.split('/')[1]}`
+  : 'https://srchipiron.github.io/mlbb-roam-picker';
+const BASE = arg('--url', DEL_ENTORNO);
 const LOCAL = process.argv.includes('--local');
 
 async function traer(nombre) {
@@ -40,7 +47,7 @@ const catalog = await traer('heroes.json');
 const meta = await traer('roam-meta.json');
 
 const allHeroes = mergeCatalog(catalog.heroes, meta.heroes);
-const roamPool = allHeroes.filter((h) => h.roam);
+const indiceLineas = indiceDeLineas(meta.heroes);
 const rango = meta.rank ?? 'glory';
 const metaCtx = {
   stats: indexByName(meta.statsByRank?.[rango] ?? meta.stats),
@@ -49,26 +56,48 @@ const metaCtx = {
   patchAvgWinRate: meta.avgByRank?.[rango] ?? meta.patchAvgWinRate ?? 0.5,
 };
 
-// La maestría y las partidas viven en el móvil de Javi y no se pueden ver desde
-// aquí. Se dejan vacías a propósito: las comprobaciones que dependen de ellas
-// son avisos, no fallos, así que no tumban la vigilancia por no tenerlas.
-const resultado = runSelfTest({
-  catalog, meta, metaCtx, allHeroes, roamPool,
-  mastery: {},
-  partidas: [],
-  env: {
-    version: 'vigilancia', buildTime: null, rango,
-    width: 412, height: 915, standalone: false, storage: true,
-    sw: 'sin navegador',
-    sinDatosPersonales: true,
-  },
-});
+// Se comprueban LAS CINCO líneas, no solo roam: desde que la app sirve para
+// todos los roles, que funcione en roam no dice nada de las otras cuatro.
+let fallosTotales = 0;
+const partes = [];
 
-console.log(resultado.texto);
+for (const linea of LINEAS) {
+  const roamPool = poolDeLinea(allHeroes, indiceLineas, linea);
+
+  // La maestría y las partidas viven en el móvil de Javi y no se pueden ver
+  // desde aquí. Se apagan a propósito: si fueran avisos, todos los informes
+  // vendrían con avisos y dejaríamos de leerlos.
+  const r = runSelfTest({
+    catalog, meta, metaCtx, allHeroes, roamPool,
+    mastery: {},
+    partidas: [],
+    linea,
+    env: {
+      version: 'vigilancia', buildTime: null, rango,
+      width: 412, height: 915, standalone: false, storage: true,
+      sw: 'sin navegador', sinDatosPersonales: true,
+    },
+  });
+  fallosTotales += r.fallos;
+  partes.push(r);
+}
+
+// El informe entero de la primera línea, y de las demás solo lo que cambia:
+// pegar cinco informes casi idénticos en una incidencia no lo lee nadie.
+console.log(partes[0].texto);
+for (let i = 1; i < partes.length; i++) {
+  console.log('');
+  console.log(`--- LÍNEA ${LINEAS[i].toUpperCase()} ---`);
+  for (const l of partes[i].texto.split('\n')) {
+    if (/^\[(FALLO|AVISO)\]/.test(l) || /pool|Winrates|Counters|propone|dashes|curación/.test(l)) {
+      console.log(l);
+    }
+  }
+}
 console.log('');
 console.log(`Fuente: ${LOCAL ? 'public/data (local)' : BASE}`);
 
-if (resultado.fallos) {
-  console.error(`\n${resultado.fallos} FALLOS en lo que la app está sirviendo.`);
+if (fallosTotales) {
+  console.error(`\n${fallosTotales} FALLOS repartidos por las cinco líneas.`);
   process.exit(1);
 }

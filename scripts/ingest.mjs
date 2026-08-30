@@ -89,7 +89,7 @@ const WANTED = {
 // '/heroes' confirmado: da 405 (existe, otro método) mientras '/mlbb' da 404.
 const PREFIXES = ['/heroes', '', '/mlbb'];
 
-const UA = 'mlbb-roam-picker (uso personal)';
+const UA = 'mobile-legends-pick-assist (uso personal)';
 const TIMEOUT_MS = 15000;
 
 const diagnostics = { bases: BASES, ok: [], failed: [] };
@@ -603,12 +603,14 @@ async function main() {
     console.warn(`  · speciality: fallo (${err.message}); usan solo los tags de su rol`);
   }
 
-  // Con la lista de la API ya en mano: roamer es quien lo sea en el catalogo o
-  // quien la API clasifique como tank/support, exactamente igual que en la app.
-  const roamNames = [...new Set(
-    mergeCatalog(heroes.heroes, heroList).filter((h) => h.roam).map((h) => h.name),
-  )];
-  console.log(`  · ${roamNames.length} roamers a los que pedir counters`);
+  // Counters de TODOS los heroes, no solo de los roamers: la app recomienda
+  // para las cinco lineas y un mediocarril necesita sus matchups igual que un
+  // roamer. Son ~266 peticiones en vez de 70, que es el precio de que la app
+  // sirva para cualquier rol.
+  const todos = mergeCatalog(heroes.heroes, heroList);
+  const nombresPedir = [...new Set(todos.map((h) => h.name))];
+  const roamNames = [...new Set(todos.filter((h) => h.roam).map((h) => h.name))];
+  console.log(`  · ${nombresPedir.length} heroes a los que pedir counters`);
 
   const statsByRank = { ...(previous?.statsByRank ?? {}) };
   diagnostics.rangos = {};
@@ -630,7 +632,7 @@ async function main() {
 
   let relations = { counters: previous?.counters ?? {}, synergies: previous?.synergies ?? {} };
   try {
-    const fresh = await fetchRelations(roamNames, stats, heroList);
+    const fresh = await fetchRelations(nombresPedir, stats, heroList);
     if (Object.keys(fresh.counters).length) relations = fresh;
     console.log(`  · relaciones de ${Object.keys(relations.counters).length} roamers`);
   } catch (err) {
@@ -661,6 +663,15 @@ async function main() {
     avgByRank: Object.fromEntries(Object.entries(statsByRank).map(([k, v]) => [k, avgOf(v)])),
     heroCount: Object.keys(stats).length,
     roamCoverage: { withData: roamNames.length - sinDatos.length, total: roamNames.length, missing: sinDatos },
+    // Cuantos heroes de cada linea tienen counters. Es lo que dice si la app
+    // puede recomendar de verdad para esa linea o esta a medias.
+    coberturaPorLinea: Object.fromEntries(
+      ['roam', 'jungle', 'mid', 'gold', 'exp'].map((linea) => {
+        const de = heroList.filter((h) => (h.lanes ?? []).includes(linea));
+        const con = de.filter((h) => Object.keys(relations.counters[h.name] ?? {}).length);
+        return [linea, { total: de.length, conCounters: con.length }];
+      }),
+    ),
     heroes: heroList,
     newHeroes,
     diagnostics: {

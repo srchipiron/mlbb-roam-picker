@@ -8,6 +8,28 @@ que esto no se olvida.
 Criterio: `0.X.0` cuando cambia cómo decide la app o qué hace; `0.0.X` para
 correcciones.
 
+## 1.0.0
+
+La app deja de ser solo para roam. Ahora se llama **Mobile Legends Pick Assist**
+y sirve para las cinco líneas.
+
+- **Eliges tu línea al abrirla** y la app recomienda para ESA: roam, jungla,
+  mid, gold o exp. Se pregunta una vez y se recuerda; se cambia desde «Baneos y
+  ajustes».
+- **Los pools no están escritos a mano**: salen de en qué línea se juega de
+  verdad cada héroe, según la API. Roam 37, jungla 37, mid 29, gold 21, exp 40.
+  Un héroe que se juega en dos líneas sale en las dos, que es lo correcto.
+- **«El roamer enemigo pesa el doble» pasa a ser «tu rival de línea pesa el
+  doble»**. Si juegas mid, el que te importa es su mediocarril. Con el mismo
+  draft enemigo la app ya señala a un rival distinto para cada línea.
+- **Counters de los 133 héroes**, no solo de los 35 roamers. Cobertura del 100%
+  en las cinco líneas. Eso alarga la descarga de datos de 1 a 3 minutos y engorda
+  el fichero de 139 a 199 KB, que es el precio de que sirva para cualquier rol.
+- El diagnóstico comprueba **las cinco líneas**. Y es honesto con lo que no
+  aplica: en gold no hay ni un anti-dash, así que ahí no lo exige en vez de
+  fallar para siempre.
+- Tu maestría y tus partidas **no se pierden**: siguen guardadas donde estaban.
+
 ## 0.9.0
 
 - **La app se vigila sola.** Dos veces al día, y después de cada despliegue, una

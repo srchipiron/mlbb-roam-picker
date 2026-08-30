@@ -486,6 +486,26 @@ export function tagsDeducidos(role, speciality = []) {
   return [...new Set([...porRol, ...porEsp])];
 }
 
+/** Las cinco líneas, en el orden en que se leen en el juego. */
+export const LINEAS = ['roam', 'jungle', 'mid', 'gold', 'exp'];
+
+/**
+ * Héroes que se juegan en una línea, según la API.
+ *
+ * El pool NO está escrito a mano: sale de en qué líneas se juega de verdad cada
+ * héroe. Un héroe puede aparecer en dos (31 de los 133 lo hacen) y eso es
+ * correcto: Yu Zhong es exp y también jungla.
+ *
+ * Si no hay datos de líneas todavía, para roam se cae al catálogo escrito a
+ * mano, que es el único que los tiene. Las otras cuatro se quedan vacías, y la
+ * app lo dice en vez de inventarse un pool.
+ */
+export function poolDeLinea(heroes, indiceLineas, linea) {
+  const conLineas = heroes.filter((h) => indiceLineas?.get?.(normName(h.name))?.lanes?.length);
+  if (!conLineas.length) return linea === 'roam' ? heroes.filter((h) => h.roam) : [];
+  return heroes.filter((h) => indiceLineas.get(normName(h.name))?.lanes?.includes(linea));
+}
+
 /**
  * A quién banear. No es "el héroe con más winrate": es el que más te duele a ti,
  * así que pesa el banrate global (lo que la gente ya considera peligroso) junto

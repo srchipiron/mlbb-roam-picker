@@ -1,8 +1,16 @@
 # Contexto del proyecto
 
-App personal de Javi (usuario de GitHub: `srchipiron`) para elegir roamer en
-Mobile Legends. Está en **Gloria Mítica**, así que el rango por defecto de los
-datos es `glory`, no `mythic`.
+**Mobile Legends Pick Assist**: qué héroe coger en tu línea, según el draft que
+tienes delante. Nació como app personal de Javi (GitHub: `srchipiron`) solo para
+roam, y desde 1.0.0 sirve para las cinco líneas. Javi está en **Gloria Mítica**,
+así que el rango por defecto de los datos es `glory`, no `mythic`.
+
+El pool de cada línea NO está escrito a mano: sale de `lanes`, que la API da
+para los 133 héroes. Si añades una línea nueva, va en `LINEAS` (score.js) y el
+resto sale solo.
+
+Las claves de `localStorage` siguen diciendo `roam-picker:` aunque la app ya no
+se llame así. NO las renombres: borrarías la maestría y las partidas de Javi.
 
 Trabaja **solo desde el móvil**, con Termux. No tiene ordenador. Eso condiciona
 todo: no hay consola de desarrollo en el navegador, no puede leer un JSON largo
@@ -12,7 +20,7 @@ comprobaciones automáticas importan más de lo normal.
 
 ## Reglas de trabajo
 
-**Nunca subas nada sin pasar `npm test`.** Son cuatro comprobaciones y 39
+**Nunca subas nada sin pasar `npm test`.** Son cuatro comprobaciones y 40
 pruebas (orden de declaraciones, CSS, versión documentada y motor). El
 despliegue corre esas cuatro más una quinta que no está en `npm test`: que
 `roam-meta.json` se haya regenerado hace menos de media hora. Si algo falla, el despliegue se detiene y la app se queda

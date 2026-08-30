@@ -381,7 +381,12 @@ export function SelfTest({ resultado, onClose }) {
    * sería una credencial regalada.
    */
   const aGitHub = () => {
-    const url = new URL('https://github.com/srchipiron/mlbb-roam-picker/issues/new');
+    // El repositorio se deduce de la propia dirección de la app: en GitHub
+    // Pages el primer tramo de la ruta ES el nombre del repositorio. Así, si se
+    // renombra, esto sigue apuntando bien sin tocar una línea.
+    const duenno = window.location.hostname.split('.')[0];
+    const repo = window.location.pathname.split('/').filter(Boolean)[0] ?? 'mlbb-roam-picker';
+    const url = new URL(`https://github.com/${duenno}/${repo}/issues/new`);
     url.searchParams.set('title', `Diagnóstico ${new Date().toLocaleDateString('es-ES')}: ${resultado.fallos ? `${resultado.fallos} fallos` : `${resultado.avisos} avisos`}`);
     url.searchParams.set('labels', 'diagnostico');
     url.searchParams.set('body', `Enviado desde el móvil con el botón Diagnóstico.\n\n\`\`\`\n${resultado.texto}\n\`\`\``);
@@ -447,6 +452,51 @@ export function RegistroPartida({ pool, recomendados, onGuardar, onClose }) {
         <button className="reset" disabled={!pick} onClick={() => onGuardar(pick, false)}>Perdí</button>
         <button className="reset" disabled={!pick} onClick={() => onGuardar(pick, true)}>Gané</button>
       </div>
+    </div>
+  );
+}
+
+/** Cómo se llama cada línea en la app y en el juego. */
+export const NOMBRE_LINEA = {
+  roam: 'Roam', jungle: 'Jungla', mid: 'Mid', gold: 'Gold', exp: 'Exp',
+};
+
+const PISTA_LINEA = {
+  roam: 'Tanque o support que rota y protege',
+  jungle: 'Farmeas la jungla y haces ganks',
+  mid: 'Línea central, normalmente mago',
+  gold: 'Línea de oro, normalmente tirador',
+  exp: 'Línea de experiencia, normalmente luchador',
+};
+
+/**
+ * Qué línea juegas. Se pregunta una sola vez y se recuerda.
+ *
+ * Sin esto la app no sabe qué pool recomendarte: no es una preferencia
+ * estética, es el dato que decide entre 21 y 40 héroes distintos.
+ */
+export function SelectorDeLinea({ lineas, valor, onElegir, onClose }) {
+  return (
+    <div className="sheet" role="dialog" aria-label="Elegir línea">
+      <div className="sheet-head">
+        <strong style={{ flex: 1, alignSelf: 'center' }}>¿Qué línea juegas?</strong>
+        {onClose && <button className="close" onClick={onClose}>Cerrar</button>}
+      </div>
+      <div className="lineas">
+        {lineas.map((l) => (
+          <button
+            key={l}
+            className={`linea ${valor === l ? 'elegida' : ''}`}
+            onClick={() => onElegir(l)}
+          >
+            <span className="linea-nombre">{NOMBRE_LINEA[l] ?? l}</span>
+            <span className="linea-pista">{PISTA_LINEA[l] ?? ''}</span>
+          </button>
+        ))}
+      </div>
+      <p className="empty-state" style={{ paddingTop: '10px' }}>
+        Se puede cambiar cuando quieras desde «Baneos y ajustes».
+      </p>
     </div>
   );
 }

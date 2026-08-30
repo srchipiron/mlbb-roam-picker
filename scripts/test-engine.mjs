@@ -93,10 +93,11 @@ test('el dato real de la API puede contradecir a las reglas por tags', () => {
   ok(bueno > malo, 'el dato real no ordena los matchups');
 });
 
-test('se deduce quién es el roamer enemigo, y se calla si hay duda', async () => {
-  const { detectarRoamEnemigo, indiceDeLineas } = await import('../src/engine/roam-enemigo.js');
+test('se deduce el rival de TU línea, y se calla si hay duda', async () => {
+  const { detectarRivalDeLinea, indiceDeLineas, frecuenciaDeRoles } =
+    await import('../src/engine/rival-de-linea.js');
 
-  const info = indiceDeLineas([
+  const listado = [
     { name: 'Angela', role: 'support', lane: 'roam' },
     { name: 'Fredrinn', role: 'fighter', lane: 'jungle,exp' },
     { name: 'Zilong', role: 'fighter', lane: 'exp,gold' },
@@ -107,23 +108,66 @@ test('se deduce quién es el roamer enemigo, y se calla si hay duda', async () =
     { name: 'Melissa', role: 'marksman', lane: 'gold' },
     { name: 'Argus', role: 'fighter', lane: 'exp' },
     { name: 'Saber', role: 'assassin', lane: 'jungle' },
-  ]);
+  ];
+  const info = indiceDeLineas(listado);
+  const frec = frecuenciaDeRoles(listado.map((x) => ({ ...x, lanes: x.lane.split(',') })));
+  const draft = ['Fredrinn', 'Angela', 'Zilong', 'Kagura', 'Claude'].map(h);
+  const rival = (linea, d = draft) => detectarRivalDeLinea(d, info, linea, frec);
 
-  // Draft real: solo Angela hace roam.
-  ok(detectarRoamEnemigo(['Fredrinn', 'Angela', 'Zilong', 'Kagura', 'Claude'].map(h), info) === 'Angela',
-    'no reconoce a Angela como su roam');
+  // El MISMO draft da un rival distinto según la línea que juegues tú. Esto es
+  // lo que hace que la app sirva para los cinco roles y no solo para roam.
+  ok(rival('roam') === 'Angela', `roam deberia ser Angela: ${rival('roam')}`);
+  ok(rival('mid') === 'Kagura', `mid deberia ser Kagura: ${rival('mid')}`);
+  ok(rival('gold') === 'Claude', `gold deberia ser Claude: ${rival('gold')}`);
 
-  // Draft real con DOS candidatos: equivocarse duplica el peso del matchup malo,
-  // así que callarse es la respuesta correcta.
-  ok(detectarRoamEnemigo(['Melissa', 'Argus', 'Saber', 'Minotaur', 'Floryn'].map(h), info) === null,
-    'se moja habiendo dos roamers posibles');
+  // Con DOS candidatos claros, callarse: equivocarse duplica el peso del
+  // matchup equivocado, que es peor que no decir nada.
+  const dosRoamers = ['Melissa', 'Argus', 'Saber', 'Minotaur', 'Floryn'].map(h);
+  ok(rival('roam', dosRoamers) === null, 'se moja habiendo dos roamers posibles');
 
-  ok(detectarRoamEnemigo(['Kagura', 'Claude', 'Zilong', 'Saber', 'Argus'].map(h), info) === null,
+  // Y no se inventa un roam donde no hay ninguno.
+  ok(rival('roam', ['Kagura', 'Claude', 'Zilong', 'Saber', 'Argus'].map(h)) === null,
     'inventa un roam donde no hay ninguno');
 
-  // Sin datos de la API debe seguir funcionando con el catálogo.
-  ok(detectarRoamEnemigo(['Fredrinn', 'Angela', 'Zilong', 'Kagura', 'Claude'].map(h), new Map()) === 'Angela',
-    'sin datos de líneas no acierta ni con el catálogo');
+  // Sin datos de la API sigue funcionando para roam con el catálogo, que es lo
+  // único que sabe quién rota. Para las otras cuatro no puede saberlo, y
+  // callarse es la respuesta correcta.
+  ok(detectarRivalDeLinea(draft, new Map(), 'roam', {}) === 'Angela',
+    'sin datos de líneas no acierta el roam ni con el catálogo');
+  ok(detectarRivalDeLinea(draft, new Map(), 'mid', {}) === null,
+    'sin datos de líneas se inventa un mid');
+});
+
+test('el pool sale de la línea que juegas, no de una lista escrita a mano', async () => {
+  const { poolDeLinea, LINEAS } = await import('../src/engine/score.js');
+  const { indiceDeLineas } = await import('../src/engine/rival-de-linea.js');
+
+  const idx = indiceDeLineas([
+    { name: 'Akai', role: 'tank', lanes: ['roam', 'jungle'] },
+    { name: 'Layla', role: 'marksman', lanes: ['gold'] },
+    { name: 'Kagura', role: 'mage', lanes: ['mid'] },
+  ]);
+  const heroes = [
+    { name: 'Akai', tags: [], roam: true },
+    { name: 'Layla', tags: [], roam: false },
+    { name: 'Kagura', tags: [], roam: false },
+  ];
+
+  ok(poolDeLinea(heroes, idx, 'gold').map((x) => x.name).join() === 'Layla', 'gold mal');
+  ok(poolDeLinea(heroes, idx, 'mid').map((x) => x.name).join() === 'Kagura', 'mid mal');
+  // Un héroe que juega dos líneas sale en las dos. Es correcto: Akai hace roam
+  // y jungla de verdad.
+  ok(poolDeLinea(heroes, idx, 'roam').map((x) => x.name).join() === 'Akai', 'roam mal');
+  ok(poolDeLinea(heroes, idx, 'jungle').map((x) => x.name).join() === 'Akai', 'jungle mal');
+
+  ok(LINEAS.length === 5, 'deberían ser cinco líneas');
+
+  // Sin datos de líneas: roam se cae al catálogo, las demás se quedan vacías
+  // y la app lo dice en vez de inventarse un pool.
+  ok(poolDeLinea(heroes, new Map(), 'roam').map((x) => x.name).join() === 'Akai',
+    'sin datos, roam debería caer al catálogo');
+  ok(!poolDeLinea(heroes, new Map(), 'gold').length,
+    'sin datos, gold debería quedarse vacía en vez de inventarse un pool');
 });
 
 test('el roamer enemigo marcado pesa el doble', () => {

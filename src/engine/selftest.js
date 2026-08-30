@@ -17,7 +17,7 @@ const OK = 'OK  ';
 const MAL = 'FALLO';
 const AVISO = 'AVISO';
 
-export function runSelfTest({ catalog, meta, metaCtx, allHeroes, roamPool, mastery, partidas = [], env = {} }) {
+export function runSelfTest({ catalog, meta, metaCtx, allHeroes, roamPool, mastery, partidas = [], linea = 'roam', env = {} }) {
   const lineas = [];
   let fallos = 0;
   let avisos = 0;
@@ -44,8 +44,11 @@ export function runSelfTest({ catalog, meta, metaCtx, allHeroes, roamPool, maste
   // ---------- datos ----------
   seccion('DATOS');
   check(!!catalog?.heroes?.length,
-    `Catálogo: ${catalog?.heroes?.length ?? 0} héroes, ${roamPool.length} roamers`,
+    `Catálogo: ${catalog?.heroes?.length ?? 0} héroes`,
     'Catálogo vacío o no cargado');
+  check(roamPool.length > 0,
+    `Línea ${linea}: ${roamPool.length} héroes en el pool`,
+    `Línea ${linea}: pool VACÍO, no hay nada que recomendar`);
 
   if (!meta) {
     add(MAL, 'roam-meta.json no cargado: la app va solo con reglas por tags');
@@ -55,6 +58,10 @@ export function runSelfTest({ catalog, meta, metaCtx, allHeroes, roamPool, maste
     lineas.push(`Generado: ${gen.toLocaleString('es-ES')} (hace ${Math.round(horas)} h)`);
     check(horas < 36, 'Datos frescos', `Datos de hace ${Math.round(horas)} h: la actualización automática puede estar rota`, true);
     lineas.push(`Rangos: ${meta.ranks?.join(', ') || 'ninguno'} · activo: ${env.rango ?? '?'}`);
+  if (meta.coberturaPorLinea) {
+    lineas.push('Cobertura por línea: ' + Object.entries(meta.coberturaPorLinea)
+      .map(([l, c]) => `${l} ${c.conCounters}/${c.total}`).join(' · '));
+  }
     lineas.push(`Ventana: ${meta.days ?? '?'} días · héroes con estadísticas: ${meta.heroCount ?? 0}`);
     lineas.push(`API: ${meta.diagnostics?.base ?? 'desconocida'}`);
 
@@ -67,10 +74,10 @@ export function runSelfTest({ catalog, meta, metaCtx, allHeroes, roamPool, maste
   seccion('COBERTURA');
   const cov = coverage(roamPool, metaCtx.stats, metaCtx.counters);
   check(cov.withData === cov.total,
-    `Winrates: ${cov.withData}/${cov.total} roamers`,
+    `Winrates: ${cov.withData}/${cov.total} héroes de tu línea`,
     `Winrates: faltan ${cov.missing.length} (${cov.missing.slice(0, 8).join(', ')})`);
   check(cov.conCounters > 0,
-    `Counters: ${cov.conCounters}/${cov.total} roamers`,
+    `Counters: ${cov.conCounters}/${cov.total} héroes de tu línea`,
     'Counters: ninguno. El motor usa reglas por tags, no partidas reales');
 
   if (cov.conCounters) {
@@ -116,15 +123,28 @@ export function runSelfTest({ catalog, meta, metaCtx, allHeroes, roamPool, maste
     mastery,
   }).slice(0, 5).map((r) => r.hero.name);
 
+  // Estas dos solo tienen sentido si en TU línea hay héroes que puedan
+  // cumplirlas: en gold no hay ni un anti-dash, y exigirlo allí sería un fallo
+  // permanente que no dice nada de la app.
+  const puede = (tag) => roamPool.some((h) => h.tags.includes(tag));
+
   const dashes = nombresTop(['Fanny', 'Ling', 'Lancelot']);
-  check(dashes.some((n) => H(n)?.tags.includes('anti_mobility')),
-    `Contra dashes propone anti-dash: ${dashes.slice(0, 3).join(', ')}`,
-    `Contra dashes NO propone anti-dash: ${dashes.join(', ')}`);
+  if (puede('anti_mobility')) {
+    check(dashes.some((n) => H(n)?.tags.includes('anti_mobility')),
+      `Contra dashes propone anti-dash: ${dashes.slice(0, 3).join(', ')}`,
+      `Contra dashes NO propone anti-dash: ${dashes.join(', ')}`);
+  } else {
+    lineas.push(`Contra dashes: ${dashes.slice(0, 3).join(', ')} (en ${linea} no hay anti-dash)`);
+  }
 
   const curacion = nombresTop(['Esmeralda', 'Uranus', 'Thamuz']);
-  check(curacion.some((n) => H(n)?.tags.includes('antiheal')),
-    `Contra curación propone antiheal: ${curacion.slice(0, 3).join(', ')}`,
-    `Contra curación NO propone antiheal: ${curacion.join(', ')}`);
+  if (puede('antiheal')) {
+    check(curacion.some((n) => H(n)?.tags.includes('antiheal')),
+      `Contra curación propone antiheal: ${curacion.slice(0, 3).join(', ')}`,
+      `Contra curación NO propone antiheal: ${curacion.join(', ')}`);
+  } else {
+    lineas.push(`Contra curación: ${curacion.slice(0, 3).join(', ')} (en ${linea} no hay antiheal)`);
+  }
 
   check(dashes[0] !== curacion[0],
     'La recomendación cambia según el equipo enemigo',

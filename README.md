@@ -1,6 +1,8 @@
-# Roam Picker
+# Mobile Legends Pick Assist
 
-Qué roamer coger en MLBB, según el draft que tienes delante y el meta del parche actual.
+Qué héroe coger en tu línea, según el draft que tienes delante y el meta del parche actual.
+Eliges tu línea (roam, jungla, mid, gold o exp) y la app recomienda para esa, con los
+datos de partidas reales de tu rango.
 PWA: se instala en la tablet desde el navegador y funciona sin conexión con los últimos datos descargados.
 
 ## Arrancar

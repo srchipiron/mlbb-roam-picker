@@ -1,14 +1,19 @@
 import { useEffect, useMemo, useState } from 'react';
-import { rankRoamers, mergeCatalog, suggestBans, indexByName, coverage, empatados, normName } from './engine/score.js';
+import { rankRoamers, mergeCatalog, suggestBans, indexByName, coverage, empatados, normName, poolDeLinea, LINEAS } from './engine/score.js';
 import { runSelfTest, leerEntorno } from './engine/selftest.js';
 import { apuntar } from './engine/registro.js';
-import { detectarRoamEnemigo, indiceDeLineas } from './engine/roam-enemigo.js';
-import { Side, HeroSheet, Pick, Legend, MasteryEditor, RankPicker, BanSuggestions, Footer, SelfTest, RegistroPartida } from './components/ui.jsx';
+import { detectarRivalDeLinea, indiceDeLineas, frecuenciaDeRoles } from './engine/rival-de-linea.js';
+import { Side, HeroSheet, Pick, Legend, MasteryEditor, RankPicker, BanSuggestions, Footer, SelfTest, RegistroPartida, SelectorDeLinea, NOMBRE_LINEA } from './components/ui.jsx';
 
+// OJO: estas claves siguen diciendo 'roam-picker' aunque la app se llame ya
+// Mobile Legends Pick Assist. NO se renombran: el almacenamiento del navegador
+// va por clave, así que cambiarlas borraría la maestría y las partidas que
+// Javi ya tiene guardadas. El nombre bonito va por fuera; esto es plomería.
 const MASTERY_KEY = 'roam-picker:mastery';
 const RANK_KEY = 'roam-picker:rank';
 const DRAFT_KEY = 'roam-picker:draft';
 const PARTIDAS_KEY = 'roam-picker:partidas';
+const LINEA_KEY = 'roam-picker:linea';
 
 const load = (key, fallback) => {
   try { return JSON.parse(localStorage.getItem(key) ?? 'null') ?? fallback; } catch { return fallback; }
@@ -31,10 +36,14 @@ export default function App() {
   const [banNames, setBanNames] = useState(() => load(DRAFT_KEY, {}).bans ?? []);
   const [enemyRoam, setEnemyRoam] = useState(() => load(DRAFT_KEY, {}).enemyRoam ?? null);
   const [rank, setRank] = useState(() => load(RANK_KEY, null));
+  // La línea que juegas. Sin ella la app no sabe qué recomendarte, así que en
+  // el primer arranque se pregunta y ya no se vuelve a preguntar.
+  const [linea, setLinea] = useState(() => load(LINEA_KEY, null));
   const [sheet, setSheet] = useState(null); // 'enemy' | 'ally' | 'ban'
 
   const [partidas, setPartidas] = useState(() => load(PARTIDAS_KEY, []));
   const [apuntando, setApuntando] = useState(false);
+  const [eligiendoLinea, setEligiendoLinea] = useState(false);
   const [mastery, setMastery] = useState(() => load(MASTERY_KEY, {}));
   const [editingMastery, setEditingMastery] = useState(false);
   const [test, setTest] = useState(null);
@@ -45,6 +54,7 @@ export default function App() {
     save(DRAFT_KEY, { enemies: enemyNames, allies: allyNames, bans: banNames, enemyRoam });
   }, [enemyNames, allyNames, banNames, enemyRoam]);
   useEffect(() => { if (rank) save(RANK_KEY, rank); }, [rank]);
+  useEffect(() => { if (linea) save(LINEA_KEY, linea); }, [linea]);
 
   useEffect(() => {
     const fetchJson = async (path) => {
@@ -64,7 +74,16 @@ export default function App() {
     [catalog, meta],
   );
 
-  const roamPool = useMemo(() => allHeroes.filter((h) => h.roam), [allHeroes]);
+  const lineas = useMemo(() => indiceDeLineas(meta?.heroes), [meta]);
+  const frecuencias = useMemo(() => frecuenciaDeRoles(meta?.heroes ?? []), [meta]);
+
+  // El pool ya no es "los roamers": son los héroes que se juegan en TU línea,
+  // según la API. Se sigue llamando roamPool en las partes que aún no se han
+  // renombrado, pero contiene lo que toque según la línea elegida.
+  const roamPool = useMemo(
+    () => (linea ? poolDeLinea(allHeroes, lineas, linea) : []),
+    [allHeroes, lineas, linea],
+  );
 
   const resolve = useMemo(() => {
     const byName = new Map(allHeroes.map((h) => [h.name, h]));
@@ -107,12 +126,12 @@ export default function App() {
     [roamPool, metaCtx],
   );
 
-  // Roamer enemigo deducido de las líneas que juega cada héroe. Lo que marques
-  // a mano manda siempre: esto solo rellena el hueco cuando no has tocado nada.
-  const lineas = useMemo(() => indiceDeLineas(meta?.heroes), [meta]);
+  // El rival de TU línea, deducido de las líneas que juega cada héroe. Es con
+  // quien más vas a chocar, así que su matchup pesa el doble. Lo que marques a
+  // mano manda siempre: esto solo rellena el hueco cuando no has tocado nada.
   const roamAuto = useMemo(
-    () => detectarRoamEnemigo(enemies, lineas),
-    [enemies, lineas],
+    () => detectarRivalDeLinea(enemies, lineas, linea, frecuencias),
+    [enemies, lineas, linea, frecuencias],
   );
   const enemyRoamEfectivo = enemyRoam ?? roamAuto;
 
@@ -140,6 +159,7 @@ export default function App() {
     try {
       setTest(runSelfTest({
         catalog, meta, metaCtx, allHeroes, roamPool, mastery, partidas,
+        linea,
         env: leerEntorno({ version: __APP_VERSION__, buildTime: __BUILD_TIME__, rango: activeRank }),
       }));
     } catch (err) {
@@ -189,6 +209,16 @@ export default function App() {
   }
   if (!catalog) return <div className="results"><p className="empty-state">Cargando…</p></div>;
 
+  // Primer arranque: sin línea no hay nada que recomendar, así que se pregunta
+  // antes de enseñar una pantalla vacía que no se entiende.
+  if (!linea) {
+    return (
+      <div className="app">
+        <SelectorDeLinea lineas={LINEAS} valor={null} onElegir={setLinea} />
+      </div>
+    );
+  }
+
   return (
     <div className="app">
       <aside className="draft">
@@ -203,7 +233,7 @@ export default function App() {
               onAdd={() => setSheet('enemy')} onRemove={remove(setEnemyNames)}
               markedName={enemyRoam}
               onMark={(h) => setEnemyRoam((r) => (r === h.name ? null : h.name))}
-              markHint={roamAuto && !enemyRoam ? `su roam: ${roamAuto}` : 'Marca su roam'}
+              markHint={roamAuto && !enemyRoam ? `tu rival: ${roamAuto}` : 'Marca tu rival'}
               autoName={roamAuto} />
         <Side title="Tu equipo" kind="ally" picks={allies} max={4}
               onAdd={() => setSheet('ally')} onRemove={remove(setAllyNames)} />
@@ -212,6 +242,13 @@ export default function App() {
 
           <Side title="Baneados" kind="bans" picks={bans} max={10}
                 onAdd={() => setSheet('ban')} onRemove={remove(setBanNames)} />
+
+          <div className="side" >
+            <div className="side-label"><span>Tu línea</span></div>
+            <button className="reset" onClick={() => setEligiendoLinea(true)}>
+              {NOMBRE_LINEA[linea] ?? linea} · cambiar
+            </button>
+          </div>
 
           <div className="side" >
             <div className="side-label"><span>Rango</span></div>
@@ -236,7 +273,7 @@ export default function App() {
 
       <main className="results">
         <div className="results-head">
-          <h2>Tu pick de roam</h2>
+          <h2>Tu pick de {NOMBRE_LINEA[linea] ?? linea}</h2>
           <span className={`freshness ${cov.withData && cov.withData < cov.total ? 'stale' : ''}`}>
             {cov.withData
               ? `${cov.withData}/${cov.total} con datos · ${cov.conCounters} con counters`
@@ -266,6 +303,13 @@ export default function App() {
           </div>
         ) : null}
 
+        {!roamPool.length && (
+          <div className="notice">
+            Todavía no hay datos de qué héroes se juegan en {NOMBRE_LINEA[linea] ?? linea}.
+            Se descargan con el meta: vuelve a abrir la app en un rato.
+          </div>
+        )}
+
         {empate.length > 1 && (
           <p className="tie">
             {empate.map((e) => e.hero.name).join(', ')} están prácticamente igual.
@@ -281,6 +325,15 @@ export default function App() {
       </main>
 
       {test && <SelfTest resultado={test} onClose={() => setTest(null)} />}
+
+      {eligiendoLinea && (
+        <SelectorDeLinea
+          lineas={LINEAS}
+          valor={linea}
+          onElegir={(l) => { setLinea(l); setEligiendoLinea(false); }}
+          onClose={() => setEligiendoLinea(false)}
+        />
+      )}
 
       {apuntando && (
         <RegistroPartida

@@ -1,6 +1,6 @@
 {
-  "name": "mlbb-roam-picker",
-  "version": "0.9.0",
+  "name": "mobile-legends-pick-assist",
+  "version": "1.0.0",
   "private": true,
   "type": "module",
   "scripts": {

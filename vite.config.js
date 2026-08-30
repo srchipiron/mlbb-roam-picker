@@ -21,9 +21,9 @@ export default defineConfig({
       registerType: 'autoUpdate',
       includeAssets: ['icon-192.png', 'icon-512.png'],
       manifest: {
-        name: 'Roam Picker',
-        short_name: 'Roam',
-        description: 'Qué roamer coger, según el draft y el meta actual',
+        name: 'Mobile Legends Pick Assist',
+        short_name: 'Pick Assist',
+        description: 'Qué héroe coger en tu línea, según el draft y el meta actual',
         theme_color: '#0B0F14',
         background_color: '#0B0F14',
         display: 'standalone',
