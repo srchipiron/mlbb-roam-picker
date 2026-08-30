@@ -17,7 +17,7 @@ import { writeFile, readFile, mkdir } from 'node:fs/promises';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import {
-  NAME_KEYS, ID_KEYS, asRate, pick, recogerPares, relationMap,
+  NAME_KEYS, ID_KEYS, asRate, pick, recogerPares, relationMap, esIdDeHeroe, idPrincipal,
 } from './parse-relations.mjs';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -306,7 +306,7 @@ async function fetchHeroList() {
     if (!name) continue;
     heroes.push({
       name: String(name).trim(),
-      id: pick(row, ['main_heroid', 'hero_id', 'heroid', 'heroId', 'id']) ?? null,
+      id: idPrincipal(row),
       role: String(pick(row, ['role', 'hero_role', 'primary_role']) ?? '').toLowerCase(),
       lane: String(pick(row, ['lane', 'hero_lane', 'primary_lane']) ?? '').toLowerCase(),
     });
@@ -334,7 +334,7 @@ async function fetchStats(rank) {
       pickRate: asRate(pick(row, ['pick_rate', 'pickRate', 'main_hero_appearance_rate'])),
       banRate: asRate(pick(row, ['ban_rate', 'banRate', 'main_hero_ban_rate'])),
       matches: Number(pick(row, ['matches', 'match_count', 'total']) ?? 0) || null,
-      heroId: pick(row, ['main_heroid', 'hero_id', 'heroid', 'heroId', 'id']) ?? null,
+      heroId: idPrincipal(row),
     };
   }
   return stats;
@@ -363,6 +363,9 @@ async function fetchRelations(roamNames, stats, heroList) {
     if (h.id) { idPorNombre.set(norm(h.name), h.id); idToName.set(Number(h.id), h.name); }
   }
   console.log(`  · ${idToName.size} héroes con id conocido`);
+  if (!idToName.size) {
+    console.warn('  · SIN IDS: los counters se pedirán por nombre');
+  }
 
   diagnostics.relations = {
     rutaCounter: ROUTES?.counter ? `${ROUTES.counter.method} ${ROUTES.counter.template}` : null,

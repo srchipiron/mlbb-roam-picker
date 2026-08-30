@@ -12,7 +12,38 @@ export const NAME_KEYS = [
   'target_name', 'opponent', 'enemy_name', 'against', 'title', 'label',
 ];
 
-export const ID_KEYS = ['heroid', 'hero_id', 'heroId', 'sub_heroid', 'main_heroid', 'id'];
+/**
+ * Claves que identifican a un héroe. NO se incluye `id` a secas: la respuesta
+ * trae `main_hero_channel.id` con valores como 2678829, y la búsqueda recursiva
+ * se quedaba con ese en vez del 93 del héroe. La API lo rechazaba con un 422
+ * diciendo que el identificador debe ser <= 133.
+ */
+export const ID_KEYS = ['heroid', 'hero_id', 'heroId', 'sub_heroid', 'main_heroid'];
+
+/** Hoy hay ~133 héroes. Un número muy por encima no es un héroe, es otra cosa. */
+export const MAX_HERO_ID = 400;
+
+export const esIdDeHeroe = (v) =>
+  typeof v === 'number' && Number.isInteger(v) && v > 0 && v <= MAX_HERO_ID;
+
+/**
+ * Id del héroe PRINCIPAL de un registro.
+ *
+ * Mira solo el nivel superior y el `data` inmediato, y prueba `main_heroid`
+ * antes que nada. Buscar en profundidad se metía dentro de `sub_hero` y volvía
+ * con el id del primer rival en lugar del héroe del registro.
+ */
+export function idPrincipal(row) {
+  const niveles = [row, row?.data, row?.data?.data].filter((n) => n && typeof n === 'object');
+  const orden = ['main_heroid', 'hero_id', 'heroid', 'heroId'];
+
+  for (const clave of orden) {
+    for (const nivel of niveles) {
+      if (esIdDeHeroe(nivel[clave])) return nivel[clave];
+    }
+  }
+  return null;
+}
 
 /** Campos que expresan una VENTAJA sobre la media, no un winrate absoluto. */
 export const DELTA_KEYS = [
@@ -75,7 +106,7 @@ export function recogerPares(node, out = [], depth = 0) {
   }
 
   const tieneNombre = NAME_KEYS.some((k) => typeof node[k] === 'string');
-  const tieneId = ID_KEYS.some((k) => typeof node[k] === 'number');
+  const tieneId = ID_KEYS.some((k) => esIdDeHeroe(node[k]));
   const tieneTasa = [...DELTA_KEYS, ...ABS_KEYS]
     .some((k) => node[k] != null && typeof node[k] !== 'object');
 
@@ -99,7 +130,7 @@ export function relationMap(rows, idToName = new Map()) {
   for (const row of rows) {
     let name = NAME_KEYS.map((k) => row[k]).find((v) => typeof v === 'string');
     if (!name) {
-      const id = ID_KEYS.map((k) => row[k]).find((v) => typeof v === 'number');
+      const id = ID_KEYS.map((k) => row[k]).find(esIdDeHeroe);
       name = idToName.get(Number(id));
     }
     if (!name) continue;

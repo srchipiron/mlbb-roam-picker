@@ -250,6 +250,29 @@ test('un pick volátil se penaliza a ciegas pero no con el draft completo', () =
   ok(completo < ciego, `volátil: puesto ${ciego} a ciegas y ${completo} con todo visto`);
 });
 
+test('el id del héroe no se confunde con el id del canal', async () => {
+  const { idPrincipal, esIdDeHeroe } = await import('./parse-relations.mjs');
+
+  // Caso real: main_hero_channel.id vale 2678829 y aparece ANTES que
+  // main_heroid en la respuesta. La API rechazaba con 422 diciendo que el
+  // identificador debe ser <= 133, y se perdían los 34 counters.
+  const registro = {
+    _id: 'x',
+    data: {
+      main_hero: { data: { name: 'Atlas' } },
+      main_hero_channel: { id: 2678829 },
+      main_heroid: 93,
+      sub_hero: [{ hero_channel: { id: 2678756 }, heroid: 20, increase_win_rate: 0.041 }],
+    },
+  };
+
+  ok(idPrincipal(registro) === 93, `esperaba 93, salió ${idPrincipal(registro)}`);
+  ok(idPrincipal({ name: 'Atlas', hero_id: 93 }) === 93, 'falla con el formato plano');
+  ok(idPrincipal({ data: { main_hero_channel: { id: 2678829 } } }) === null,
+    'acepta un id de canal como si fuera de héroe');
+  ok(!esIdDeHeroe(2678829) && esIdDeHeroe(93), 'el rango válido de ids está mal');
+});
+
 test('un 422 se reintenta con menos parámetros en vez de perderlo todo', async () => {
   const { createServer } = await import('node:http');
   const { callRoute } = await import('./ingest.mjs');
