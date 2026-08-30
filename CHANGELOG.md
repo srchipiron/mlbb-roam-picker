@@ -8,6 +8,21 @@ que esto no se olvida.
 Criterio: `0.X.0` cuando cambia cómo decide la app o qué hace; `0.0.X` para
 correcciones.
 
+## 1.2.0
+
+La app se abre al público.
+
+- **Español e inglés.** Coge el idioma del móvil y se puede cambiar abajo. Sin
+  inglés la app no le sirve a la mayoría de la gente que juega a esto.
+- **Aviso de no afiliación**: es un proyecto de aficionado, sin relación con
+  Moonton, y ahora lo dice.
+- **Nota de privacidad**: tus datos no salen de tu móvil. No hay cuentas, ni
+  servidor, ni seguimiento. Es verdad desde el primer día, pero convenía
+  decirlo.
+- Hueco para un enlace de donación, vacío hasta que haya uno de verdad.
+- El diagnóstico sigue en español: es una herramienta de depuración, y
+  traducirlo era menos urgente que traducir lo que se ve al usar la app.
+
 ## 1.1.0
 
 - **Dos o tres frases sobre tu draft**, arriba del todo: si ganas tu cruce,

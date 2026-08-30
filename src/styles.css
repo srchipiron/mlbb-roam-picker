@@ -420,3 +420,22 @@ button:focus-visible, [tabindex]:focus-visible { outline: 2px solid var(--gold);
 .frase.bien { border-left-color: var(--c-comp); }
 .frase.ojo  { border-left-color: var(--enemy); }
 .frase.duda { border-left-color: var(--muted); }
+
+/* ---------- aviso público, idioma y donación ---------- */
+
+.aviso {
+  margin-top: 16px; padding-top: 12px; border-top: 1px solid var(--line);
+  display: flex; flex-direction: column; gap: 6px;
+}
+.aviso p { margin: 0; font-size: 11px; color: var(--muted); line-height: 1.4; }
+.idiomas { display: flex; gap: 6px; }
+.idiomas button {
+  border: 1px solid var(--line); border-radius: var(--r); background: transparent;
+  color: var(--muted); font-size: 11px; padding: 4px 9px; letter-spacing: 0.06em;
+}
+.idiomas button.elegido { border-color: var(--gold); color: var(--gold); }
+.donar {
+  align-self: flex-start; margin-top: 4px; padding: 8px 14px;
+  border: 1px solid var(--gold); border-radius: var(--r);
+  color: var(--gold); font-size: 12px; text-decoration: none;
+}

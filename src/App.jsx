@@ -3,8 +3,9 @@ import { rankRoamers, mergeCatalog, suggestBans, indexByName, coverage, empatado
 import { runSelfTest, leerEntorno } from './engine/selftest.js';
 import { apuntar } from './engine/registro.js';
 import { analizarDraft } from './engine/analisis.js';
+import { crearT, idiomaPorDefecto, IDIOMAS } from './i18n.js';
 import { detectarRivalDeLinea, indiceDeLineas, frecuenciaDeRoles } from './engine/rival-de-linea.js';
-import { Side, HeroSheet, Pick, Legend, MasteryEditor, RankPicker, BanSuggestions, Footer, SelfTest, RegistroPartida, SelectorDeLinea, NOMBRE_LINEA, Analisis } from './components/ui.jsx';
+import { Side, HeroSheet, Pick, Legend, MasteryEditor, RankPicker, BanSuggestions, Footer, SelfTest, RegistroPartida, SelectorDeLinea, Analisis, AvisoLegal } from './components/ui.jsx';
 
 // OJO: estas claves siguen diciendo 'roam-picker' aunque la app se llame ya
 // Mobile Legends Pick Assist. NO se renombran: el almacenamiento del navegador
@@ -15,6 +16,7 @@ const RANK_KEY = 'roam-picker:rank';
 const DRAFT_KEY = 'roam-picker:draft';
 const PARTIDAS_KEY = 'roam-picker:partidas';
 const LINEA_KEY = 'roam-picker:linea';
+const IDIOMA_KEY = 'roam-picker:idioma';
 
 const load = (key, fallback) => {
   try { return JSON.parse(localStorage.getItem(key) ?? 'null') ?? fallback; } catch { return fallback; }
@@ -40,6 +42,10 @@ export default function App() {
   // La línea que juegas. Sin ella la app no sabe qué recomendarte, así que en
   // el primer arranque se pregunta y ya no se vuelve a preguntar.
   const [linea, setLinea] = useState(() => load(LINEA_KEY, null));
+  // El idioma del móvil si lo hablamos; si no, inglés. La app ya no es solo
+  // para Javi.
+  const [idioma, setIdioma] = useState(() => load(IDIOMA_KEY, null) ?? idiomaPorDefecto());
+  const t = useMemo(() => crearT(idioma), [idioma]);
   const [sheet, setSheet] = useState(null); // 'enemy' | 'ally' | 'ban'
 
   const [partidas, setPartidas] = useState(() => load(PARTIDAS_KEY, []));
@@ -56,6 +62,7 @@ export default function App() {
   }, [enemyNames, allyNames, banNames, enemyRoam]);
   useEffect(() => { if (rank) save(RANK_KEY, rank); }, [rank]);
   useEffect(() => { if (linea) save(LINEA_KEY, linea); }, [linea]);
+  useEffect(() => { save(IDIOMA_KEY, idioma); }, [idioma]);
 
   useEffect(() => {
     const fetchJson = async (path) => {
@@ -214,18 +221,19 @@ export default function App() {
   if (error) {
     return (
       <div className="results">
-        <p className="notice">No se han podido cargar los datos ({error}). Ejecuta <code>npm run ingest</code> y recarga.</p>
+        <p className="notice">{t('app.errorDatos', { error })}</p>
       </div>
     );
   }
-  if (!catalog) return <div className="results"><p className="empty-state">Cargando…</p></div>;
+  if (!catalog) return <div className="results"><p className="empty-state">{t('app.cargando')}</p></div>;
 
   // Primer arranque: sin línea no hay nada que recomendar, así que se pregunta
   // antes de enseñar una pantalla vacía que no se entiende.
   if (!linea) {
     return (
       <div className="app">
-        <SelectorDeLinea lineas={LINEAS} valor={null} onElegir={setLinea} />
+        <SelectorDeLinea lineas={LINEAS} valor={null} onElegir={setLinea} t={t} />
+        <AvisoLegal t={t} idioma={idioma} onIdioma={setIdioma} idiomas={IDIOMAS} />
       </div>
     );
   }
@@ -240,51 +248,51 @@ export default function App() {
           </span>
         </div>
 
-        <Side title="Enemigos" kind="enemy" picks={enemies} max={5}
+        <Side t={t} title={t('app.enemigos')} kind="enemy" picks={enemies} max={5}
               onAdd={() => setSheet('enemy')} onRemove={remove(setEnemyNames)}
               markedName={enemyRoam}
               onMark={(h) => setEnemyRoam((r) => (r === h.name ? null : h.name))}
-              markHint={roamAuto && !enemyRoam ? `tu rival: ${roamAuto}` : 'Marca tu rival'}
+              markHint={roamAuto && !enemyRoam ? t('app.tuRival', { nombre: roamAuto }) : t('app.marcarRival')}
               autoName={roamAuto} />
-        <Side title="Tu equipo" kind="ally" picks={allies} max={4}
+        <Side t={t} title={t('app.tuEquipo')} kind="ally" picks={allies} max={4}
               onAdd={() => setSheet('ally')} onRemove={remove(setAllyNames)} />
         <details className="more">
-          <summary>Baneos y ajustes</summary>
+          <summary>{t('app.ajustes')}</summary>
 
-          <Side title="Baneados" kind="bans" picks={bans} max={10}
+          <Side t={t} title={t('app.baneados')} kind="bans" picks={bans} max={10}
                 onAdd={() => setSheet('ban')} onRemove={remove(setBanNames)} />
 
           <div className="side" >
-            <div className="side-label"><span>Tu línea</span></div>
+            <div className="side-label"><span>{t('app.tuLinea')}</span></div>
             <button className="reset" onClick={() => setEligiendoLinea(true)}>
-              {NOMBRE_LINEA[linea] ?? linea} · cambiar
+              {t(`linea.${linea}`)} · {t('app.cambiar')}
             </button>
           </div>
 
           <div className="side" >
-            <div className="side-label"><span>Rango</span></div>
+            <div className="side-label"><span>{t('app.rango')}</span></div>
             <RankPicker ranks={meta?.ranks} value={activeRank} onChange={setRank} />
           </div>
 
-          <BanSuggestions items={banIdeas} onBan={(h) => setBanNames((p) => [...p, h.name])} />
+          <BanSuggestions t={t} items={banIdeas} onBan={(h) => setBanNames((p) => [...p, h.name])} />
 
           <button className="reset" style={{ marginTop: '14px' }} onClick={lanzarTest}>
-            Diagnóstico
+            {t('app.diagnostico')}
           </button>
         </details>
 
         <div className="tools">
-          <button className="reset" onClick={reset}>Nuevo draft</button>
-          <button className="reset" onClick={() => setEditingMastery(true)}>Tu maestría</button>
+          <button className="reset" onClick={reset}>{t('app.nuevoDraft')}</button>
+          <button className="reset" onClick={() => setEditingMastery(true)}>{t('app.maestria')}</button>
           <button className="reset" disabled={!ranked.length} onClick={() => setApuntando(true)}>
-            Apuntar partida
+            {t('app.apuntar')}
           </button>
         </div>
       </aside>
 
       <main className="results">
         <div className="results-head">
-          <h2>Tu pick de {NOMBRE_LINEA[linea] ?? linea}</h2>
+          <h2>{t('app.pick', { linea: t(`linea.${linea}`) })}</h2>
           <span className={`freshness ${cov.withData && cov.withData < cov.total ? 'stale' : ''}`}>
             {cov.withData
               ? `${cov.withData}/${cov.total} con datos · ${cov.conCounters} con counters`
@@ -294,7 +302,7 @@ export default function App() {
 
         {!metaCtx.stats || !Object.keys(metaCtx.stats).length ? (
           <div className="notice">
-            Sin winrates: el ranking sale solo de composición y counters por rol.
+            {t('app.sinWinrates')}
             {meta?.diagnostics && (
               <details className="diag">
                 <summary>Ver por qué</summary>
@@ -316,25 +324,24 @@ export default function App() {
 
         {!roamPool.length && (
           <div className="notice">
-            Todavía no hay datos de qué héroes se juegan en {NOMBRE_LINEA[linea] ?? linea}.
-            Se descargan con el meta: vuelve a abrir la app en un rato.
+            {t('app.sinPool', { linea: t(`linea.${linea}`) })}
           </div>
         )}
 
-        <Analisis frases={analisis} />
+        <Analisis frases={analisis} t={t} />
 
         {empate.length > 1 && (
           <p className="tie">
-            {empate.map((e) => e.hero.name).join(', ')} están prácticamente igual.
-            Coge el que mejor lleves.
+            {t('app.empate', { nombres: empate.map((e) => e.hero.name).join(', ') })}
           </p>
         )}
 
         {ranked.slice(0, 8).map((r, i) => (
-          <Pick key={r.hero.name} result={r} index={i} stat={metaCtx.stats?.[normName(r.hero.name)]} />
+          <Pick key={r.hero.name} result={r} index={i} t={t} stat={metaCtx.stats?.[normName(r.hero.name)]} />
         ))}
 
-        <Legend />
+        <Legend t={t} />
+        <AvisoLegal t={t} idioma={idioma} onIdioma={setIdioma} idiomas={IDIOMAS} />
       </main>
 
       {test && <SelfTest resultado={test} onClose={() => setTest(null)} />}
@@ -345,6 +352,7 @@ export default function App() {
           valor={linea}
           onElegir={(l) => { setLinea(l); setEligiendoLinea(false); }}
           onClose={() => setEligiendoLinea(false)}
+          t={t}
         />
       )}
 
@@ -354,6 +362,7 @@ export default function App() {
           recomendados={ranked.slice(0, 3).map((r) => r.hero.name)}
           onGuardar={guardarPartida}
           onClose={() => setApuntando(false)}
+          t={t}
         />
       )}
 
@@ -363,6 +372,7 @@ export default function App() {
           mastery={mastery}
           onChange={saveMastery}
           onClose={() => setEditingMastery(false)}
+          t={t}
         />
       )}
 
@@ -381,6 +391,7 @@ export default function App() {
           taken={taken}
           onPick={addTo}
           onClose={() => setSheet(null)}
+          t={t}
         />
       )}
     </div>

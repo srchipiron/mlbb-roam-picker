@@ -137,7 +137,8 @@ function ventajaPorTags(roamHero, enemy, reasons) {
   for (const rule of COUNTER_RULES) {
     if (!enemy.tags.includes(rule.enemyTag) || !roamHero.tags.includes(rule.roamTag)) continue;
     reasons?.push({
-      text: rule.why(enemy.name),
+      clave: rule.why,
+      params: { e: enemy.name },
       good: rule.weight > 0,
       w: Math.abs(rule.weight),
       kind: `${rule.enemyTag}>${rule.roamTag}`,
@@ -193,8 +194,8 @@ export function counterScore(roamHero, enemies, counterMatrix, enemyRoamName = n
     const porDato = clamp01((encogido - 0.44) / 0.12);
     total += porDato * peso;
 
-    if (pair >= 0.53) reasons.push({ text: `gana el matchup contra ${enemy.name}`, good: true, w: 1.2 });
-    if (pair <= 0.47) reasons.push({ text: `pierde contra ${enemy.name}`, good: false, w: 1.3 });
+    if (pair >= 0.53) reasons.push({ clave: 'regla.ganaMatchup', params: { e: enemy.name }, good: true, w: 1.2 });
+    if (pair <= 0.47) reasons.push({ clave: 'regla.pierdeMatchup', params: { e: enemy.name }, good: false, w: 1.3 });
   }
 
   return { value: total / pesoTotal, reasons: dedupe(reasons) };
@@ -210,7 +211,7 @@ export function synergyScore(roamHero, allies, synergyMatrix) {
     const pair = lookup(lookup(synergyMatrix, roamHero.name), ally.name);
     if (pair != null) {
       total += clamp01((pair - 0.46) / 0.10);
-      if (pair >= 0.53) reasons.push({ text: `combina bien con ${ally.name}`, good: true, w: 0.7 });
+      if (pair >= 0.53) reasons.push({ clave: 'regla.combinaCon', params: { a: ally.name }, good: true, w: 0.7 });
       continue;
     }
     let sub = 0;
@@ -222,15 +223,15 @@ export function synergyScore(roamHero, allies, synergyMatrix) {
 
     if (esCarry && ally.tags.includes('immobile') && roamHero.tags.includes('peel')) {
       sub += 0.8;
-      reasons.push({ text: `protege a ${ally.name}, que no tiene escape`, good: true, w: 0.8 });
+      reasons.push({ clave: 'regla.protege', params: { a: ally.name }, good: true, w: 0.8 });
     }
     if (ally.tags.includes('dive') && roamHero.tags.includes('engage')) {
       sub += 0.6;
-      reasons.push({ text: `abre la pelea para ${ally.name}`, good: true, w: 0.6 });
+      reasons.push({ clave: 'regla.abrePelea', params: { a: ally.name }, good: true, w: 0.6 });
     }
     if (ally.tags.includes('hypercarry') && roamHero.tags.includes('sustain')) {
       sub += 0.5;
-      reasons.push({ text: `mantiene vivo a ${ally.name}`, good: true, w: 0.5 });
+      reasons.push({ clave: 'regla.mantieneVivo', params: { a: ally.name }, good: true, w: 0.5 });
     }
     total += clamp01(0.5 + sub * 0.20);
   }
@@ -294,7 +295,7 @@ export function compScore(roamHero, allies) {
   return {
     value: 0.5 + (raw - 0.5) * (0.35 + 0.65 * confidence) * fiabilidad,
     reasons: allies.length
-      ? contados.map((n) => ({ text: n.why, good: true, w: n.weight }))
+      ? contados.map((n) => ({ clave: n.why, good: true, w: n.weight }))
       : [],
   };
 }
@@ -307,10 +308,10 @@ export function masteryScore(roamHero, mastery) {
   const value = clamp01((shrunk - 0.40) / 0.20);
   const reasons = [];
   if (m.games >= MASTERY_CONFIDENCE_GAMES && m.winRate >= 0.55) {
-    reasons.push({ text: `lo llevas al ${Math.round(m.winRate * 100)}% en ${m.games} partidas`, good: true, w: 1.4 });
+    reasons.push({ clave: 'regla.maestriaBuena', params: { pct: Math.round(m.winRate * 100), n: m.games }, good: true, w: 1.4 });
   }
   if (m.games >= MASTERY_CONFIDENCE_GAMES && m.winRate <= 0.45) {
-    reasons.push({ text: `solo ${Math.round(m.winRate * 100)}% en ${m.games} partidas`, good: false, w: 1.4 });
+    reasons.push({ clave: 'regla.maestriaMala', params: { pct: Math.round(m.winRate * 100), n: m.games }, good: false, w: 1.4 });
   }
   return { value, reasons };
 }
@@ -420,7 +421,7 @@ export function rankRoamers(pool, ctx) {
   // que de verdad distingue a un pick de otro.
   const frecuencia = new Map();
   for (const r of resultados) {
-    for (const razon of new Set(r.reasons.map((x) => x.text))) {
+    for (const razon of new Set(r.reasons.map(idRazon))) {
       frecuencia.set(razon, (frecuencia.get(razon) ?? 0) + 1);
     }
   }
@@ -431,7 +432,7 @@ export function rankRoamers(pool, ctx) {
   );
 
   resultados.forEach((r, i) => {
-    const propios = r.reasons.filter((x) => !comunes.has(x.text));
+    const propios = r.reasons.filter((x) => !comunes.has(idRazon(x)));
     // Si al quitar los comunes no queda nada, mejor decir eso que mentir.
     r.reasons = propios.length ? propios : [];
     r.contributions = Object.fromEntries(claves.map((k) => [k, normalizados[k][i] * weights[k]]));
@@ -441,7 +442,7 @@ export function rankRoamers(pool, ctx) {
     if (r.riesgo != null && cegera > 0) {
       r.score -= r.riesgo * cegera * RIESGO_MAX;
       if (r.riesgo > 0.6 && cegera > 0.4) {
-        r.reasons = [{ text: 'arriesgado como pick ciego', good: false, w: 1.5 }, ...r.reasons].slice(0, 3);
+        r.reasons = [{ clave: 'regla.arriesgadoCiego', good: false, w: 1.5 }, ...r.reasons].slice(0, 3);
       }
     }
   });
@@ -460,7 +461,7 @@ function spread(reasons) {
   const mentioned = new Set();
   const out = [];
   for (const r of reasons) {
-    const key = r.kind ?? r.text;
+    const key = r.kind ?? idRazon(r);
     if (mentioned.has(key)) continue;
     mentioned.add(key);
     out.push(r);
@@ -549,7 +550,7 @@ export function suggestBans(allHeroes, ctx) {
         for (const rule of DANGER_RULES) {
           if (!ally.tags.includes(rule.allyTag) || !hero.tags.includes(rule.enemyTag)) continue;
           positivas.push(rule.weight);
-          reasons.push({ text: rule.why(ally.name), good: false, w: rule.weight });
+          reasons.push({ clave: rule.why, params: { a: ally.name }, good: false, w: rule.weight });
         }
       }
       // La amenaza más fuerte y media la segunda, como en el resto del motor.
@@ -640,11 +641,22 @@ export function empatados(ranked, margen = 0.015) {
   return ranked.filter((r) => ranked[0].score - r.score <= margen).slice(0, 4);
 }
 
+/**
+ * Identidad de un motivo. Antes era su texto; ahora los motivos viajan como
+ * clave más parámetros, así que la identidad se arma con las dos cosas. Sin
+ * esto, dos motivos distintos sobre enemigos distintos se tomarían por el
+ * mismo y se filtrarían mal.
+ */
+export function idRazon(r) {
+  return `${r.clave}|${r.params?.e ?? r.params?.a ?? ''}`;
+}
+
 function dedupe(reasons) {
   const seen = new Set();
   return reasons.filter((r) => {
-    if (seen.has(r.text)) return false;
-    seen.add(r.text);
+    const id = idRazon(r);
+    if (seen.has(id)) return false;
+    seen.add(id);
     return true;
   });
 }

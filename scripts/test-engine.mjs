@@ -10,7 +10,7 @@ import { fileURLToPath } from 'node:url';
 import {
   metaScore, counterScore, compScore, masteryScore, rankRoamers,
   suggestBans, mergeCatalog, indexByName, normName, coverage, empatados,
-  riesgoContrapick, densidadCounters, tagsDeducidos,
+  riesgoContrapick, densidadCounters, tagsDeducidos, idRazon,
 } from '../src/engine/score.js';
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
@@ -138,6 +138,48 @@ test('se deduce el rival de TU línea, y se calla si hay duda', async () => {
     'sin datos de líneas se inventa un mid');
 });
 
+test('los dos idiomas están completos y las reglas usan claves de verdad', async () => {
+  const { CLAVES, DICCIONARIOS, crearT, idiomaPorDefecto, IDIOMAS } = await import('../src/i18n.js');
+  const { COUNTER_RULES, TEAM_NEEDS, DANGER_RULES } = await import('../src/engine/rules.js');
+
+  // 1. Ningún idioma a medias. Es el fallo tipico de esto: se anade una frase
+  //    en uno y el otro se queda con la clave cruda en pantalla.
+  for (const idioma of IDIOMAS) {
+    const faltan = CLAVES.filter((k) => !DICCIONARIOS[idioma][k]);
+    ok(!faltan.length, `${idioma} sin traducir: ${faltan.slice(0, 6).join(', ')}`);
+    const sobran = Object.keys(DICCIONARIOS[idioma]).filter((k) => !CLAVES.includes(k));
+    ok(!sobran.length, `${idioma} tiene claves que no existen en español: ${sobran.join(', ')}`);
+  }
+
+  // 2. Toda clave que usan las reglas tiene que existir. Si no, el usuario ve
+  //    'regla.loQueSea' en la tarjeta.
+  const usadas = [
+    ...COUNTER_RULES.map((r) => r.why),
+    ...TEAM_NEEDS.map((n) => n.why),
+    ...DANGER_RULES.map((r) => r.why),
+  ];
+  for (const clave of usadas) {
+    ok(typeof clave === 'string', `why deberia ser una clave, no ${typeof clave}`);
+    ok(CLAVES.includes(clave), `la regla usa una clave que no existe: ${clave}`);
+  }
+
+  // 3. Los parámetros se sustituyen en los dos idiomas.
+  for (const idioma of IDIOMAS) {
+    const t = crearT(idioma);
+    const frase = t('regla.antiDash', { e: 'Fanny' });
+    ok(frase.includes('Fanny'), `${idioma} no sustituye el parámetro: ${frase}`);
+    ok(!frase.includes('{e}'), `${idioma} deja el hueco sin rellenar: ${frase}`);
+  }
+
+  // 4. Una clave que no existe se devuelve tal cual: así se ve a la legua en
+  //    vez de quedarse en blanco.
+  ok(crearT('es')('no.existe.esta') === 'no.existe.esta', 'una clave perdida deberia verse');
+
+  // 5. Idioma del móvil, con inglés de respaldo: la app ya no es solo para
+  //    quien habla español.
+  ok(IDIOMAS.includes(idiomaPorDefecto()), 'el idioma por defecto no es uno de los soportados');
+});
+
 test('el análisis dice lo que no se ve, y se calla cuando no sabe', async () => {
   const { analizarDraft } = await import('../src/engine/analisis.js');
 
@@ -154,7 +196,7 @@ test('el análisis dice lo que no se ve, y se calla cuando no sabe', async () =>
     rivalLinea: 'Estes',
     meta: { counters: indexByName({ Khufra: { Estes: 0.57 } }, 2) },
   });
-  ok(conPar.some((f) => /Ganas el cruce/.test(f.texto) && /57/.test(f.texto)),
+  ok(conPar.some((f) => f.clave === 'analisis.ganasCruce' && f.params?.pct === 57),
     `no usa el matchup real: ${JSON.stringify(conPar)}`);
 
   // 2. La matriz solo cubre el 11% de los cruces, asi que casi nunca lo hay.
@@ -165,8 +207,8 @@ test('el análisis dice lo que no se ve, y se calla cuando no sabe', async () =>
     rivalLinea: 'Estes',
     meta: { counters: {}, stats: indexByName({ Khufra: { winRate: 0.54 }, Estes: { winRate: 0.49 } }) },
   });
-  ok(sinPar.some((f) => /parche/.test(f.texto)), `no cae al winrate: ${JSON.stringify(sinPar)}`);
-  ok(!sinPar.some((f) => /Ganas el cruce/.test(f.texto)),
+  ok(sinPar.some((f) => f.clave === 'analisis.tuWinrateMejor'), `no cae al winrate: ${JSON.stringify(sinPar)}`);
+  ok(!sinPar.some((f) => f.clave === 'analisis.ganasCruce'),
     'vende una comparación de winrates como si fuera el matchup de la pareja');
 
   // 3. Sin nada de nada, se calla. Una frase inventada en 30 segundos de draft
@@ -639,7 +681,9 @@ test('los motivos que le salen a todo el pool no se muestran', () => {
 
   const cuenta = new Map();
   for (const r of res) {
-    for (const t of new Set(r.reasons.map((x) => x.text))) {
+    // idRazon y no .text: desde que la app habla dos idiomas, los motivos
+    // viajan como clave más parámetros y su identidad se arma con las dos.
+    for (const t of new Set(r.reasons.map(idRazon))) {
       cuenta.set(t, (cuenta.get(t) ?? 0) + 1);
     }
   }

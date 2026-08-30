@@ -20,7 +20,7 @@ comprobaciones automáticas importan más de lo normal.
 
 ## Reglas de trabajo
 
-**Nunca subas nada sin pasar `npm test`.** Son cuatro comprobaciones y 41
+**Nunca subas nada sin pasar `npm test`.** Son cuatro comprobaciones y 42
 pruebas (orden de declaraciones, CSS, versión documentada y motor). El
 despliegue corre esas cuatro más una quinta que no está en `npm test`: que
 `roam-meta.json` se haya regenerado hace menos de media hora. Si algo falla, el despliegue se detiene y la app se queda
@@ -106,6 +106,19 @@ Todos estos llegaron a producción y costaron rondas enteras de ida y vuelta:
   `mergeCatalog` (catálogo + rol de la API) y la ingesta miraba solo el catálogo,
   así que Marcel entraba en las recomendaciones sin que nadie le pidiera
   counters. Ahora la ingesta importa `mergeCatalog`. No vuelvas a duplicarlo.
+
+## Los idiomas
+
+Español e inglés, en `src/i18n.js`. Lo importante: **los motivos que salen en
+las tarjetas NO son frases dentro del motor**. `rules.js` guarda una CLAVE en
+`why`, el motor devuelve `{ clave, params }` y traduce la interfaz. Si añades
+una regla, añade su clave a los DOS idiomas: hay una prueba que falla si un
+idioma se queda a medias, y otra que comprueba que toda clave usada existe.
+
+La identidad de un motivo ya no es su texto sino `idRazon()` (clave + a quién
+señala). El filtro de motivos comunes y el dedupe dependen de eso.
+
+El diagnóstico (`selftest.js`) sigue en español a propósito: es depuración.
 
 ## La vigilancia automática
 

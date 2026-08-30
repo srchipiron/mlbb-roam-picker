@@ -47,16 +47,16 @@ export function analizarDraft({
     if (par != null && Math.abs(par - 0.5) >= MATCHUP_CLARO) {
       const pct = Math.round(par * 100);
       salida.push(par > 0.5
-        ? { tono: 'bien', texto: `Ganas el cruce: ${hero.name} va al ${pct}% contra ${rivalLinea}.` }
-        : { tono: 'ojo', texto: `Pierdes el cruce: ${pct}% contra ${rivalLinea}. Juega a no morir pronto.` });
+        ? { tono: 'bien', clave: 'analisis.ganasCruce', params: { yo: hero.name, pct, rival: rivalLinea } }
+        : { tono: 'ojo', clave: 'analisis.pierdesCruce', params: { pct, rival: rivalLinea } });
     } else {
       const mio = lookup(meta.stats, hero.name)?.winRate;
       const suyo = lookup(meta.stats, rivalLinea)?.winRate;
       if (mio != null && suyo != null && Math.abs(mio - suyo) >= 0.02) {
         const dif = Math.round(Math.abs(mio - suyo) * 100);
         salida.push(mio > suyo
-          ? { tono: 'bien', texto: `Tu héroe está ${dif} puntos por encima de ${rivalLinea} este parche.` }
-          : { tono: 'ojo', texto: `${rivalLinea} está ${dif} puntos por encima este parche. No le regales el carril.` });
+          ? { tono: 'bien', clave: 'analisis.tuWinrateMejor', params: { dif, rival: rivalLinea } }
+          : { tono: 'ojo', clave: 'analisis.suWinrateMejor', params: { dif, rival: rivalLinea } });
       }
     }
   }
@@ -71,7 +71,8 @@ export function analizarDraft({
     if (peor && peor.e.name !== rivalLinea) {
       salida.push({
         tono: 'ojo',
-        texto: `Cuidado con ${peor.e.name}: es tu peor cruce del draft (${Math.round(peor.v * 100)}%).`,
+        clave: 'analisis.cuidadoCon',
+        params: { e: peor.e.name, pct: Math.round(peor.v * 100) },
       });
     }
   }
@@ -82,7 +83,8 @@ export function analizarDraft({
   if (porVer > 0 && top.riesgo != null && top.riesgo > 0.6) {
     salida.push({
       tono: 'duda',
-      texto: `Les faltan ${porVer} picks y ${hero.name} es de los castigables. Si puedes, espera.`,
+      clave: 'analisis.pickCiego',
+      params: { n: porVer, yo: hero.name },
     });
   }
 
@@ -92,11 +94,11 @@ export function analizarDraft({
   if (segundo) {
     const brecha = Math.round((top.score - segundo.score) * 100);
     if (brecha >= 8) {
-      salida.push({ tono: 'bien', texto: `${hero.name} le saca ${brecha} puntos al siguiente. Pick claro.` });
+      salida.push({ tono: 'bien', clave: 'analisis.pickClaro', params: { yo: hero.name, puntos: brecha } });
     } else if (empate.length > 1 && empate.some((x) => x.hero.name === hero.name)) {
       const otros = empate.map((x) => x.hero.name).filter((n) => n !== hero.name);
       if (otros.length) {
-        salida.push({ tono: 'duda', texto: `Empatado con ${otros.slice(0, 2).join(' y ')}. Coge el que mejor lleves.` });
+        salida.push({ tono: 'duda', clave: 'analisis.empatadoCon', params: { otros: otros.slice(0, 2).join(' / ') } });
       }
     }
   }
@@ -110,7 +112,7 @@ export function analizarDraft({
     const cubierto = new Set([...allies, hero].flatMap((h) => h.tags ?? []));
     const caros = [...TEAM_NEEDS].sort((a, b) => b.weight - a.weight).slice(0, 3);
     const falta = caros.find((n) => !cubierto.has(n.tag));
-    if (falta) salida.push({ tono: 'duda', texto: `${falta.why[0].toUpperCase()}${falta.why.slice(1)}.` });
+    if (falta) salida.push({ tono: 'duda', clave: falta.why });
   }
 
   return salida.slice(0, 3);

@@ -2,7 +2,11 @@
 
 Qué héroe coger en tu línea, según el draft que tienes delante y el meta del parche actual.
 Eliges tu línea (roam, jungla, mid, gold o exp) y la app recomienda para esa, con los
-datos de partidas reales de tu rango.
+datos de partidas reales de tu rango. En español e inglés.
+
+Proyecto de aficionado, sin relación con Moonton. Mobile Legends: Bang Bang y sus
+héroes son marcas de sus propietarios. Tus datos no salen de tu móvil: no hay
+cuentas, ni servidor, ni seguimiento.
 PWA: se instala en la tablet desde el navegador y funciona sin conexión con los últimos datos descargados.
 
 ## Arrancar

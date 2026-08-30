@@ -1,4 +1,9 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { crearT } from '../i18n.js';
+
+// Traductor por defecto para los componentes que no reciben uno. La app le pasa
+// el suyo; esto solo evita que un olvido deje la pantalla en blanco.
+const tPorDefecto = crearT('es');
 
 const PART_COLORS = {
   meta: 'var(--c-meta)',
@@ -17,7 +22,7 @@ const PART_LABELS = {
 };
 
 /** Fila de huecos de un bando. Tocar un hueco abre el selector. */
-export function Side({ title, kind, picks, max, onAdd, onRemove, markedName, onMark, markHint, autoName }) {
+export function Side({ title, kind, picks, max, onAdd, onRemove, markedName, onMark, markHint, autoName, t = tPorDefecto }) {
   const slots = [...picks, ...Array(Math.max(0, max - picks.length)).fill(null)];
   return (
     <section className={`side ${kind}`}>
@@ -48,7 +53,7 @@ export function Side({ title, kind, picks, max, onAdd, onRemove, markedName, onM
             </div>
           ) : (
             <button key={`empty-${i}`} className="slot empty" onClick={onAdd}>
-              Añadir
+              {t('app.anadir')}
             </button>
           ),
         )}
@@ -58,7 +63,7 @@ export function Side({ title, kind, picks, max, onAdd, onRemove, markedName, onM
 }
 
 /** Selector a pantalla completa. Buscador enfocado y rejilla de toque grande. */
-export function HeroSheet({ heroes, taken, stats, onPick, onClose }) {
+export function HeroSheet({ heroes, taken, stats, onPick, onClose, t = tPorDefecto }) {
   const [q, setQ] = useState('');
   const inputRef = useRef(null);
 
@@ -88,10 +93,10 @@ export function HeroSheet({ heroes, taken, stats, onPick, onClose }) {
           ref={inputRef}
           value={q}
           onChange={(e) => setQ(e.target.value)}
-          placeholder="Buscar héroe"
+          placeholder={t('app.buscar')}
           autoComplete="off"
         />
-        <button className="close" onClick={onClose}>Cerrar</button>
+        <button className="close" onClick={onClose}>{t('app.cerrar')}</button>
       </div>
       <div className="hero-grid">
         {list.map((h) => (
@@ -99,14 +104,14 @@ export function HeroSheet({ heroes, taken, stats, onPick, onClose }) {
             {h.name}
           </button>
         ))}
-        {!list.length && <p className="empty-state">Ningún héroe con ese nombre.</p>}
+        {!list.length && <p className="empty-state">{t('app.sinNombre')}</p>}
       </div>
     </div>
   );
 }
 
 /** Tarjeta de recomendación con la barra de desglose del score. */
-export function Pick({ result, index, stat }) {
+export function Pick({ result, index, stat, t = tPorDefecto }) {
   const total = Object.values(result.contributions).reduce((a, b) => a + b, 0) || 1;
   return (
     <article className={`pick ${index === 0 ? 'top' : ''}`}>
@@ -117,8 +122,8 @@ export function Pick({ result, index, stat }) {
           {/* Un héroe que no está en el catálogo escrito a mano juega con los tags
               genéricos de su rol. Se recomienda igual, pero conviene saberlo. */}
           {result.hero.inferred && (
-            <span className="inferred" title="No está en el catálogo: usa los tags genéricos de su rol">
-              tags de su rol
+            <span className="inferred" title={t('app.tagsDeRolTitulo')}>
+              {t('app.tagsDeRol')}
             </span>
           )}
         </h3>
@@ -130,17 +135,19 @@ export function Pick({ result, index, stat }) {
         <ul className="reasons">
           {result.reasons.length ? (
             result.reasons.map((r) => (
-              <li key={r.text} className={r.good ? '' : 'bad'}>{r.text}</li>
+              <li key={`${r.clave}|${r.params?.e ?? r.params?.a ?? ''}`} className={r.good ? '' : 'bad'}>
+                {t(r.clave, r.params)}
+              </li>
             ))
           ) : (
-            <li>pick sólido de base</li>
+            <li>{t('app.pickSolido')}</li>
           )}
         </ul>
       </div>
       <div>
         <div className="pick-score">{Math.round(result.score * 100)}</div>
         <span className="pick-wr">
-          {stat?.winRate != null ? `${(stat.winRate * 100).toFixed(1)}% WR` : 'sin datos'}
+          {stat?.winRate != null ? `${(stat.winRate * 100).toFixed(1)}% WR` : t('app.sinDatos')}
         </span>
       </div>
     </article>
@@ -164,32 +171,32 @@ export function RankPicker({ ranks, value, onChange }) {
 }
 
 /** A quién banear, con el motivo cuando lo hay. */
-export function BanSuggestions({ items, onBan }) {
+export function BanSuggestions({ items, onBan, t = tPorDefecto }) {
   if (!items.length) return null;
   return (
     <section className="bans-suggested">
-      <div className="side-label"><span>Merece la pena banear</span></div>
+      <div className="side-label"><span>{t('ban.mereceLaPena')}</span></div>
       {items.map((b) => (
         <div className="ban-row" key={b.hero.name}>
           <span>
             {b.hero.name}
-            {b.reasons[0] && <span className="inferred">{b.reasons[0].text}</span>}
+            {b.reasons[0] && <span className="inferred">{t(b.reasons[0].clave, b.reasons[0].params)}</span>}
           </span>
           <span className="rate">
-            {b.stat.banRate != null ? `${Math.round(b.stat.banRate * 100)}% ban` : ''}
+            {b.stat.banRate != null ? t('ban.tasa', { pct: Math.round(b.stat.banRate * 100) }) : ''}
           </span>
-          <button onClick={() => onBan(b.hero)}>Banear</button>
+          <button onClick={() => onBan(b.hero)}>{t('ban.banear')}</button>
         </div>
       ))}
     </section>
   );
 }
 
-export function Legend() {
+export function Legend({ t = tPorDefecto }) {
   return (
     <div className="legend">
-      {Object.entries(PART_LABELS).map(([k, label]) => (
-        <span key={k}><i style={{ background: PART_COLORS[k] }} />{label}</span>
+      {Object.keys(PART_COLORS).map((k) => (
+        <span key={k}><i style={{ background: PART_COLORS[k] }} />{t(`parte.${k}`)}</span>
       ))}
     </div>
   );
@@ -210,7 +217,7 @@ export function parseDecimal(raw) {
  * Se trabaja en porcentaje (50,6) porque es como sale en el perfil del juego.
  * La conversión a fracción se hace solo al guardar.
  */
-export function MasteryEditor({ pool, mastery, onChange, onClose }) {
+export function MasteryEditor({ pool, mastery, onChange, onClose, t = tPorDefecto }) {
   const [draft, setDraft] = useState(() =>
     Object.fromEntries(
       Object.entries(mastery).map(([name, m]) => [
@@ -251,17 +258,16 @@ export function MasteryEditor({ pool, mastery, onChange, onClose }) {
   return (
     <div className="sheet" role="dialog" aria-label="Tu maestría">
       <div className="sheet-head">
-        <strong style={{ flex: 1, alignSelf: 'center' }}>Tu maestría</strong>
-        <button className="close" onClick={onClose}>Cancelar</button>
-        <button className="close" style={{ color: 'var(--gold)' }} onClick={save}>Guardar</button>
+        <strong style={{ flex: 1, alignSelf: 'center' }}>{t('app.maestria')}</strong>
+        <button className="close" onClick={onClose}>{t('app.cancelar')}</button>
+        <button className="close" style={{ color: 'var(--gold)' }} onClick={save}>{t('app.guardar')}</button>
       </div>
       <p className="empty-state" style={{ padding: '0 0 8px' }}>
-        Copia partidas y winrate de tu perfil del juego. El winrate en porcentaje: 50,6 o 50.6.
-        Por debajo de 20 partidas cuenta poco.
+        {t('maestria.explicacion')}
       </p>
       <div className="mastery-list">
         <div className="mastery-row head">
-          <span>Héroe</span><span>Partidas</span><span>Winrate %</span>
+          <span>{t('maestria.heroe')}</span><span>{t('maestria.partidas')}</span><span>{t('maestria.winrate')}</span>
         </div>
         {sorted.map((h) => (
           <div className="mastery-row" key={h.name}>
@@ -419,7 +425,7 @@ export function SelfTest({ resultado, onClose }) {
  * tocar uno de esos tres, y porque saber si le hiciste caso es justo el dato
  * que hace falta para saber si la app sirve de algo.
  */
-export function RegistroPartida({ pool, recomendados, onGuardar, onClose }) {
+export function RegistroPartida({ pool, recomendados, onGuardar, onClose, t = tPorDefecto }) {
   const [pick, setPick] = useState(recomendados[0] ?? null);
 
   const orden = useMemo(() => {
@@ -431,8 +437,8 @@ export function RegistroPartida({ pool, recomendados, onGuardar, onClose }) {
   return (
     <div className="sheet" role="dialog" aria-label="Apuntar partida">
       <div className="sheet-head">
-        <strong style={{ flex: 1, alignSelf: 'center' }}>¿Con quién jugaste?</strong>
-        <button className="close" onClick={onClose}>Cancelar</button>
+        <strong style={{ flex: 1, alignSelf: 'center' }}>{t('registro.conQuien')}</strong>
+        <button className="close" onClick={onClose}>{t('app.cancelar')}</button>
       </div>
 
       <div className="hero-grid">
@@ -443,31 +449,21 @@ export function RegistroPartida({ pool, recomendados, onGuardar, onClose }) {
             onClick={() => setPick(h.name)}
           >
             {h.name}
-            {recomendados.includes(h.name) && <span className="inferred">recomendado</span>}
+            {recomendados.includes(h.name) && <span className="inferred">{t('registro.recomendado')}</span>}
           </button>
         ))}
       </div>
 
       <div className="resultado">
-        <button className="reset" disabled={!pick} onClick={() => onGuardar(pick, false)}>Perdí</button>
-        <button className="reset" disabled={!pick} onClick={() => onGuardar(pick, true)}>Gané</button>
+        <button className="reset" disabled={!pick} onClick={() => onGuardar(pick, false)}>{t('registro.perdi')}</button>
+        <button className="reset" disabled={!pick} onClick={() => onGuardar(pick, true)}>{t('registro.gane')}</button>
       </div>
     </div>
   );
 }
 
-/** Cómo se llama cada línea en la app y en el juego. */
-export const NOMBRE_LINEA = {
-  roam: 'Roam', jungle: 'Jungla', mid: 'Mid', gold: 'Gold', exp: 'Exp',
-};
 
-const PISTA_LINEA = {
-  roam: 'Tanque o support que rota y protege',
-  jungle: 'Farmeas la jungla y haces ganks',
-  mid: 'Línea central, normalmente mago',
-  gold: 'Línea de oro, normalmente tirador',
-  exp: 'Línea de experiencia, normalmente luchador',
-};
+
 
 /**
  * Qué línea juegas. Se pregunta una sola vez y se recuerda.
@@ -475,12 +471,12 @@ const PISTA_LINEA = {
  * Sin esto la app no sabe qué pool recomendarte: no es una preferencia
  * estética, es el dato que decide entre 21 y 40 héroes distintos.
  */
-export function SelectorDeLinea({ lineas, valor, onElegir, onClose }) {
+export function SelectorDeLinea({ lineas, valor, onElegir, onClose, t = tPorDefecto }) {
   return (
     <div className="sheet" role="dialog" aria-label="Elegir línea">
       <div className="sheet-head">
-        <strong style={{ flex: 1, alignSelf: 'center' }}>¿Qué línea juegas?</strong>
-        {onClose && <button className="close" onClick={onClose}>Cerrar</button>}
+        <strong style={{ flex: 1, alignSelf: 'center' }}>{t('linea.pregunta')}</strong>
+        {onClose && <button className="close" onClick={onClose}>{t('app.cerrar')}</button>}
       </div>
       <div className="lineas">
         {lineas.map((l) => (
@@ -489,13 +485,13 @@ export function SelectorDeLinea({ lineas, valor, onElegir, onClose }) {
             className={`linea ${valor === l ? 'elegida' : ''}`}
             onClick={() => onElegir(l)}
           >
-            <span className="linea-nombre">{NOMBRE_LINEA[l] ?? l}</span>
-            <span className="linea-pista">{PISTA_LINEA[l] ?? ''}</span>
+            <span className="linea-nombre">{t(`linea.${l}`)}</span>
+            <span className="linea-pista">{t(`linea.${l}.pista`)}</span>
           </button>
         ))}
       </div>
       <p className="empty-state" style={{ paddingTop: '10px' }}>
-        Se puede cambiar cuando quieras desde «Baneos y ajustes».
+        {t('linea.cambiarDespues')}
       </p>
     </div>
   );
@@ -505,13 +501,53 @@ export function SelectorDeLinea({ lineas, valor, onElegir, onClose }) {
  * Las dos o tres frases sobre el draft. Va ARRIBA del todo, antes de las
  * tarjetas: es lo que se lee en los tres segundos que hay de verdad.
  */
-export function Analisis({ frases }) {
+export function Analisis({ frases, t = tPorDefecto }) {
   if (!frases?.length) return null;
   return (
     <section className="analisis">
       {frases.map((f) => (
-        <p key={f.texto} className={`frase ${f.tono}`}>{f.texto}</p>
+        <p key={f.clave} className={`frase ${f.tono}`}>{t(f.clave, f.params)}</p>
       ))}
+    </section>
+  );
+}
+
+/**
+ * Enlace de donación. Vacío hasta que Javi ponga el suyo: prefiero un hueco a
+ * un enlace inventado que lleve a ninguna parte o, peor, al sitio de otro.
+ * Se rellena con la URL de Ko-fi, PayPal, GitHub Sponsors o lo que use.
+ */
+export const ENLACE_DONAR = '';
+
+/**
+ * Pie público: idioma, aviso de no afiliación, privacidad y donación.
+ *
+ * El aviso de no afiliación NO es adorno. Los nombres de héroes y los datos son
+ * de Moonton; esto es una herramienta de aficionado y tiene que decirlo, más
+ * aún si pide dinero.
+ */
+export function AvisoLegal({ t = tPorDefecto, idioma, onIdioma, idiomas = ['es', 'en'] }) {
+  return (
+    <section className="aviso">
+      <div className="idiomas">
+        {idiomas.map((l) => (
+          <button
+            key={l}
+            className={idioma === l ? 'elegido' : ''}
+            aria-pressed={idioma === l}
+            onClick={() => onIdioma(l)}
+          >
+            {l.toUpperCase()}
+          </button>
+        ))}
+      </div>
+      <p>{t('legal.noAfiliado')}</p>
+      <p>{t('legal.privacidad')}</p>
+      {ENLACE_DONAR && (
+        <a className="donar" href={ENLACE_DONAR} target="_blank" rel="noopener noreferrer">
+          {t('donar.texto')}
+        </a>
+      )}
     </section>
   );
 }
