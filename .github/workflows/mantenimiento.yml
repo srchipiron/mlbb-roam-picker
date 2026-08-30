@@ -17,8 +17,8 @@ jobs:
   mantener:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
         with:
           node-version: '20'
       - run: npm ci
@@ -31,10 +31,12 @@ jobs:
       # inventarle tags a un héroe que nadie ha mirado es justo lo que este
       # proyecto no quiere. Se avisa para que se haga a conciencia.
       - name: Avisar de héroes sin tags
-        uses: actions/github-script@v7
+        uses: actions/github-script@v9
         with:
           script: |
-            const meta = require('./public/data/roam-meta.json');
+            // github-script v9 es ESM: require() ya no existe aquí dentro.
+            const fs = await import('node:fs');
+            const meta = JSON.parse(fs.readFileSync('./public/data/roam-meta.json', 'utf8'));
             const nuevos = meta.newHeroes ?? [];
             if (!nuevos.length) return;
             const titulo = `Héroes nuevos sin tags propios: ${nuevos.join(', ')}`;

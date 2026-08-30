@@ -31,8 +31,8 @@ jobs:
   vigilar:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
         with:
           node-version: '20'
       - run: npm ci
@@ -69,10 +69,11 @@ jobs:
 
       - name: Abrir incidencia si algo falla
         if: failure()
-        uses: actions/github-script@v7
+        uses: actions/github-script@v9
         with:
           script: |
-            const fs = require('fs');
+            // github-script v9 es ESM: aquí ya no existe require().
+            const fs = await import('node:fs');
             const leer = (f) => { try { return fs.readFileSync(f, 'utf8').slice(-5000); } catch { return '(sin salida)'; } };
             const cuerpo = [
               'La vigilancia automática ha encontrado algo. Esto NO lo ha pulsado nadie:',
@@ -104,7 +105,7 @@ jobs:
 
       - name: Cerrar la incidencia si ya está sano
         if: success()
-        uses: actions/github-script@v7
+        uses: actions/github-script@v9
         with:
           script: |
             const abiertas = await github.rest.issues.listForRepo({
