@@ -354,6 +354,52 @@ test('el diagnóstico de la ingesta no lee campos sin inicializar', () => {
     `campos leidos sin inicializar en diagnostics.relations: ${sinInicializar.join(', ')}`);
 });
 
+test('el registro de partidas cuenta lo que hace falta para decidir', async () => {
+  const { apuntar, resumen, siguioConsejo, maestriaDesdeRegistro, MINIMO_PARA_CONCLUIR } =
+    await import('../src/engine/registro.js');
+
+  // Una partida sin héroe no se guarda: seria una fila inutil para siempre.
+  ok(apuntar([], { gane: true }).length === 0, 'guarda una partida sin pick');
+
+  const p = apuntar([], { pick: 'Khufra', recomendados: ['Khufra', 'Atlas', 'Franco'], gane: true });
+  ok(p.length === 1 && siguioConsejo(p[0]), 'no detecta que seguiste la recomendación');
+  ok(!siguioConsejo({ pick: 'Estes', recomendados: ['Khufra'] }), 'dice que seguiste el consejo y no fue así');
+
+  // La mas reciente va primero.
+  const dos = apuntar(p, { pick: 'Atlas', recomendados: [], gane: false });
+  ok(dos[0].pick === 'Atlas', 'la última partida debería ir la primera');
+
+  // No crece sin limite.
+  let muchas = [];
+  for (let i = 0; i < 20; i++) muchas = apuntar(muchas, { pick: 'Khufra', gane: true }, 10);
+  ok(muchas.length === 10, `el registro debería recortarse: ${muchas.length}`);
+
+  // No concluye con muestra escasa, ni aunque una rama vaya sobrada: comparar
+  // 40 partidas contra 3 es justo lo que invita a tocar los pesos de mas.
+  const sesgado = [];
+  for (let i = 0; i < 40; i++) sesgado.push({ pick: 'Khufra', recomendados: ['Khufra'], gane: i % 2 === 0 });
+  for (let i = 0; i < 3; i++) sesgado.push({ pick: 'Estes', recomendados: ['Khufra'], gane: true });
+  const r = resumen(sesgado);
+  ok(!r.concluyente, 'concluye con 3 partidas por libre');
+  ok(r.faltan === MINIMO_PARA_CONCLUIR - 3, `mal el conteo de las que faltan: ${r.faltan}`);
+  ok(Math.abs(r.wrSiguiendo - 0.5) < 0.01, `winrate siguiendo mal: ${r.wrSiguiendo}`);
+
+  // Con muestra en las dos ramas si concluye.
+  const equilibrado = [];
+  for (let i = 0; i < 30; i++) equilibrado.push({ pick: 'Khufra', recomendados: ['Khufra'], gane: true });
+  for (let i = 0; i < 30; i++) equilibrado.push({ pick: 'Estes', recomendados: ['Khufra'], gane: false });
+  ok(resumen(equilibrado).concluyente, 'con 30 y 30 debería concluir');
+
+  // Sin partidas no se inventa un winrate.
+  ok(resumen([]).wrSiguiendo === null, 'se inventa un winrate sin partidas');
+
+  // Y de aqui sale maestria real, no tecleada.
+  const m = maestriaDesdeRegistro([
+    { pick: 'Khufra', gane: true }, { pick: 'Khufra', gane: false }, { pick: 'Atlas', gane: true },
+  ]);
+  ok(m.Khufra.games === 2 && Math.abs(m.Khufra.winRate - 0.5) < 0.01, `maestría mal: ${JSON.stringify(m)}`);
+});
+
 test('la matriz de counters se indexa en sus DOS niveles', () => {
   // Este fallo estuvo publicado: App.jsx indexaba con profundidad 1, el segundo
   // nivel se quedaba crudo ("Wanwan") y todo lo que lo buscaba normalizado

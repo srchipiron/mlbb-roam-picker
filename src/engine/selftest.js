@@ -2,6 +2,7 @@ import {
   rankRoamers, metaScore, masteryScore, coverage, normName, densidadCounters,
 } from './score.js';
 import { DEFAULT_WEIGHTS } from './rules.js';
+import { resumen, MINIMO_PARA_CONCLUIR } from './registro.js';
 
 /**
  * Autodiagnóstico. Se ejecuta EN EL MÓVIL, contra los datos que tiene la app en
@@ -16,7 +17,7 @@ const OK = 'OK  ';
 const MAL = 'FALLO';
 const AVISO = 'AVISO';
 
-export function runSelfTest({ catalog, meta, metaCtx, allHeroes, roamPool, mastery, env = {} }) {
+export function runSelfTest({ catalog, meta, metaCtx, allHeroes, roamPool, mastery, partidas = [], env = {} }) {
   const lineas = [];
   let fallos = 0;
   let avisos = 0;
@@ -168,6 +169,22 @@ export function runSelfTest({ catalog, meta, metaCtx, allHeroes, roamPool, maste
         'Tu maestría NO se aplica: los nombres guardados no casan con el catálogo');
     }
   }
+
+  // ---------- partidas apuntadas ----------
+  seccion('TUS PARTIDAS');
+  const reg = resumen(partidas);
+  lineas.push(`Apuntadas: ${reg.total}`);
+  if (reg.total) {
+    const pct = (v) => (v == null ? '—' : `${Math.round(v * 100)}%`);
+    lineas.push(`Siguiendo la recomendación: ${reg.siguiendo} · ganadas ${pct(reg.wrSiguiendo)}`);
+    lineas.push(`Por libre: ${reg.porLibre} · ganadas ${pct(reg.wrPorLibre)}`);
+  }
+  // Una línea, NO un aviso. No hay nada que arreglar: es que aún no has jugado
+  // bastante. Un aviso encendido de forma permanente deja de avisar, que es el
+  // error que ya tenía el umbral de cobertura de counters.
+  lineas.push(reg.concluyente
+    ? `Hay muestra para comparar los dos winrates (${MINIMO_PARA_CONCLUIR}+ de cada tipo)`
+    : `Faltan ${reg.faltan} para poder comparar: hasta entonces, no toques los pesos`);
 
   // ---------- autonomía ----------
   seccion('AUTONOMÍA');

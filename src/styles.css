@@ -383,3 +383,12 @@ button:focus-visible, [tabindex]:focus-visible { outline: 2px solid var(--gold);
   background: var(--panel); border: 1px solid var(--line); border-radius: var(--r);
   padding: 10px; user-select: text; -webkit-user-select: text;
 }
+
+/* ---------- apuntar partida ---------- */
+
+.hero-grid button.elegido { border-color: var(--gold); color: var(--gold); }
+.resultado {
+  display: flex; gap: 10px; padding: 12px 0 4px;
+}
+.resultado .reset { flex: 1; padding: 14px; font-size: 14px; }
+.resultado .reset:last-child { color: var(--gold); border-color: var(--gold); }

@@ -391,3 +391,47 @@ export function SelfTest({ resultado, onClose }) {
     </div>
   );
 }
+
+/**
+ * Apuntar cómo fue la partida. Dos toques: a quién cogiste y si ganaste.
+ *
+ * Los recomendados van primero y marcados, porque en el 90% de las veces vas a
+ * tocar uno de esos tres, y porque saber si le hiciste caso es justo el dato
+ * que hace falta para saber si la app sirve de algo.
+ */
+export function RegistroPartida({ pool, recomendados, onGuardar, onClose }) {
+  const [pick, setPick] = useState(recomendados[0] ?? null);
+
+  const orden = useMemo(() => {
+    const rec = new Set(recomendados);
+    return [...pool].sort((a, b) =>
+      (rec.has(b.name) ? 1 : 0) - (rec.has(a.name) ? 1 : 0) || a.name.localeCompare(b.name));
+  }, [pool, recomendados]);
+
+  return (
+    <div className="sheet" role="dialog" aria-label="Apuntar partida">
+      <div className="sheet-head">
+        <strong style={{ flex: 1, alignSelf: 'center' }}>¿Con quién jugaste?</strong>
+        <button className="close" onClick={onClose}>Cancelar</button>
+      </div>
+
+      <div className="hero-grid">
+        {orden.map((h) => (
+          <button
+            key={h.name}
+            className={pick === h.name ? 'elegido' : ''}
+            onClick={() => setPick(h.name)}
+          >
+            {h.name}
+            {recomendados.includes(h.name) && <span className="inferred">recomendado</span>}
+          </button>
+        ))}
+      </div>
+
+      <div className="resultado">
+        <button className="reset" disabled={!pick} onClick={() => onGuardar(pick, false)}>Perdí</button>
+        <button className="reset" disabled={!pick} onClick={() => onGuardar(pick, true)}>Gané</button>
+      </div>
+    </div>
+  );
+}

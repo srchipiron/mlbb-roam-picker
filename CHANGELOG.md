@@ -8,6 +8,20 @@ que esto no se olvida.
 Criterio: `0.X.0` cuando cambia cómo decide la app o qué hace; `0.0.X` para
 correcciones.
 
+## 0.8.0
+
+- **Botón "Apuntar partida"**: dos toques al acabar —con quién jugaste y si
+  ganaste— y la app lo guarda. Se marca cuáles eran sus recomendaciones, así
+  que con el tiempo podrá responder a la única pregunta que importa: ¿ganas más
+  cuando le haces caso?
+- El diagnóstico trae una sección **TUS PARTIDAS** con tu winrate siguiendo la
+  recomendación y por libre, y cuántas faltan para que esa comparación
+  signifique algo. No es un aviso: no hay nada que arreglar, solo que aún no
+  has jugado bastante.
+- Hasta ahora esto no existía. La nota de "cuando tengas unas 30 partidas de
+  cada tipo" llevaba tiempo dando por hecho que se estaban apuntando, y no se
+  apuntaba ninguna.
+
 ## 0.7.0
 
 - Los 7 héroes que quedaban sin tags propios ya los tienen escritos: Marcel,

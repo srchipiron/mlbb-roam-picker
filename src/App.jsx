@@ -1,12 +1,14 @@
 import { useEffect, useMemo, useState } from 'react';
 import { rankRoamers, mergeCatalog, suggestBans, indexByName, coverage, empatados, normName } from './engine/score.js';
 import { runSelfTest, leerEntorno } from './engine/selftest.js';
+import { apuntar } from './engine/registro.js';
 import { detectarRoamEnemigo, indiceDeLineas } from './engine/roam-enemigo.js';
-import { Side, HeroSheet, Pick, Legend, MasteryEditor, RankPicker, BanSuggestions, Footer, SelfTest } from './components/ui.jsx';
+import { Side, HeroSheet, Pick, Legend, MasteryEditor, RankPicker, BanSuggestions, Footer, SelfTest, RegistroPartida } from './components/ui.jsx';
 
 const MASTERY_KEY = 'roam-picker:mastery';
 const RANK_KEY = 'roam-picker:rank';
 const DRAFT_KEY = 'roam-picker:draft';
+const PARTIDAS_KEY = 'roam-picker:partidas';
 
 const load = (key, fallback) => {
   try { return JSON.parse(localStorage.getItem(key) ?? 'null') ?? fallback; } catch { return fallback; }
@@ -31,6 +33,8 @@ export default function App() {
   const [rank, setRank] = useState(() => load(RANK_KEY, null));
   const [sheet, setSheet] = useState(null); // 'enemy' | 'ally' | 'ban'
 
+  const [partidas, setPartidas] = useState(() => load(PARTIDAS_KEY, []));
+  const [apuntando, setApuntando] = useState(false);
   const [mastery, setMastery] = useState(() => load(MASTERY_KEY, {}));
   const [editingMastery, setEditingMastery] = useState(false);
   const [test, setTest] = useState(null);
@@ -135,7 +139,7 @@ export default function App() {
   const lanzarTest = () => {
     try {
       setTest(runSelfTest({
-        catalog, meta, metaCtx, allHeroes, roamPool, mastery,
+        catalog, meta, metaCtx, allHeroes, roamPool, mastery, partidas,
         env: leerEntorno({ version: __APP_VERSION__, buildTime: __BUILD_TIME__, rango: activeRank }),
       }));
     } catch (err) {
@@ -158,6 +162,18 @@ export default function App() {
 
   const reset = () => {
     setEnemyNames([]); setAllyNames([]); setBanNames([]); setEnemyRoam(null);
+  };
+
+  // Apunta la partida y limpia el draft, que es lo que toca justo después.
+  const guardarPartida = (pick, gane) => {
+    const siguiente = apuntar(partidas, {
+      pick, gane, rango: activeRank,
+      recomendados: ranked.slice(0, 3).map((r) => r.hero.name),
+    });
+    setPartidas(siguiente);
+    save(PARTIDAS_KEY, siguiente);
+    setApuntando(false);
+    reset();
   };
 
   const generado = meta?.generatedAt ? new Date(meta.generatedAt) : null;
@@ -212,6 +228,9 @@ export default function App() {
         <div className="tools">
           <button className="reset" onClick={reset}>Nuevo draft</button>
           <button className="reset" onClick={() => setEditingMastery(true)}>Tu maestría</button>
+          <button className="reset" disabled={!ranked.length} onClick={() => setApuntando(true)}>
+            Apuntar partida
+          </button>
         </div>
       </aside>
 
@@ -262,6 +281,15 @@ export default function App() {
       </main>
 
       {test && <SelfTest resultado={test} onClose={() => setTest(null)} />}
+
+      {apuntando && (
+        <RegistroPartida
+          pool={roamPool}
+          recomendados={ranked.slice(0, 3).map((r) => r.hero.name)}
+          onGuardar={guardarPartida}
+          onClose={() => setApuntando(false)}
+        />
+      )}
 
       {editingMastery && (
         <MasteryEditor

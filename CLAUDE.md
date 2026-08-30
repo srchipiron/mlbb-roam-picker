@@ -12,7 +12,7 @@ comprobaciones automáticas importan más de lo normal.
 
 ## Reglas de trabajo
 
-**Nunca subas nada sin pasar `npm test`.** Son cuatro comprobaciones y 37
+**Nunca subas nada sin pasar `npm test`.** Son cuatro comprobaciones y 38
 pruebas (orden de declaraciones, CSS, versión documentada y motor). El
 despliegue corre esas cuatro más una quinta que no está en `npm test`: que
 `roam-meta.json` se haya regenerado hace menos de media hora. Si algo falla, el despliegue se detiene y la app se queda
@@ -125,7 +125,10 @@ y el botón Diagnóstico mentía sobre los rangos. No le quites el `--out`.
 - La deducción se apoya en `SPECIALITY_TAGS` y `ROLE_VETO`, que NO se editan a
   mano: las regenera `node scripts/derivar-tags.mjs` del propio catálogo.
   Reejecútalo cuando crezca `heroes.json` o Moonton cambie sus etiquetas.
-- El registro de partidas necesita unas 30 de cada tipo antes de decir nada.
-  Cuando las haya, mirar si conviene reajustar los pesos con datos reales.
+- El registro de partidas existe desde 0.8.0 (botón "Apuntar partida"), pero
+  empieza vacío. Necesita 30 partidas siguiendo la recomendación y 30 por libre
+  antes de que comparar los dos winrates signifique algo; el diagnóstico dice
+  cuántas faltan. Hasta entonces NO toques los pesos: es exactamente el error
+  que la regla de arriba prohíbe, solo que con más pasos.
 - La cobertura de la matriz de counters es del 7,5%: la API devuelve unos 10
   matchups por héroe, no los 133. En los cruces sin dato mandan las reglas.
