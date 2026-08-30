@@ -50,6 +50,7 @@ const test = (nombre, fn) => {
   }
 };
 const ok = (cond, msg) => { if (!cond) throw new Error(msg); };
+const eq = (a, b, msg) => ok(a === b, msg ?? `esperaba ${JSON.stringify(b)} y salio ${JSON.stringify(a)}`);
 const rnd = (() => { let s = 99; return () => (s = (s * 1103515245 + 12345) % 2147483648) / 2147483648; })();
 
 console.log('Motor de recomendación');
@@ -848,7 +849,7 @@ test('una corrida de ingesta degradada no llega a los datos guardados', async ()
   // cambiaba generatedAt.
   const { comparar, medir } = await import('./comparar-ingesta.mjs');
 
-  const heroe = (n, lanes) => ({ name: n, role: 'tank', lanes });
+  const heroe = (n, lanes) => ({ name: n, role: 'tank', lanes, damage: { fisico: 3, magico: 0 } });
   const buena = {
     heroes: Array.from({ length: 10 }, (_, i) => heroe(`H${i}`, ['roam'])),
     stats: Object.fromEntries(Array.from({ length: 10 }, (_, i) => [`H${i}`, {}])),
@@ -864,6 +865,10 @@ test('una corrida de ingesta degradada no llega a los datos guardados', async ()
   const sinRol = { ...buena, heroes: buena.heroes.map(({ role, ...h }) => h) };
   ok(comparar(sinRol, buena).peores.some((p) => p.clave === 'conRol'),
     'no detecta que la corrida nueva se ha quedado sin roles');
+
+  const sinDano = { ...buena, heroes: buena.heroes.map(({ damage, ...h }) => h) };
+  ok(comparar(sinDano, buena).peores.some((p) => p.clave === 'conDano'),
+    'no detecta que la corrida nueva se ha quedado sin tipo de dano');
 
   const menosCounters = { ...buena, counters: { H0: {}, H1: {} } };
   ok(comparar(menosCounters, buena).peores.some((p) => p.clave === 'counters'),
@@ -889,6 +894,113 @@ test('los workflows que publican datos pasan por el guardarrail', () => {
       ok(l.includes('--out'), `${f}: la ingesta escribe directa sobre los datos buenos`);
     }
     ok(yml.includes('scripts/comparar-ingesta.mjs'), `${f}: no compara la corrida con la guardada`);
+  }
+});
+
+test('el tipo de dano sale del texto de Moonton, no del rol', async () => {
+  const { tipoDeDano, perfilDeDano, tapaElHueco } = await import('../src/engine/score.js');
+
+  // Los dos casos que el rol se comeria, comprobados contra la API real:
+  // Gusion es asesino y pega magico; Hylos es tanque y pega magico.
+  eq(tipoDeDano({ name: 'Gusion', role: 'assassin', damage: { fisico: 0, magico: 5 } }), 'magico');
+  eq(tipoDeDano({ name: 'Hylos', role: 'tank', damage: { fisico: 0, magico: 2 } }), 'magico');
+  eq(tipoDeDano({ name: 'Miya', role: 'marksman', damage: { fisico: 4, magico: 0 } }), 'fisico');
+  // Esmeralda pega las dos cosas de verdad: 4 y 4 en sus habilidades.
+  eq(tipoDeDano({ name: 'Esmeralda', damage: { fisico: 4, magico: 4 } }), 'mixto');
+  // El dano verdadero no decide el lado: atraviesa las dos defensas.
+  eq(tipoDeDano({ name: 'Karrie', damage: { fisico: 4, magico: 0, verdadero: 1 } }), 'fisico');
+  eq(tipoDeDano({ name: 'Nuevo' }), null, 'se inventa un tipo para un heroe sin dato');
+
+  const fis = (n) => ({ name: n, tags: [], damage: { fisico: 3, magico: 0 } });
+  const mag = (n) => ({ name: n, tags: [], damage: { fisico: 0, magico: 3 } });
+  const mix = (n) => ({ name: n, tags: [], damage: { fisico: 3, magico: 3 } });
+
+  eq(perfilDeDano([fis('a'), fis('b'), fis('c')]).falta, 'magico');
+  eq(perfilDeDano([mag('a'), mag('b')]).falta, 'fisico');
+  eq(perfilDeDano([fis('a'), mag('b')]).falta, null, 've un hueco donde hay de las dos');
+  eq(perfilDeDano([fis('a'), mix('b')]).falta, null, 'un mixto no cuenta como que tapa el hueco');
+
+  // Con un solo aliado no se puede decir que al equipo le falte nada, y sin
+  // dato tampoco: inventar un aviso es peor que callarse.
+  eq(perfilDeDano([fis('a')]).falta, null, 'avisa con un solo aliado elegido');
+  eq(perfilDeDano([{ name: 'x', tags: [] }, { name: 'y', tags: [] }]).falta, null,
+    'avisa sin tener el dato de ninguno');
+
+  ok(tapaElHueco(mag('m'), 'magico'), 'no ve que un magico tapa el hueco magico');
+  ok(tapaElHueco(mix('m'), 'magico'), 'no ve que un mixto tapa cualquier hueco');
+  ok(!tapaElHueco(fis('f'), 'magico'), 'cree que un fisico tapa el hueco magico');
+  ok(!tapaElHueco(mag('m'), null), 'tapa un hueco que no existe');
+});
+
+test('tapar el hueco de dano sube la nota de composicion, y no lo encoge la deduccion', async () => {
+  const { compScore } = await import('../src/engine/score.js');
+
+  const fis = (n) => ({ name: n, tags: ['tanky'], damage: { fisico: 3, magico: 0 } });
+  const aliados = [fis('a1'), fis('a2'), fis('a3')];
+
+  const base = { name: 'Yo', tags: ['engage'], damage: { fisico: 3, magico: 0 } };
+  const tapa = { ...base, damage: { fisico: 0, magico: 3 } };
+  ok(compScore(tapa, aliados).value > compScore(base, aliados).value,
+    'meter el dano que falta no vale mas que repetir el que sobra');
+
+  // Con el equipo ya equilibrado no hay hueco, asi que los dos valen igual.
+  const mixtos = [fis('a1'), { name: 'a2', tags: ['tanky'], damage: { fisico: 0, magico: 3 } }];
+  eq(compScore(tapa, mixtos).value, compScore(base, mixtos).value,
+    'premia el tipo de dano cuando al equipo no le falta ninguno');
+
+  // El descuento por tags deducidos NO puede comerse el hueco de dano: el tipo
+  // de dano esta medido en el texto del juego, no deducido de una etiqueta.
+  const ded = { ...tapa, inferred: true };
+  const dedSinTapar = { ...base, inferred: true };
+  const ganancia = compScore(tapa, aliados).value - compScore(base, aliados).value;
+  const gananciaDed = compScore(ded, aliados).value - compScore(dedSinTapar, aliados).value;
+  ok(Math.abs(ganancia - gananciaDed) < 1e-9,
+    'encoge el hueco de dano por deduccion, descontando dos veces');
+
+  // Y lo que SI viene de tags se sigue encogiendo hacia el empate. Hace falta
+  // un heroe que puntue POR ENCIMA de 0.5 en tags: encoger es acercarse a 0.5,
+  // asi que a uno flojo la deduccion le SUBE la nota, no se la baja.
+  const completo = { name: 'Completo', tags: ['engage', 'cc_hard'], damage: { fisico: 3, magico: 0 } };
+  ok(compScore(completo, aliados).value > 0.5, 'el heroe de la comprobacion no puntua por encima del empate');
+  ok(compScore({ ...completo, inferred: true }, aliados).value < compScore(completo, aliados).value,
+    'ya no encoge lo que viene de tags deducidos');
+});
+
+test('se puede buscar un heroe por su nombre en espanol', async () => {
+  const { ALIAS, nombresDe } = await import('../src/engine/alias.js');
+
+  // El caso que lo motivo: Javi tiene el juego en espanol, ve "Ciclope" y no
+  // encontraba nada porque la app solo miraba el nombre en ingles.
+  const busca = (hero, q) => {
+    const norm = (x) => String(x).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+    return nombresDe(hero).some((n) => n.includes(norm(q)));
+  };
+  ok(busca({ name: 'Cyclops' }, 'Cíclope'), 'no encuentra a Cyclops escribiendo Cíclope');
+  ok(busca({ name: 'Cyclops' }, 'ciclope'), 'no encuentra a Cyclops sin tilde');
+  ok(busca({ name: 'Cyclops' }, 'cyclo'), 'ha roto la busqueda por el nombre en ingles');
+  ok(busca({ name: 'Minotaur' }, 'minotauro'), 'no encuentra a Minotaur escribiendo Minotauro');
+  ok(!busca({ name: 'Layla' }, 'ciclope'), 'saca heroes que no tienen nada que ver');
+
+  // Un alias que apunte a un heroe que no existe es peor que no tenerlo:
+  // escribes el nombre bueno y no sale nadie, o sale otro.
+  const catalogo = JSON.parse(readFileSync(resolve(ROOT, 'public/data/heroes.json'), 'utf8')).heroes;
+  const nombres = new Set(catalogo.map((h) => h.name));
+  for (const n of Object.keys(ALIAS)) {
+    ok(nombres.has(n), `el alias apunta a un heroe que no esta en el catalogo: ${n}`);
+  }
+
+  // Y que la BUSQUEDA de la app lo use de verdad. Sin esto se podia quitar el
+  // alias del filtro y las pruebas seguian en verde: el modulo funcionaba
+  // perfectamente y no lo llamaba nadie.
+  const ui = readFileSync(resolve(ROOT, 'src/components/ui.jsx'), 'utf8');
+  ok(/nombresDe\(h\)/.test(ui), 'el buscador de heroes ya no mira los alias');
+
+  // Y ningun alias puede pisar el nombre real de OTRO heroe.
+  for (const [heroe, otros] of Object.entries(ALIAS)) {
+    for (const alias of otros) {
+      const choca = catalogo.find((h) => h.name !== heroe && h.name.toLowerCase() === alias.toLowerCase());
+      ok(!choca, `el alias "${alias}" de ${heroe} es el nombre real de ${choca?.name}`);
+    }
   }
 });
 

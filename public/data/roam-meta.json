@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-08-30T18:41:28.323Z",
+  "generatedAt": "2026-08-30T19:02:40.890Z",
   "rank": "glory",
   "ranks": [
     "epic",
@@ -51,7 +51,12 @@
       "lane": "",
       "lanes": [
         "jungle"
-      ]
+      ],
+      "damage": {
+        "fisico": 2,
+        "magico": 0,
+        "verdadero": 0
+      }
     },
     {
       "name": "Marcel",
@@ -60,7 +65,12 @@
       "lane": "",
       "lanes": [
         "roam"
-      ]
+      ],
+      "damage": {
+        "fisico": 2,
+        "magico": 0,
+        "verdadero": 1
+      }
     },
     {
       "name": "Sora",
@@ -69,7 +79,12 @@
       "lane": "",
       "lanes": [
         "exp"
-      ]
+      ],
+      "damage": {
+        "fisico": 16,
+        "magico": 0,
+        "verdadero": 0
+      }
     },
     {
       "name": "Obsidia",
@@ -78,7 +93,12 @@
       "lane": "",
       "lanes": [
         "gold"
-      ]
+      ],
+      "damage": {
+        "fisico": 4,
+        "magico": 0,
+        "verdadero": 0
+      }
     },
     {
       "name": "Zetian",
@@ -87,7 +107,12 @@
       "lane": "",
       "lanes": [
         "mid"
-      ]
+      ],
+      "damage": {
+        "fisico": 0,
+        "magico": 6,
+        "verdadero": 0
+      }
     },
     {
       "name": "Kalea",
@@ -96,7 +121,12 @@
       "lane": "",
       "lanes": [
         "roam"
-      ]
+      ],
+      "damage": {
+        "fisico": 7,
+        "magico": 0,
+        "verdadero": 0
+      }
     },
     {
       "name": "Lukas",
@@ -106,7 +136,12 @@
       "lanes": [
         "exp",
         "jungle"
-      ]
+      ],
+      "damage": {
+        "fisico": 14,
+        "magico": 0,
+        "verdadero": 0
+      }
     },
     {
       "name": "Suyou",
@@ -115,7 +150,12 @@
       "lane": "",
       "lanes": [
         "jungle"
-      ]
+      ],
+      "damage": {
+        "fisico": 10,
+        "magico": 0,
+        "verdadero": 0
+      }
     },
     {
       "name": "Zhuxin",
@@ -124,7 +164,12 @@
       "lane": "",
       "lanes": [
         "mid"
-      ]
+      ],
+      "damage": {
+        "fisico": 0,
+        "magico": 4,
+        "verdadero": 0
+      }
     },
     {
       "name": "Chip",
@@ -133,7 +178,12 @@
       "lane": "",
       "lanes": [
         "roam"
-      ]
+      ],
+      "damage": {
+        "fisico": 0,
+        "magico": 4,
+        "verdadero": 0
+      }
     },
     {
       "name": "Cici",
@@ -142,7 +192,12 @@
       "lane": "",
       "lanes": [
         "exp"
-      ]
+      ],
+      "damage": {
+        "fisico": 3,
+        "magico": 0,
+        "verdadero": 0
+      }
     },
     {
       "name": "Nolan",
@@ -151,7 +206,12 @@
       "lane": "",
       "lanes": [
         "jungle"
-      ]
+      ],
+      "damage": {
+        "fisico": 5,
+        "magico": 0,
+        "verdadero": 0
+      }
     },
     {
       "name": "Ixia",
@@ -160,7 +220,12 @@
       "lane": "",
       "lanes": [
         "gold"
-      ]
+      ],
+      "damage": {
+        "fisico": 3,
+        "magico": 0,
+        "verdadero": 0
+      }
     },
     {
       "name": "Arlott",
@@ -169,7 +234,12 @@
       "lane": "",
       "lanes": [
         "exp"
-      ]
+      ],
+      "damage": {
+        "fisico": 3,
+        "magico": 0,
+        "verdadero": 0
+      }
     },
     {
       "name": "Novaria",
@@ -178,7 +248,12 @@
       "lane": "",
       "lanes": [
         "mid"
-      ]
+      ],
+      "damage": {
+        "fisico": 0,
+        "magico": 3,
+        "verdadero": 0
+      }
     },
     {
       "name": "Joy",
@@ -187,7 +262,12 @@
       "lane": "",
       "lanes": [
         "jungle"
-      ]
+      ],
+      "damage": {
+        "fisico": 0,
+        "magico": 5,
+        "verdadero": 0
+      }
     },
     {
       "name": "Fredrinn",
@@ -196,7 +276,12 @@
       "lane": "",
       "lanes": [
         "jungle"
-      ]
+      ],
+      "damage": {
+        "fisico": 5,
+        "magico": 0,
+        "verdadero": 1
+      }
     },
     {
       "name": "Julian",
@@ -206,7 +291,12 @@
       "lanes": [
         "jungle",
         "exp"
-      ]
+      ],
+      "damage": {
+        "fisico": 0,
+        "magico": 11,
+        "verdadero": 0
+      }
     },
     {
       "name": "Xavier",
@@ -215,7 +305,12 @@
       "lane": "",
       "lanes": [
         "mid"
-      ]
+      ],
+      "damage": {
+        "fisico": 0,
+        "magico": 4,
+        "verdadero": 0
+      }
     },
     {
       "name": "Melissa",
@@ -224,7 +319,12 @@
       "lane": "",
       "lanes": [
         "gold"
-      ]
+      ],
+      "damage": {
+        "fisico": 1,
+        "magico": 2,
+        "verdadero": 0
+      }
     },
     {
       "name": "Yin",
@@ -234,7 +334,12 @@
       "lanes": [
         "jungle",
         "exp"
-      ]
+      ],
+      "damage": {
+        "fisico": 7,
+        "magico": 0,
+        "verdadero": 0
+      }
     },
     {
       "name": "Floryn",
@@ -243,7 +348,12 @@
       "lane": "",
       "lanes": [
         "roam"
-      ]
+      ],
+      "damage": {
+        "fisico": 0,
+        "magico": 2,
+        "verdadero": 0
+      }
     },
     {
       "name": "Edith",
@@ -253,7 +363,12 @@
       "lanes": [
         "exp",
         "roam"
-      ]
+      ],
+      "damage": {
+        "fisico": 3,
+        "magico": 7,
+        "verdadero": 0
+      }
     },
     {
       "name": "Valentina",
@@ -262,7 +377,12 @@
       "lane": "",
       "lanes": [
         "mid"
-      ]
+      ],
+      "damage": {
+        "fisico": 1,
+        "magico": 2,
+        "verdadero": 0
+      }
     },
     {
       "name": "Aamon",
@@ -271,7 +391,12 @@
       "lane": "",
       "lanes": [
         "jungle"
-      ]
+      ],
+      "damage": {
+        "fisico": 0,
+        "magico": 6,
+        "verdadero": 0
+      }
     },
     {
       "name": "Aulus",
@@ -280,7 +405,12 @@
       "lane": "",
       "lanes": [
         "jungle"
-      ]
+      ],
+      "damage": {
+        "fisico": 5,
+        "magico": 0,
+        "verdadero": 0
+      }
     },
     {
       "name": "Natan",
@@ -289,7 +419,12 @@
       "lane": "",
       "lanes": [
         "gold"
-      ]
+      ],
+      "damage": {
+        "fisico": 0,
+        "magico": 5,
+        "verdadero": 0
+      }
     },
     {
       "name": "Phoveus",
@@ -298,7 +433,12 @@
       "lane": "",
       "lanes": [
         "exp"
-      ]
+      ],
+      "damage": {
+        "fisico": 2,
+        "magico": 3,
+        "verdadero": 0
+      }
     },
     {
       "name": "Beatrix",
@@ -307,7 +447,12 @@
       "lane": "",
       "lanes": [
         "gold"
-      ]
+      ],
+      "damage": {
+        "fisico": 8,
+        "magico": 0,
+        "verdadero": 0
+      }
     },
     {
       "name": "Gloo",
@@ -317,7 +462,12 @@
       "lanes": [
         "roam",
         "exp"
-      ]
+      ],
+      "damage": {
+        "fisico": 0,
+        "magico": 5,
+        "verdadero": 0
+      }
     },
     {
       "name": "Paquito",
@@ -326,7 +476,12 @@
       "lane": "",
       "lanes": [
         "exp"
-      ]
+      ],
+      "damage": {
+        "fisico": 7,
+        "magico": 0,
+        "verdadero": 0
+      }
     },
     {
       "name": "Mathilda",
@@ -335,7 +490,12 @@
       "lane": "",
       "lanes": [
         "roam"
-      ]
+      ],
+      "damage": {
+        "fisico": 0,
+        "magico": 4,
+        "verdadero": 0
+      }
     },
     {
       "name": "Yve",
@@ -344,7 +504,12 @@
       "lane": "",
       "lanes": [
         "mid"
-      ]
+      ],
+      "damage": {
+        "fisico": 0,
+        "magico": 5,
+        "verdadero": 0
+      }
     },
     {
       "name": "Brody",
@@ -353,7 +518,12 @@
       "lane": "",
       "lanes": [
         "gold"
-      ]
+      ],
+      "damage": {
+        "fisico": 5,
+        "magico": 0,
+        "verdadero": 0
+      }
     },
     {
       "name": "Barats",
@@ -362,7 +532,12 @@
       "lane": "",
       "lanes": [
         "jungle"
-      ]
+      ],
+      "damage": {
+        "fisico": 7,
+        "magico": 0,
+        "verdadero": 0
+      }
     },
     {
       "name": "Khaleed",
@@ -372,7 +547,12 @@
       "lanes": [
         "roam",
         "exp"
-      ]
+      ],
+      "damage": {
+        "fisico": 4,
+        "magico": 0,
+        "verdadero": 0
+      }
     },
     {
       "name": "Benedetta",
@@ -381,7 +561,12 @@
       "lane": "",
       "lanes": [
         "exp"
-      ]
+      ],
+      "damage": {
+        "fisico": 5,
+        "magico": 0,
+        "verdadero": 0
+      }
     },
     {
       "name": "Luo Yi",
@@ -390,7 +575,12 @@
       "lane": "",
       "lanes": [
         "mid"
-      ]
+      ],
+      "damage": {
+        "fisico": 0,
+        "magico": 4,
+        "verdadero": 0
+      }
     },
     {
       "name": "Yu Zhong",
@@ -399,7 +589,12 @@
       "lane": "",
       "lanes": [
         "exp"
-      ]
+      ],
+      "damage": {
+        "fisico": 7,
+        "magico": 0,
+        "verdadero": 0
+      }
     },
     {
       "name": "Popol and Kupa",
@@ -409,7 +604,12 @@
       "lanes": [
         "jungle",
         "gold"
-      ]
+      ],
+      "damage": {
+        "fisico": 8,
+        "magico": 2,
+        "verdadero": 0
+      }
     },
     {
       "name": "Atlas",
@@ -418,7 +618,12 @@
       "lane": "",
       "lanes": [
         "roam"
-      ]
+      ],
+      "damage": {
+        "fisico": 0,
+        "magico": 4,
+        "verdadero": 0
+      }
     },
     {
       "name": "Carmilla",
@@ -427,7 +632,12 @@
       "lane": "",
       "lanes": [
         "roam"
-      ]
+      ],
+      "damage": {
+        "fisico": 0,
+        "magico": 3,
+        "verdadero": 0
+      }
     },
     {
       "name": "Cecilion",
@@ -436,7 +646,12 @@
       "lane": "",
       "lanes": [
         "mid"
-      ]
+      ],
+      "damage": {
+        "fisico": 0,
+        "magico": 5,
+        "verdadero": 0
+      }
     },
     {
       "name": "Silvanna",
@@ -445,7 +660,12 @@
       "lane": "",
       "lanes": [
         "exp"
-      ]
+      ],
+      "damage": {
+        "fisico": 0,
+        "magico": 5,
+        "verdadero": 0
+      }
     },
     {
       "name": "Wanwan",
@@ -454,7 +674,12 @@
       "lane": "",
       "lanes": [
         "gold"
-      ]
+      ],
+      "damage": {
+        "fisico": 4,
+        "magico": 0,
+        "verdadero": 1
+      }
     },
     {
       "name": "Masha",
@@ -463,7 +688,12 @@
       "lane": "",
       "lanes": [
         "exp"
-      ]
+      ],
+      "damage": {
+        "fisico": 4,
+        "magico": 0,
+        "verdadero": 0
+      }
     },
     {
       "name": "Baxia",
@@ -473,7 +703,12 @@
       "lanes": [
         "jungle",
         "roam"
-      ]
+      ],
+      "damage": {
+        "fisico": 0,
+        "magico": 4,
+        "verdadero": 1
+      }
     },
     {
       "name": "Lylia",
@@ -482,7 +717,12 @@
       "lane": "",
       "lanes": [
         "mid"
-      ]
+      ],
+      "damage": {
+        "fisico": 0,
+        "magico": 3,
+        "verdadero": 0
+      }
     },
     {
       "name": "Dyrroth",
@@ -492,7 +732,12 @@
       "lanes": [
         "exp",
         "jungle"
-      ]
+      ],
+      "damage": {
+        "fisico": 5,
+        "magico": 0,
+        "verdadero": 0
+      }
     },
     {
       "name": "Ling",
@@ -501,7 +746,12 @@
       "lane": "",
       "lanes": [
         "jungle"
-      ]
+      ],
+      "damage": {
+        "fisico": 3,
+        "magico": 0,
+        "verdadero": 0
+      }
     },
     {
       "name": "X.Borg",
@@ -510,7 +760,12 @@
       "lane": "",
       "lanes": [
         "exp"
-      ]
+      ],
+      "damage": {
+        "fisico": 3,
+        "magico": 0,
+        "verdadero": 2
+      }
     },
     {
       "name": "Terizla",
@@ -519,7 +774,12 @@
       "lane": "",
       "lanes": [
         "exp"
-      ]
+      ],
+      "damage": {
+        "fisico": 6,
+        "magico": 0,
+        "verdadero": 0
+      }
     },
     {
       "name": "Esmeralda",
@@ -528,7 +788,12 @@
       "lane": "",
       "lanes": [
         "exp"
-      ]
+      ],
+      "damage": {
+        "fisico": 4,
+        "magico": 4,
+        "verdadero": 0
+      }
     },
     {
       "name": "Guinevere",
@@ -537,7 +802,12 @@
       "lane": "",
       "lanes": [
         "exp"
-      ]
+      ],
+      "damage": {
+        "fisico": 0,
+        "magico": 8,
+        "verdadero": 0
+      }
     },
     {
       "name": "Granger",
@@ -546,7 +816,12 @@
       "lane": "",
       "lanes": [
         "gold"
-      ]
+      ],
+      "damage": {
+        "fisico": 2,
+        "magico": 0,
+        "verdadero": 0
+      }
     },
     {
       "name": "Khufra",
@@ -555,7 +830,12 @@
       "lane": "",
       "lanes": [
         "roam"
-      ]
+      ],
+      "damage": {
+        "fisico": 4,
+        "magico": 2,
+        "verdadero": 0
+      }
     },
     {
       "name": "Badang",
@@ -565,7 +845,12 @@
       "lanes": [
         "roam",
         "exp"
-      ]
+      ],
+      "damage": {
+        "fisico": 7,
+        "magico": 0,
+        "verdadero": 0
+      }
     },
     {
       "name": "Faramis",
@@ -575,7 +860,12 @@
       "lanes": [
         "mid",
         "roam"
-      ]
+      ],
+      "damage": {
+        "fisico": 0,
+        "magico": 4,
+        "verdadero": 0
+      }
     },
     {
       "name": "Kadita",
@@ -584,7 +874,12 @@
       "lane": "",
       "lanes": [
         "mid"
-      ]
+      ],
+      "damage": {
+        "fisico": 0,
+        "magico": 4,
+        "verdadero": 0
+      }
     },
     {
       "name": "Minsitthar",
@@ -594,7 +889,12 @@
       "lanes": [
         "exp",
         "roam"
-      ]
+      ],
+      "damage": {
+        "fisico": 6,
+        "magico": 0,
+        "verdadero": 0
+      }
     },
     {
       "name": "Harith",
@@ -604,7 +904,12 @@
       "lanes": [
         "gold",
         "jungle"
-      ]
+      ],
+      "damage": {
+        "fisico": 0,
+        "magico": 4,
+        "verdadero": 0
+      }
     },
     {
       "name": "Thamuz",
@@ -613,7 +918,12 @@
       "lane": "",
       "lanes": [
         "exp"
-      ]
+      ],
+      "damage": {
+        "fisico": 5,
+        "magico": 0,
+        "verdadero": 1
+      }
     },
     {
       "name": "Kimmy",
@@ -623,7 +933,12 @@
       "lanes": [
         "mid",
         "gold"
-      ]
+      ],
+      "damage": {
+        "fisico": 0,
+        "magico": 6,
+        "verdadero": 0
+      }
     },
     {
       "name": "Belerick",
@@ -632,7 +947,12 @@
       "lane": "",
       "lanes": [
         "roam"
-      ]
+      ],
+      "damage": {
+        "fisico": 0,
+        "magico": 5,
+        "verdadero": 0
+      }
     },
     {
       "name": "Hanzo",
@@ -641,7 +961,12 @@
       "lane": "",
       "lanes": [
         "jungle"
-      ]
+      ],
+      "damage": {
+        "fisico": 5,
+        "magico": 0,
+        "verdadero": 0
+      }
     },
     {
       "name": "Lunox",
@@ -650,7 +975,12 @@
       "lane": "",
       "lanes": [
         "mid"
-      ]
+      ],
+      "damage": {
+        "fisico": 0,
+        "magico": 11,
+        "verdadero": 0
+      }
     },
     {
       "name": "Leomord",
@@ -659,7 +989,12 @@
       "lane": "",
       "lanes": [
         "jungle"
-      ]
+      ],
+      "damage": {
+        "fisico": 6,
+        "magico": 0,
+        "verdadero": 0
+      }
     },
     {
       "name": "Vale",
@@ -668,7 +1003,12 @@
       "lane": "",
       "lanes": [
         "mid"
-      ]
+      ],
+      "damage": {
+        "fisico": 0,
+        "magico": 5,
+        "verdadero": 0
+      }
     },
     {
       "name": "Claude",
@@ -677,7 +1017,12 @@
       "lane": "",
       "lanes": [
         "gold"
-      ]
+      ],
+      "damage": {
+        "fisico": 4,
+        "magico": 0,
+        "verdadero": 0
+      }
     },
     {
       "name": "Aldous",
@@ -686,7 +1031,12 @@
       "lane": "",
       "lanes": [
         "exp"
-      ]
+      ],
+      "damage": {
+        "fisico": 3,
+        "magico": 0,
+        "verdadero": 0
+      }
     },
     {
       "name": "Selena",
@@ -696,7 +1046,12 @@
       "lanes": [
         "mid",
         "roam"
-      ]
+      ],
+      "damage": {
+        "fisico": 0,
+        "magico": 8,
+        "verdadero": 0
+      }
     },
     {
       "name": "Kaja",
@@ -705,7 +1060,12 @@
       "lane": "",
       "lanes": [
         "roam"
-      ]
+      ],
+      "damage": {
+        "fisico": 0,
+        "magico": 4,
+        "verdadero": 0
+      }
     },
     {
       "name": "Chang'e",
@@ -714,7 +1074,12 @@
       "lane": "",
       "lanes": [
         "mid"
-      ]
+      ],
+      "damage": {
+        "fisico": 0,
+        "magico": 4,
+        "verdadero": 0
+      }
     },
     {
       "name": "Hanabi",
@@ -723,7 +1088,12 @@
       "lane": "",
       "lanes": [
         "gold"
-      ]
+      ],
+      "damage": {
+        "fisico": 4,
+        "magico": 0,
+        "verdadero": 0
+      }
     },
     {
       "name": "Uranus",
@@ -732,7 +1102,12 @@
       "lane": "",
       "lanes": [
         "exp"
-      ]
+      ],
+      "damage": {
+        "fisico": 0,
+        "magico": 5,
+        "verdadero": 0
+      }
     },
     {
       "name": "Martis",
@@ -742,7 +1117,12 @@
       "lanes": [
         "jungle",
         "exp"
-      ]
+      ],
+      "damage": {
+        "fisico": 4,
+        "magico": 0,
+        "verdadero": 1
+      }
     },
     {
       "name": "Valir",
@@ -751,7 +1131,12 @@
       "lane": "",
       "lanes": [
         "mid"
-      ]
+      ],
+      "damage": {
+        "fisico": 0,
+        "magico": 6,
+        "verdadero": 0
+      }
     },
     {
       "name": "Gusion",
@@ -761,7 +1146,12 @@
       "lanes": [
         "jungle",
         "mid"
-      ]
+      ],
+      "damage": {
+        "fisico": 0,
+        "magico": 5,
+        "verdadero": 0
+      }
     },
     {
       "name": "Angela",
@@ -770,7 +1160,12 @@
       "lane": "",
       "lanes": [
         "roam"
-      ]
+      ],
+      "damage": {
+        "fisico": 0,
+        "magico": 3,
+        "verdadero": 0
+      }
     },
     {
       "name": "Jawhead",
@@ -780,7 +1175,12 @@
       "lanes": [
         "roam",
         "exp"
-      ]
+      ],
+      "damage": {
+        "fisico": 3,
+        "magico": 0,
+        "verdadero": 0
+      }
     },
     {
       "name": "Lesley",
@@ -789,7 +1189,12 @@
       "lane": "",
       "lanes": [
         "gold"
-      ]
+      ],
+      "damage": {
+        "fisico": 2,
+        "magico": 0,
+        "verdadero": 2
+      }
     },
     {
       "name": "Pharsa",
@@ -798,7 +1203,12 @@
       "lane": "",
       "lanes": [
         "mid"
-      ]
+      ],
+      "damage": {
+        "fisico": 0,
+        "magico": 4,
+        "verdadero": 0
+      }
     },
     {
       "name": "Helcurt",
@@ -808,7 +1218,12 @@
       "lanes": [
         "jungle",
         "roam"
-      ]
+      ],
+      "damage": {
+        "fisico": 2,
+        "magico": 0,
+        "verdadero": 0
+      }
     },
     {
       "name": "Zhask",
@@ -817,7 +1232,12 @@
       "lane": "",
       "lanes": [
         "mid"
-      ]
+      ],
+      "damage": {
+        "fisico": 0,
+        "magico": 4,
+        "verdadero": 0
+      }
     },
     {
       "name": "Hylos",
@@ -826,7 +1246,12 @@
       "lane": "",
       "lanes": [
         "roam"
-      ]
+      ],
+      "damage": {
+        "fisico": 0,
+        "magico": 2,
+        "verdadero": 0
+      }
     },
     {
       "name": "Diggie",
@@ -835,7 +1260,12 @@
       "lane": "",
       "lanes": [
         "roam"
-      ]
+      ],
+      "damage": {
+        "fisico": 0,
+        "magico": 2,
+        "verdadero": 0
+      }
     },
     {
       "name": "Lancelot",
@@ -844,7 +1274,12 @@
       "lane": "",
       "lanes": [
         "jungle"
-      ]
+      ],
+      "damage": {
+        "fisico": 3,
+        "magico": 0,
+        "verdadero": 0
+      }
     },
     {
       "name": "Odette",
@@ -853,7 +1288,12 @@
       "lane": "",
       "lanes": [
         "mid"
-      ]
+      ],
+      "damage": {
+        "fisico": 0,
+        "magico": 5,
+        "verdadero": 0
+      }
     },
     {
       "name": "Argus",
@@ -862,7 +1302,12 @@
       "lane": "",
       "lanes": [
         "exp"
-      ]
+      ],
+      "damage": {
+        "fisico": 4,
+        "magico": 0,
+        "verdadero": 0
+      }
     },
     {
       "name": "Grock",
@@ -871,7 +1316,12 @@
       "lane": "",
       "lanes": [
         "roam"
-      ]
+      ],
+      "damage": {
+        "fisico": 6,
+        "magico": 1,
+        "verdadero": 0
+      }
     },
     {
       "name": "Irithel",
@@ -880,7 +1330,12 @@
       "lane": "",
       "lanes": [
         "gold"
-      ]
+      ],
+      "damage": {
+        "fisico": 4,
+        "magico": 0,
+        "verdadero": 0
+      }
     },
     {
       "name": "Harley",
@@ -890,7 +1345,12 @@
       "lanes": [
         "jungle",
         "mid"
-      ]
+      ],
+      "damage": {
+        "fisico": 0,
+        "magico": 4,
+        "verdadero": 0
+      }
     },
     {
       "name": "Gatotkaca",
@@ -900,7 +1360,12 @@
       "lanes": [
         "roam",
         "exp"
-      ]
+      ],
+      "damage": {
+        "fisico": 0,
+        "magico": 5,
+        "verdadero": 0
+      }
     },
     {
       "name": "Karrie",
@@ -909,7 +1374,12 @@
       "lane": "",
       "lanes": [
         "gold"
-      ]
+      ],
+      "damage": {
+        "fisico": 4,
+        "magico": 0,
+        "verdadero": 1
+      }
     },
     {
       "name": "Roger",
@@ -918,7 +1388,12 @@
       "lane": "",
       "lanes": [
         "jungle"
-      ]
+      ],
+      "damage": {
+        "fisico": 3,
+        "magico": 0,
+        "verdadero": 0
+      }
     },
     {
       "name": "Vexana",
@@ -927,7 +1402,12 @@
       "lane": "",
       "lanes": [
         "mid"
-      ]
+      ],
+      "damage": {
+        "fisico": 0,
+        "magico": 6,
+        "verdadero": 0
+      }
     },
     {
       "name": "Lapu-Lapu",
@@ -936,7 +1416,12 @@
       "lane": "",
       "lanes": [
         "exp"
-      ]
+      ],
+      "damage": {
+        "fisico": 9,
+        "magico": 0,
+        "verdadero": 0
+      }
     },
     {
       "name": "Aurora",
@@ -945,7 +1430,12 @@
       "lane": "",
       "lanes": [
         "mid"
-      ]
+      ],
+      "damage": {
+        "fisico": 0,
+        "magico": 6,
+        "verdadero": 0
+      }
     },
     {
       "name": "Hilda",
@@ -955,7 +1445,12 @@
       "lanes": [
         "roam",
         "exp"
-      ]
+      ],
+      "damage": {
+        "fisico": 4,
+        "magico": 0,
+        "verdadero": 0
+      }
     },
     {
       "name": "Estes",
@@ -964,7 +1459,12 @@
       "lane": "",
       "lanes": [
         "roam"
-      ]
+      ],
+      "damage": {
+        "fisico": 0,
+        "magico": 3,
+        "verdadero": 0
+      }
     },
     {
       "name": "Cyclops",
@@ -973,7 +1473,12 @@
       "lane": "",
       "lanes": [
         "mid"
-      ]
+      ],
+      "damage": {
+        "fisico": 0,
+        "magico": 3,
+        "verdadero": 0
+      }
     },
     {
       "name": "Johnson",
@@ -982,7 +1487,12 @@
       "lane": "",
       "lanes": [
         "roam"
-      ]
+      ],
+      "damage": {
+        "fisico": 0,
+        "magico": 5,
+        "verdadero": 0
+      }
     },
     {
       "name": "Moskov",
@@ -991,7 +1501,12 @@
       "lane": "",
       "lanes": [
         "gold"
-      ]
+      ],
+      "damage": {
+        "fisico": 5,
+        "magico": 0,
+        "verdadero": 0
+      }
     },
     {
       "name": "Yi Sun-shin",
@@ -1000,7 +1515,12 @@
       "lane": "",
       "lanes": [
         "jungle"
-      ]
+      ],
+      "damage": {
+        "fisico": 5,
+        "magico": 0,
+        "verdadero": 0
+      }
     },
     {
       "name": "Ruby",
@@ -1009,7 +1529,12 @@
       "lane": "",
       "lanes": [
         "exp"
-      ]
+      ],
+      "damage": {
+        "fisico": 4,
+        "magico": 0,
+        "verdadero": 0
+      }
     },
     {
       "name": "Alpha",
@@ -1019,7 +1544,12 @@
       "lanes": [
         "jungle",
         "exp"
-      ]
+      ],
+      "damage": {
+        "fisico": 4,
+        "magico": 0,
+        "verdadero": 4
+      }
     },
     {
       "name": "Sun",
@@ -1029,7 +1559,12 @@
       "lanes": [
         "exp",
         "jungle"
-      ]
+      ],
+      "damage": {
+        "fisico": 3,
+        "magico": 0,
+        "verdadero": 0
+      }
     },
     {
       "name": "Chou",
@@ -1039,7 +1574,12 @@
       "lanes": [
         "exp",
         "roam"
-      ]
+      ],
+      "damage": {
+        "fisico": 3,
+        "magico": 0,
+        "verdadero": 0
+      }
     },
     {
       "name": "Kagura",
@@ -1048,7 +1588,12 @@
       "lane": "",
       "lanes": [
         "mid"
-      ]
+      ],
+      "damage": {
+        "fisico": 0,
+        "magico": 6,
+        "verdadero": 0
+      }
     },
     {
       "name": "Natalia",
@@ -1058,7 +1603,12 @@
       "lanes": [
         "jungle",
         "roam"
-      ]
+      ],
+      "damage": {
+        "fisico": 2,
+        "magico": 0,
+        "verdadero": 0
+      }
     },
     {
       "name": "Gord",
@@ -1067,7 +1617,12 @@
       "lane": "",
       "lanes": [
         "mid"
-      ]
+      ],
+      "damage": {
+        "fisico": 0,
+        "magico": 3,
+        "verdadero": 1
+      }
     },
     {
       "name": "Freya",
@@ -1077,7 +1632,12 @@
       "lanes": [
         "exp",
         "jungle"
-      ]
+      ],
+      "damage": {
+        "fisico": 3,
+        "magico": 0,
+        "verdadero": 0
+      }
     },
     {
       "name": "Hayabusa",
@@ -1086,7 +1646,12 @@
       "lane": "",
       "lanes": [
         "jungle"
-      ]
+      ],
+      "damage": {
+        "fisico": 5,
+        "magico": 0,
+        "verdadero": 0
+      }
     },
     {
       "name": "Lolita",
@@ -1095,7 +1660,12 @@
       "lane": "",
       "lanes": [
         "roam"
-      ]
+      ],
+      "damage": {
+        "fisico": 2,
+        "magico": 0,
+        "verdadero": 0
+      }
     },
     {
       "name": "Minotaur",
@@ -1104,7 +1674,12 @@
       "lane": "",
       "lanes": [
         "roam"
-      ]
+      ],
+      "damage": {
+        "fisico": 4,
+        "magico": 0,
+        "verdadero": 1
+      }
     },
     {
       "name": "Layla",
@@ -1113,7 +1688,12 @@
       "lane": "",
       "lanes": [
         "gold"
-      ]
+      ],
+      "damage": {
+        "fisico": 4,
+        "magico": 0,
+        "verdadero": 0
+      }
     },
     {
       "name": "Fanny",
@@ -1122,7 +1702,12 @@
       "lane": "",
       "lanes": [
         "jungle"
-      ]
+      ],
+      "damage": {
+        "fisico": 2,
+        "magico": 0,
+        "verdadero": 0
+      }
     },
     {
       "name": "Zilong",
@@ -1131,7 +1716,12 @@
       "lane": "",
       "lanes": [
         "exp"
-      ]
+      ],
+      "damage": {
+        "fisico": 3,
+        "magico": 0,
+        "verdadero": 0
+      }
     },
     {
       "name": "Eudora",
@@ -1140,7 +1730,12 @@
       "lane": "",
       "lanes": [
         "mid"
-      ]
+      ],
+      "damage": {
+        "fisico": 0,
+        "magico": 7,
+        "verdadero": 0
+      }
     },
     {
       "name": "Rafaela",
@@ -1149,7 +1744,12 @@
       "lane": "",
       "lanes": [
         "roam"
-      ]
+      ],
+      "damage": {
+        "fisico": 0,
+        "magico": 2,
+        "verdadero": 0
+      }
     },
     {
       "name": "Clint",
@@ -1158,7 +1758,12 @@
       "lane": "",
       "lanes": [
         "gold"
-      ]
+      ],
+      "damage": {
+        "fisico": 4,
+        "magico": 0,
+        "verdadero": 0
+      }
     },
     {
       "name": "Bruno",
@@ -1167,7 +1772,12 @@
       "lane": "",
       "lanes": [
         "gold"
-      ]
+      ],
+      "damage": {
+        "fisico": 4,
+        "magico": 0,
+        "verdadero": 0
+      }
     },
     {
       "name": "Bane",
@@ -1177,7 +1787,12 @@
       "lanes": [
         "jungle",
         "exp"
-      ]
+      ],
+      "damage": {
+        "fisico": 2,
+        "magico": 2,
+        "verdadero": 0
+      }
     },
     {
       "name": "Franco",
@@ -1186,7 +1801,12 @@
       "lane": "",
       "lanes": [
         "roam"
-      ]
+      ],
+      "damage": {
+        "fisico": 3,
+        "magico": 0,
+        "verdadero": 0
+      }
     },
     {
       "name": "Akai",
@@ -1195,7 +1815,12 @@
       "lane": "",
       "lanes": [
         "roam"
-      ]
+      ],
+      "damage": {
+        "fisico": 4,
+        "magico": 0,
+        "verdadero": 0
+      }
     },
     {
       "name": "Karina",
@@ -1204,7 +1829,12 @@
       "lane": "",
       "lanes": [
         "jungle"
-      ]
+      ],
+      "damage": {
+        "fisico": 0,
+        "magico": 6,
+        "verdadero": 2
+      }
     },
     {
       "name": "Alucard",
@@ -1213,7 +1843,12 @@
       "lane": "",
       "lanes": [
         "jungle"
-      ]
+      ],
+      "damage": {
+        "fisico": 4,
+        "magico": 0,
+        "verdadero": 0
+      }
     },
     {
       "name": "Tigreal",
@@ -1222,7 +1857,12 @@
       "lane": "",
       "lanes": [
         "roam"
-      ]
+      ],
+      "damage": {
+        "fisico": 4,
+        "magico": 0,
+        "verdadero": 0
+      }
     },
     {
       "name": "Nana",
@@ -1231,7 +1871,12 @@
       "lane": "",
       "lanes": [
         "mid"
-      ]
+      ],
+      "damage": {
+        "fisico": 0,
+        "magico": 3,
+        "verdadero": 0
+      }
     },
     {
       "name": "Alice",
@@ -1241,7 +1886,12 @@
       "lanes": [
         "exp",
         "jungle"
-      ]
+      ],
+      "damage": {
+        "fisico": 0,
+        "magico": 5,
+        "verdadero": 0
+      }
     },
     {
       "name": "Saber",
@@ -1251,7 +1901,12 @@
       "lanes": [
         "jungle",
         "roam"
-      ]
+      ],
+      "damage": {
+        "fisico": 6,
+        "magico": 0,
+        "verdadero": 0
+      }
     },
     {
       "name": "Balmond",
@@ -1261,7 +1916,12 @@
       "lanes": [
         "jungle",
         "exp"
-      ]
+      ],
+      "damage": {
+        "fisico": 2,
+        "magico": 0,
+        "verdadero": 1
+      }
     },
     {
       "name": "Miya",
@@ -1270,7 +1930,12 @@
       "lane": "",
       "lanes": [
         "gold"
-      ]
+      ],
+      "damage": {
+        "fisico": 4,
+        "magico": 0,
+        "verdadero": 0
+      }
     }
   ],
   "newHeroes": [],
@@ -1325,9 +1990,14 @@
       ]
     },
     "speciality": {
-      "pedidos": 0,
-      "ok": 0,
+      "pedidos": 133,
+      "ok": 133,
       "errores": []
+    },
+    "dano": {
+      "ok": 133,
+      "conservados": 0,
+      "sin": 0
     },
     "rangos": {
       "epic": "133 héroes",

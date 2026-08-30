@@ -20,7 +20,7 @@ comprobaciones automáticas importan más de lo normal.
 
 ## Reglas de trabajo
 
-**Nunca subas nada sin pasar `npm test`.** Son cuatro comprobaciones y 44
+**Nunca subas nada sin pasar `npm test`.** Son cuatro comprobaciones y 47
 pruebas (orden de declaraciones, CSS, versión documentada y motor). El
 despliegue corre esas cuatro más dos que no están en `npm test`: que
 `roam-meta.json` se haya regenerado hace menos de media hora, y que la corrida
@@ -130,6 +130,16 @@ idioma se queda a medias, y otra que comprueba que toda clave usada existe.
 La identidad de un motivo ya no es su texto sino `idRazon()` (clave + a quién
 señala). El filtro de motivos comunes y el dedupe dependen de eso.
 
+Los NOMBRES de héroe no se traducen en pantalla: son la clave de todos los
+datos, y enseñar "Cíclope" mientras el motor busca "Cyclops" es justo el fallo
+invisible que ya costó una corrección. Lo que sí acepta los dos idiomas es la
+BÚSQUEDA, con `src/engine/alias.js`. Javi juega con el móvil en español y
+escribía "Cíclope" sin encontrar nada. Un alias no envejece con los
+reequilibrios, pero solo se apunta lo comprobado: uno equivocado saca el héroe
+de al lado, que es peor que no tenerlo. Hay una prueba que comprueba que cada
+alias apunta a un héroe real, que ninguno pisa el nombre de otro y que el
+buscador de verdad los usa.
+
 El diagnóstico (`selftest.js`) sigue en español a propósito: es depuración.
 
 ## La vigilancia automática
@@ -187,6 +197,13 @@ y el botón Diagnóstico mentía sobre los rangos. No le quites el `--out`.
   antes de que comparar los dos winrates signifique algo; el diagnóstico dice
   cuántas faltan. Hasta entonces NO toques los pesos: es exactamente el error
   que la regla de arriba prohíbe, solo que con más pasos.
+- El tipo de daño de cada héroe (`damage`, en `roam-meta.json`) se cuenta en los
+  textos de habilidad de Moonton, no se deduce del rol: el rol se equivoca con
+  Gusion, Hylos, Natan y Kimmy. Por eso NO lo encoge `PRECISION_DEDUCIDA`: es un
+  dato medido, no una etiqueta adivinada, y encogerlo sería descontar dos veces.
+  Cuenta habilidades, no daño real, así que a un tirador le falta su ataque
+  básico: Melissa sale "mixto" cuando es física. Sale barato porque la ingesta ya
+  pedía esa ficha; ahora la pide para los 133 en vez de para 7.
 - La cobertura de la matriz de counters es del 11%: la API devuelve unos 10
   matchups por héroe, no los 133, y `matchup()` aprovecha los dos sentidos (un
   32% más de cruces que leyendo solo la fila del héroe). En los que faltan

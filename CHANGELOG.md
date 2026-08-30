@@ -8,6 +8,28 @@ que esto no se olvida.
 Criterio: `0.X.0` cuando cambia cómo decide la app o qué hace; `0.0.X` para
 correcciones.
 
+## 1.3.0
+
+- **La app ya mira de qué pega tu equipo.** Es el aviso de draft más repetido en
+  MLBB y no lo tenía: si los cinco pegáis físico, al rival le basta con comprar
+  armadura y os apaga a todos. Ahora, cuando llevas tres aliados elegidos y
+  todos pegan del mismo lado, te lo dice — y si el héroe que te recomienda mete
+  el daño que falta, te lo dice también, que es una razón para cogerlo.
+  Además cuenta a la hora de recomendar: entre dos héroes parecidos, gana el
+  que tapa el hueco. Medido en 3.000 drafts: el nº1 tapa el hueco el 64% de las
+  veces, antes el 57%, y sin que la app se cierre en unos pocos héroes.
+- **De qué pega cada héroe no lo decide su rol, lo dice el juego.** Sale del
+  texto de las habilidades que publica Moonton, así que acierta los raros: Gusion
+  es asesino y pega mágico, Hylos es tanque y pega mágico, Natan y Kimmy son
+  tiradores y pegan mágico, Esmeralda pega de las dos cosas. Por el rol, los
+  cuatro estarían mal. Los 133 tienen el dato.
+- **Buscar "Cíclope" ya encuentra a Cyclops.** El juego en español traduce
+  algunos nombres y el buscador solo miraba el inglés. Ahora acepta los dos, con
+  tilde o sin ella. Van Cíclope, Minotauro, Urano, Maya, Silvana, Popol y Kupa,
+  Ángela y Yi Sun Shin. Lo que se ve en pantalla sigue en inglés a propósito: es
+  la clave de todos los datos, y cambiarla escondería fallos. Si te encuentras
+  otro nombre que no aparece al buscarlo, dilo y se añade.
+
 ## 1.2.1
 
 - **La app ya no puede publicarse con los datos a medias.** La descarga de datos

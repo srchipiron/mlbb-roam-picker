@@ -410,18 +410,60 @@ function extraerSpeciality(node, out = new Set(), depth = 0, dentro = false) {
 }
 
 /**
- * Speciality de unos pocos heroes concretos. Devuelve { nombre: [etiquetas] }.
- * Si la ruta no esta en el esquema o un heroe falla, se devuelve lo que haya:
- * quedarse con los tags del rol es peor, pero no es una averia.
+ * Tipo de dano de un heroe, contado en los textos de habilidad que da Moonton.
+ *
+ * No es una regla escrita a mano ni una deduccion del rol: el propio juego
+ * escribe "Physical Damage" / "Magic Damage" / "True Damage" en cada
+ * habilidad, y eso es lo que se cuenta. El rol se equivocaria: Gusion es
+ * asesino y pega magico, Hylos es tanque y pega magico.
+ *
+ * Devuelve las cuentas crudas. Quien decide la etiqueta es el motor, con
+ * `perfilDeDano`, para poder cambiar el criterio sin reingerir.
  */
-async function fetchSpeciality(heroes) {
+function extraerDano(node, out = { fisico: 0, magico: 0, verdadero: 0 }, depth = 0) {
+  if (depth > HONDURA || node == null) return out;
+
+  if (typeof node === 'string') {
+    // El texto viene con etiquetas de color por medio ("<font ...>Physical
+    // Damage</font>"), asi que se limpian antes de contar.
+    const t = node.replace(/<[^>]*>/g, ' ');
+    out.fisico += (t.match(/Physical Damage/gi) ?? []).length;
+    out.magico += (t.match(/Magic Damage/gi) ?? []).length;
+    out.verdadero += (t.match(/True Damage/gi) ?? []).length;
+    return out;
+  }
+  if (typeof node !== 'object') return out;
+
+  for (const v of Array.isArray(node) ? node : Object.values(node)) {
+    extraerDano(v, out, depth + 1);
+  }
+  return out;
+}
+
+/**
+ * La ficha de cada heroe: speciality y tipo de dano, de UNA sola peticion.
+ *
+ * Antes se pedia solo para los 7 heroes sin tags a mano. Ahora se pide para
+ * todos, porque el tipo de dano hace falta para los 133 y sale de la misma
+ * respuesta: 133 peticiones en vez de 7, unos 35 segundos mas en una corrida
+ * que ya dura minutos.
+ *
+ * Si la ruta no esta en el esquema o un heroe falla, se devuelve lo que haya y
+ * quien llama conserva lo anterior. Quedarse sin un dato es peor que tenerlo,
+ * pero no es una averia.
+ */
+async function fetchFichas(heroes) {
   const out = {};
   if (!ROUTES?.detail || !heroes.length) return out;
   for (const h of heroes) {
     try {
       const { data } = await callRoute(ROUTES.detail, { lang: 'en' }, h.id ?? h.name);
       const esp = extraerSpeciality(data);
-      if (esp.length) out[h.name] = esp;
+      const dano = extraerDano(data);
+      const ficha = {};
+      if (esp.length) ficha.speciality = esp;
+      if (dano.fisico || dano.magico || dano.verdadero) ficha.damage = dano;
+      if (Object.keys(ficha).length) out[h.name] = ficha;
     } catch (err) {
       if (diagnostics.speciality.errores.length < 4) {
         diagnostics.speciality.errores.push(`${h.name}: ${err.message}`);
@@ -588,20 +630,37 @@ async function main() {
     console.warn(`  · lista de héroes: fallo (${err.message}); conservo la anterior`);
   }
 
-  // Speciality SOLO de los heroes que no tienen tags escritos a mano: son los
-  // unicos que la necesitan. Hoy son 7 peticiones; los 126 del catalogo ya
-  // tienen algo mejor que deducir.
+  // La ficha de los 133: el tipo de dano hace falta para todos, y la
+  // speciality viene en la misma respuesta. Solo se guarda la speciality de
+  // los que no tienen tags escritos a mano, que son los unicos que la usan.
+  //
+  // Lo anterior se conserva heroe a heroe: el tipo de dano no cambia de un dia
+  // para otro, asi que perder la peticion de un heroe no puede costarnos el
+  // dato que ya teniamos.
   const enCatalogo = new Set(heroes.heroes.map((h) => h.name));
-  const sinTagsPropios = heroList.filter((h) => !enCatalogo.has(h.name));
-  diagnostics.speciality = { pedidos: sinTagsPropios.length, ok: 0, errores: [] };
+  const danoPrevio = Object.fromEntries(
+    (previous?.heroes ?? []).filter((h) => h?.damage).map((h) => [h.name, h.damage]),
+  );
+  for (const h of heroList) if (danoPrevio[h.name]) h.damage = danoPrevio[h.name];
+
+  diagnostics.speciality = { pedidos: heroList.length, ok: 0, errores: [] };
+  diagnostics.dano = { ok: 0, conservados: 0, sin: 0 };
   try {
-    const esp = await fetchSpeciality(sinTagsPropios);
-    for (const h of heroList) if (esp[h.name]) h.speciality = esp[h.name];
-    diagnostics.speciality.ok = Object.keys(esp).length;
-    console.log(`  · speciality: ${diagnostics.speciality.ok}/${sinTagsPropios.length} heroes sin tags propios`);
+    const fichas = await fetchFichas(heroList);
+    for (const h of heroList) {
+      const f = fichas[h.name];
+      if (f?.speciality && !enCatalogo.has(h.name)) h.speciality = f.speciality;
+      if (f?.damage) h.damage = f.damage;
+    }
+    diagnostics.speciality.ok = Object.values(fichas).filter((f) => f.speciality).length;
+    diagnostics.dano.ok = Object.values(fichas).filter((f) => f.damage).length;
+    console.log(`  · fichas: ${Object.keys(fichas).length}/${heroList.length} heroes`);
   } catch (err) {
-    console.warn(`  · speciality: fallo (${err.message}); usan solo los tags de su rol`);
+    console.warn(`  · fichas: fallo (${err.message}); se conserva lo anterior`);
   }
+  diagnostics.dano.conservados = heroList.filter((h) => h.damage && danoPrevio[h.name]).length;
+  diagnostics.dano.sin = heroList.filter((h) => !h.damage).length;
+  console.log(`  · tipo de dano: ${heroList.length - diagnostics.dano.sin}/${heroList.length} heroes`);
 
   // Counters de TODOS los heroes, no solo de los roamers: la app recomienda
   // para las cinco lineas y un mediocarril necesita sus matchups igual que un
@@ -684,6 +743,7 @@ async function main() {
       routes: diagnostics.routes ?? null,
       relations: diagnostics.relations ?? null,
       speciality: diagnostics.speciality ?? null,
+      dano: diagnostics.dano ?? null,
       rangos: diagnostics.rangos ?? null,
       ok: [...new Set(diagnostics.ok)].slice(0, 6),
       failed: Object.keys(statsByRank).length ? [] : [...new Set(diagnostics.failed)].slice(0, 12),

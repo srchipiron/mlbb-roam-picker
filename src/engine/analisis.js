@@ -1,4 +1,4 @@
-import { normName, matchup } from './score.js';
+import { normName, matchup, perfilDeDano, tapaElHueco } from './score.js';
 import { TEAM_NEEDS } from './rules.js';
 
 /**
@@ -88,6 +88,37 @@ export function analizarDraft({
       clave: 'analisis.pickCiego',
       params: { n: porVer, yo: hero.name },
     });
+  }
+
+  // 3b. De qué pega vuestro equipo. Es el aviso de draft más repetido en MLBB:
+  //     si los cinco pegáis físico, al rival le basta con comprar armadura.
+  //     Sale del texto de habilidades de Moonton, no del rol.
+  //
+  //     Dos frases distintas a propósito: si el pick recomendado TAPA el hueco
+  //     es una razón para cogerlo, y si NO lo tapa es un aviso. Decir lo mismo
+  //     en los dos casos sería no decir nada.
+  //
+  //     Tres aliados, no dos, aunque el motor puntúe el hueco desde dos. La
+  //     diferencia es a propósito: puntuar es un empujón, y ya va encogido por
+  //     `confidence`; decir "tu equipo pega todo físico" es una AFIRMACIÓN, y
+  //     dos héroes de cinco no la sostienen. Medido: con dos salía en el 35%
+  //     de los drafts, con tres en el 11,6%.
+  if (allies.length >= 3) {
+    const { falta } = perfilDeDano(allies);
+    if (falta) {
+      const tapa = tapaElHueco(hero, falta);
+      salida.push(tapa
+        ? {
+          tono: 'bien',
+          clave: falta === 'magico' ? 'analisis.todoFisico' : 'analisis.todoMagico',
+          params: { yo: hero.name },
+        }
+        : {
+          tono: 'ojo',
+          clave: falta === 'magico' ? 'analisis.faltaMagico' : 'analisis.faltaFisico',
+          params: { yo: hero.name },
+        });
+    }
   }
 
   // 4. Cuánto le saca al siguiente. Esto SIEMPRE se puede decir y es lo que

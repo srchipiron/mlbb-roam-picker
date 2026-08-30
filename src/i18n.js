@@ -101,6 +101,8 @@ const ES = {
   'necesidad.tanky': 'no hay primera línea',
   'necesidad.sustain': 'sin curación en el equipo',
   'necesidad.vision': 'nadie aporta visión',
+  'necesidad.dano_magico': 'todo tu daño es físico',
+  'necesidad.dano_fisico': 'todo tu daño es mágico',
 
   // --- peligros para los baneos ---
   'peligro.saltaEncima': 'salta encima de {a}',
@@ -123,6 +125,10 @@ const ES = {
   'analisis.pickCiego': 'Les faltan {n} picks y {yo} es de los castigables. Si puedes, espera.',
   'analisis.pickClaro': '{yo} le saca {puntos} puntos al siguiente. Pick claro.',
   'analisis.empatadoCon': 'Empatado con {otros}. Coge el que mejor lleves.',
+  'analisis.todoFisico': 'Tu equipo pega todo físico: con una armadura os apagan a los cinco. {yo} mete daño mágico.',
+  'analisis.todoMagico': 'Tu equipo pega todo mágico: con resistencia mágica os apagan a los cinco. {yo} mete daño físico.',
+  'analisis.faltaMagico': 'Tu equipo pega todo físico y {yo} también. Les basta con comprar armadura.',
+  'analisis.faltaFisico': 'Tu equipo pega todo mágico y {yo} también. Les basta con comprar resistencia mágica.',
 
   // --- maestría y partidas ---
   'maestria.explicacion': 'Copia partidas y winrate de tu perfil del juego. El winrate en porcentaje: 50,6 o 50.6. Por debajo de 20 partidas cuenta poco.',
@@ -225,6 +231,8 @@ const EN = {
   'necesidad.tanky': 'there is no front line',
   'necesidad.sustain': 'no healing on the team',
   'necesidad.vision': 'nobody provides vision',
+  'necesidad.dano_magico': 'all your damage is physical',
+  'necesidad.dano_fisico': 'all your damage is magic',
 
   'peligro.saltaEncima': 'dives onto {a}',
   'peligro.revienta': 'bursts {a} down',
@@ -245,6 +253,10 @@ const EN = {
   'analisis.pickCiego': 'They still have {n} picks and {yo} is punishable. Wait if you can.',
   'analisis.pickClaro': '{yo} is {puntos} points clear of the next one. Easy pick.',
   'analisis.empatadoCon': 'Tied with {otros}. Take the one you play best.',
+  'analisis.todoFisico': 'Your team is all physical damage: one armour item shuts down all five. {yo} brings magic damage.',
+  'analisis.todoMagico': 'Your team is all magic damage: one magic resist item shuts down all five. {yo} brings physical damage.',
+  'analisis.faltaMagico': 'Your team is all physical damage and so is {yo}. Armour alone answers all of you.',
+  'analisis.faltaFisico': 'Your team is all magic damage and so is {yo}. Magic resist alone answers all of you.',
 
   'maestria.explicacion': 'Copy matches and win rate from your in-game profile. Win rate as a percentage: 50.6. Below 20 matches it barely counts.',
   'maestria.heroe': 'Hero',

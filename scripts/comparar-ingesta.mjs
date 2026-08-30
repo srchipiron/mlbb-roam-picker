@@ -25,6 +25,7 @@ export function medir(datos) {
     heroes: heroes.length,
     conLinea: heroes.filter((h) => Array.isArray(h?.lanes) && h.lanes.length).length,
     conRol: heroes.filter((h) => h?.role).length,
+    conDano: heroes.filter((h) => h?.damage).length,
     stats: Object.keys(datos?.stats ?? {}).length,
     counters: Object.keys(datos?.counters ?? {}).length,
   };

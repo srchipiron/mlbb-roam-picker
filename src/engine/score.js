@@ -21,6 +21,16 @@ const PRECISION_DEDUCIDA = 0.67;
 const SUB_MAX = 1.85;
 
 /**
+ * Lo que vale tapar el lado de daño que le falta al equipo, en la misma escala
+ * que TEAM_NEEDS (engage 1.0, cc_hard 0.9, peel 0.8).
+ *
+ * Por debajo de engage y del control duro a propósito: que os falte magia
+ * duele en late, pero no entrar a una pelea duele ya. Medido en drafts
+ * simulados antes de subirlo.
+ */
+const PESO_DANO = 0.7;
+
+/**
  * Clave normalizada de un nombre de héroe. La API y el catálogo escriben lo
  * mismo de formas distintas ("X.Borg" / "X Borg", "Yi Sun-shin" / "Yi Sun Shin",
  * "Chang'e" / "Change"), y un fallo aquí es invisible: el héroe simplemente se
@@ -276,24 +286,44 @@ export function compScore(roamHero, allies) {
     cubiertos.push({ ...need, valor: need.weight });
   }
 
+  // El lado de daño que le falta al equipo. No es un tag: sale de los textos
+  // de Moonton, así que no lo encoge PRECISION_DEDUCIDA -aunque los tags del
+  // héroe estén deducidos, su tipo de daño es un dato, no una suposición-.
+  // Por eso entra aquí y se descuenta aparte, más abajo.
+  const { falta } = perfilDeDano(allies);
+  if (tapaElHueco(roamHero, falta)) {
+    cubiertos.push({ tag: 'dano', valor: PESO_DANO, weight: PESO_DANO, why: `necesidad.dano_${falta}`, medido: true });
+  }
+
   cubiertos.sort((a, b) => b.valor - a.valor);
   const contados = cubiertos.slice(0, 3);
-  const score = contados.reduce((acc, n, i) => acc + n.valor * (i < 2 ? 1 : 0.5), 0);
+  // El tercer hueco vale la mitad: tener tres cosas está bien, pero el draft lo
+  // decide sobre todo lo que más falta.
+  const aporte = contados.map((n, i) => n.valor * (i < 2 ? 1 : 0.5));
 
   // Techo: los dos huecos más valiosos del juego, más medio del tercero.
   const techo = [...TEAM_NEEDS].sort((a, b) => b.weight - a.weight)
     .slice(0, 3).reduce((acc, n, i) => acc + n.weight * (i < 2 ? 1 : 0.5), 0);
 
-  const raw = clamp01(score / techo);
+  const suma = (f) => aporte.reduce((acc, v, i) => acc + (f(contados[i]) ? v : 0), 0);
+  const porTags = clamp01(suma((n) => !n.medido) / techo);
+  const bonoMedido = suma((n) => n.medido) / techo;
+
   const confidence = Math.min(1, allies.length / 3);
   // Un héroe cuyos tags están DEDUCIDOS no puede reclamar el techo de
   // composición como uno etiquetado a mano: la deducción acierta el 67% de los
   // tags, y comp es justo el componente que premia acumular etiquetas. Sin
   // esto, un héroe nuevo con seis tags adivinados salía nº1 en el 69% de los
   // drafts, que es el sesgo que ya costó una corrección con Carmilla.
+  //
+  // El hueco de daño NO se encoge: no sale de tags deducidos sino de los
+  // textos de habilidad de Moonton, que dicen literalmente de qué pega cada
+  // héroe. Encogerlo sería descontar dos veces.
   const fiabilidad = roamHero.inferred ? PRECISION_DEDUCIDA : 1;
+  const desvio = (porTags - 0.5) * fiabilidad + bonoMedido;
+
   return {
-    value: 0.5 + (raw - 0.5) * (0.35 + 0.65 * confidence) * fiabilidad,
+    value: clamp01(0.5 + desvio * (0.35 + 0.65 * confidence)),
     reasons: allies.length
       ? contados.map((n) => ({ clave: n.why, good: true, w: n.weight }))
       : [],
@@ -474,7 +504,13 @@ function spread(reasons) {
  * Marca los rellenados con `inferred` para poder avisarlo en la interfaz.
  */
 export function mergeCatalog(catalogHeroes, apiHeroes = []) {
-  const byName = new Map(catalogHeroes.map((h) => [h.name, h]));
+  // El tipo de dano lo tiene la API para los 133, tambien para los que ya
+  // estan en el catalogo escrito a mano: el catalogo lleva rol y tags, no dano.
+  const porApi = new Map(apiHeroes.map((h) => [normName(h.name), h]));
+  const byName = new Map(catalogHeroes.map((h) => {
+    const dano = porApi.get(normName(h.name))?.damage;
+    return [h.name, dano ? { ...h, damage: dano } : h];
+  }));
   for (const api of apiHeroes) {
     if (byName.has(api.name)) continue;
     const role = (api.role ?? '').toLowerCase();
@@ -484,9 +520,72 @@ export function mergeCatalog(catalogHeroes, apiHeroes = []) {
       tags: tagsDeducidos(role, api.speciality),
       roam: role === 'tank' || role === 'support',
       inferred: true,
+      ...(api.damage ? { damage: api.damage } : {}),
     });
   }
   return [...byName.values()];
+}
+
+/**
+ * Proporcion a partir de la cual un heroe cuenta como que pega de las dos
+ * cosas. Sale del reparto real de los 133, no de una intuicion.
+ */
+const MIXTO_DESDE = 0.5;
+
+/**
+ * De que pega un heroe: 'fisico', 'magico', 'mixto' o null si no se sabe.
+ *
+ * Las cuentas salen de los textos de habilidad de Moonton (ver `extraerDano`
+ * en la ingesta), no del rol. El rol se equivocaria en unos cuantos: Gusion es
+ * asesino y pega magico, Hylos es tanque y pega magico, Esmeralda pega las dos
+ * cosas de verdad.
+ *
+ * El dano verdadero no cuenta como tipo: atraviesa las dos defensas, asi que
+ * no ayuda a decidir si al equipo le falta un lado.
+ */
+export function tipoDeDano(hero) {
+  const d = hero?.damage;
+  if (!d) return null;
+  const { fisico = 0, magico = 0 } = d;
+  if (!fisico && !magico) return null;
+  const menor = Math.min(fisico, magico);
+  const mayor = Math.max(fisico, magico);
+  if (menor >= mayor * MIXTO_DESDE) return 'mixto';
+  return fisico > magico ? 'fisico' : 'magico';
+}
+
+/**
+ * De que pega un equipo, y que lado le falta.
+ *
+ * Es el concepto de draft mas repetido en MLBB: si los cinco pegais fisico, al
+ * rival le basta con comprar armadura y desapareceis en late. Lo mismo al
+ * reves con la resistencia magica.
+ *
+ * `falta` solo se rellena cuando hay de que fiarse: al menos dos heroes con
+ * dato y ninguno del lado que falta. Con un solo aliado elegido no se puede
+ * decir que al equipo le falte nada.
+ */
+export function perfilDeDano(heroes = []) {
+  const tipos = heroes.map(tipoDeDano);
+  const conDato = tipos.filter(Boolean);
+  const cuenta = (t) => tipos.filter((x) => x === t).length;
+  const fisico = cuenta('fisico');
+  const magico = cuenta('magico');
+  const mixto = cuenta('mixto');
+
+  let falta = null;
+  if (conDato.length >= 2) {
+    if (!magico && !mixto) falta = 'magico';
+    else if (!fisico && !mixto) falta = 'fisico';
+  }
+  return { fisico, magico, mixto, sinDato: tipos.length - conDato.length, falta };
+}
+
+/** Un heroe mixto tapa cualquier hueco; uno puro solo el suyo. */
+export function tapaElHueco(hero, falta) {
+  if (!falta) return false;
+  const t = tipoDeDano(hero);
+  return t === falta || t === 'mixto';
 }
 
 /**

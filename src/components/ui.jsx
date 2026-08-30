@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { nombresDe } from '../engine/alias.js';
 import { crearT } from '../i18n.js';
 
 // Traductor por defecto para los componentes que no reciben uno. La app le pasa
@@ -72,7 +73,11 @@ export function HeroSheet({ heroes, taken, stats, onPick, onClose, t = tPorDefec
     const needle = norm(q.trim());
     const pickRate = (h) => stats?.[key(h.name)]?.pickRate ?? -1;
     return heroes
-      .filter((h) => !needle || norm(h.name).includes(needle))
+      // Tambien por el nombre que el juego usa en otros idiomas: Javi lo tiene
+      // en espanol, ve "Ciclope" y escribia "Ciclope" sin encontrar nada. Lo
+      // que se ENSENA sigue siendo el nombre en ingles, que es la clave de los
+      // datos; solo se amplia por donde se busca.
+      .filter((h) => !needle || nombresDe(h).some((n) => n.includes(needle)))
       // Sin buscar, primero los más jugados: en 30 segundos de draft, el pick
       // que necesitas suele estar entre los veinte primeros y te ahorras teclear.
       .sort((a, b) => (q ? 0 : pickRate(b) - pickRate(a)) || a.name.localeCompare(b.name));
