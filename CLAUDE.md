@@ -12,7 +12,7 @@ comprobaciones automáticas importan más de lo normal.
 
 ## Reglas de trabajo
 
-**Nunca subas nada sin pasar `npm test`.** Son cuatro comprobaciones y 36
+**Nunca subas nada sin pasar `npm test`.** Son cuatro comprobaciones y 37
 pruebas (orden de declaraciones, CSS, versión documentada y motor). El
 despliegue corre esas cuatro más una quinta que no está en `npm test`: que
 `roam-meta.json` se haya regenerado hace menos de media hora. Si algo falla, el despliegue se detiene y la app se queda
@@ -65,6 +65,12 @@ Todos estos llegaron a producción y costaron rondas enteras de ida y vuelta:
   para los 34 roamers) — se filtran los que aparecen en más del 60%.
 - **El peel recomendado hacia tanques aliados**, porque un tanque también está
   etiquetado como `immobile`.
+- **Pruebas que medían el orden del fichero, no el motor** — dos invariantes
+  (concentración y "responde al equipo enemigo") repartían winrates sintéticos
+  recorriendo el array de héroes, así que ordenar `heroes.json` alfabéticamente
+  las hacía fallar sin tocar una línea del código. Peor: pasaban en parte por
+  suerte del orden. Ahora el winrate de cada héroe sale de SU NOMBRE. Si añades
+  héroes, mételos al final igualmente: es el diff mínimo.
 - **Tags deducidos tratados como certezas** (0.6.0, cazado antes de publicar).
   Al deducir los tags de Marcel desde su `speciality` le salían seis, disparaba
   más reglas que nadie y era nº1 en el 69% de 300 drafts simulados, contra el

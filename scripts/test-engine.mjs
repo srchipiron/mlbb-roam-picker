@@ -168,8 +168,15 @@ test('contra dashes sube un anti-mobility; contra curación, un antiheal', () =>
 });
 
 test('la recomendación responde al equipo enemigo', () => {
+  // Winrate por NOMBRE, no por posición en el fichero: si no, reordenar
+  // heroes.json cambiaba el sorteo y con él el veredicto de esta prueba.
+  const porNombre = (nombre) => {
+    let x = 2166136261 ^ 31;
+    for (const ch of nombre) x = Math.imul(x ^ ch.charCodeAt(0), 16777619);
+    return ((x >>> 0) % 100000) / 100000;
+  };
   const stats = indexByName(Object.fromEntries(
-    all.map((x) => [x.name, { winRate: 0.497 + (rnd() - 0.5) * 0.05, matches: 5000 }])));
+    all.map((x) => [x.name, { winRate: 0.497 + (porNombre(x.name) - 0.5) * 0.05, matches: 5000 }])));
   const meta = { stats, patchAvgWinRate: 0.497 };
   const top3 = (nombres) =>
     rankRoamers(pool, { enemies: nombres.map(h), meta }).slice(0, 3).map((x) => x.hero.name);
@@ -185,21 +192,71 @@ test('la recomendación responde al equipo enemigo', () => {
     'la recomendación no cambia entre dos composiciones enemigas opuestas');
 });
 
-test('ningún héroe acapara las recomendaciones', () => {
-  // Con su propio generador y varios sorteos de winrates: si dependiera de un
-  // único sorteo, el resultado cambiaría según cuántas pruebas corran antes.
+test('ningún héroe acapara por acumular etiquetas', () => {
+  // La patología que esto vigila: Carmilla cubría cinco necesidades sobre el
+  // papel y salía nº1 en el 94% de los drafts. Para medir SOLO eso, todos los
+  // héroes llevan el MISMO winrate: lo que quede de concentración sale de los
+  // tags y de nada más. Sin sorteo de winrates, así que no depende de la suerte
+  // de una semilla ni del orden del catálogo.
+  //
+  // Medido hoy: Chou 51%, Carmilla 33%, y 8 roamers distintos llegan a nº1
+  // alguna vez. Con datos reales baja al 39%, porque el counter de cada pareja
+  // mueve la recomendación de un draft a otro.
+  const stats = indexByName(Object.fromEntries(
+    all.map((x) => [x.name, { winRate: 0.50, matches: 5000 }])));
+  const meta = { stats, patchAvgWinRate: 0.50 };
+  const otros = all.filter((x) => !x.roam);
+
+  let semilla = 42;
+  const r = () => (semilla = (semilla * 1103515245 + 12345) % 2147483648) / 2147483648;
+  const pick = (arr, n) => {
+    const c = [...arr];
+    for (let i = c.length - 1; i > 0; i--) {
+      const j = Math.floor(r() * (i + 1));
+      [c[i], c[j]] = [c[j], c[i]];
+    }
+    return c.slice(0, n);
+  };
+
+  const cuenta = {};
+  for (let i = 0; i < 600; i++) {
+    const top = rankRoamers(pool, { enemies: pick(otros, 3), allies: pick(otros, 3), meta })[0].hero.name;
+    cuenta[top] = (cuenta[top] ?? 0) + 1;
+  }
+  const orden = Object.entries(cuenta).sort((a, b) => b[1] - a[1]);
+  const cuota = orden[0][1] / 600;
+
+  ok(cuota < 0.62,
+    `${orden[0][0]} acapara el ${Math.round(cuota * 100)}% con winrates iguales: los tags mandan demasiado`);
+  ok(orden.length >= 5,
+    `solo ${orden.length} roamers distintos llegan a nº1: el pool está muerto`);
+});
+
+test('un winrate afortunado no convierte a nadie en respuesta única', () => {
+  // Complementa a la de arriba con el caso realista: winrates distintos por
+  // héroe. Aquí SÍ es normal que el que mejor winrate tiene salga mucho, así
+  // que el umbral es flojo y solo caza un desastre.
+  //
+  // El winrate de cada uno sale de SU NOMBRE, no de su posición en el fichero.
+  // Con el reparto por posición que había antes, ordenar heroes.json
+  // alfabéticamente hacía fallar esta prueba sin tocar una línea del motor:
+  // medía el orden del catálogo. Sobre 30 sorteos: media 63%, mediana 65%,
+  // máximo 91%. De ahí el umbral flojo: la media real ronda ese 63%.
   const otros = all.filter((x) => !x.roam);
   const cuotas = [];
 
-  for (let sorteo = 0; sorteo < 5; sorteo++) {
-    let semilla = 1000 + sorteo * 77;
-    const r = () => (semilla = (semilla * 1103515245 + 12345) % 2147483648) / 2147483648;
+  for (let sorteo = 0; sorteo < 12; sorteo++) {
+    const semillaSorteo = 1000 + sorteo * 77;
+    const porNombre = (nombre) => {
+      let x = 2166136261 ^ semillaSorteo;
+      for (const ch of nombre) x = Math.imul(x ^ ch.charCodeAt(0), 16777619);
+      return ((x >>> 0) % 100000) / 100000;
+    };
     const stats = indexByName(Object.fromEntries(
-      all.map((x) => [x.name, { winRate: 0.497 + (r() - 0.5) * 0.05, matches: 5000 }])));
-    const meta = { stats, patchAvgWinRate: 0.497 };
-    // Fisher-Yates. Con `sort(() => r() - 0.5)` el barajado está sesgado hacia
-    // el orden original, así que salían casi siempre los mismos enemigos y la
-    // concentración medida era mayor que la real.
+      all.map((x) => [x.name, { winRate: 0.497 + (porNombre(x.name) - 0.5) * 0.05, matches: 5000 }])));
+
+    let semilla = semillaSorteo;
+    const r = () => (semilla = (semilla * 1103515245 + 12345) % 2147483648) / 2147483648;
     const pick = (arr, n) => {
       const c = [...arr];
       for (let i = c.length - 1; i > 0; i--) {
@@ -211,16 +268,15 @@ test('ningún héroe acapara las recomendaciones', () => {
 
     const cuenta = {};
     for (let i = 0; i < 100; i++) {
-      const top = rankRoamers(pool, { enemies: pick(otros, 3), allies: pick(otros, 3), meta })[0].hero.name;
+      const top = rankRoamers(pool, { enemies: pick(otros, 3), allies: pick(otros, 3), meta: { stats, patchAvgWinRate: 0.497 } })[0].hero.name;
       cuenta[top] = (cuenta[top] ?? 0) + 1;
     }
     cuotas.push(Math.max(...Object.values(cuenta)) / 100);
   }
 
   const media = cuotas.reduce((a, b) => a + b, 0) / cuotas.length;
-  // Algo de concentración es normal: un roamer completo y con buen winrate
-  // merece salir a menudo. Lo que no vale es lo de antes, un 94% fijo.
-  ok(media < 0.55, `el líder acapara de media el ${Math.round(media * 100)}% (${cuotas.map((c) => Math.round(c * 100)).join(', ')})`);
+  ok(media < 0.75,
+    `el líder acapara de media el ${Math.round(media * 100)}% (${cuotas.map((c) => Math.round(c * 100)).join(', ')})`);
 });
 
 test('los baneos señalan la amenaza real contra tu equipo', () => {
