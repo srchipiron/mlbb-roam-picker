@@ -1,5 +1,5 @@
 import {
-  rankRoamers, metaScore, masteryScore, coverage, normName, densidadCounters,
+  rankRoamers, metaScore, masteryScore, coverage, normName, densidadCounters, matchup,
 } from './score.js';
 import { DEFAULT_WEIGHTS } from './rules.js';
 import { resumen, MINIMO_PARA_CONCLUIR } from './registro.js';
@@ -124,32 +124,49 @@ export function runSelfTest({ catalog, meta, metaCtx, allHeroes, roamPool, maste
     mastery,
   }).slice(0, 5).map((r) => r.hero.name);
 
-  // Estas dos solo tienen sentido si en TU línea hay héroes que puedan
-  // cumplirlas: en gold no hay ni un anti-dash, y exigirlo allí sería un fallo
-  // permanente que no dice nada de la app.
-  const puede = (tag) => roamPool.some((h) => h.tags.includes(tag));
-
+  // Hasta 1.5.0 aquí se exigía que contra tres asesinos de dash el nº1 cortara
+  // dashes, y contra tres curanderos cortara curación. Eso solo se cumplía
+  // porque la matriz de counters cubría el 11% de los cruces: sin dato mandaban
+  // las reglas por tags. Con la matriz completa se puede MEDIR la regla, y
+  // `scripts/medir-reglas.mjs` dice que los anti-dash promedian 0.5042 contra
+  // los dashers y el resto 0.4999. No da para mandar sobre el resto del motor.
+  //
+  // Lo que sí tiene que cumplirse, y comprueba de verdad que el draft manda:
+  // que ante dos equipos enemigos opuestos cambie la RECOMENDACIÓN, no solo el
+  // primer nombre. Un héroe puede ser la mejor respuesta a los dos -si está
+  // fuerte este parche y además les gana- sin que eso sea un fallo; lo que
+  // sería un fallo es que la lista entera fuera la misma.
   const dashes = nombresTop(['Fanny', 'Ling', 'Lancelot']);
-  if (puede('anti_mobility')) {
-    check(dashes.some((n) => H(n)?.tags.includes('anti_mobility')),
-      `Contra dashes propone anti-dash: ${dashes.slice(0, 3).join(', ')}`,
-      `Contra dashes NO propone anti-dash: ${dashes.join(', ')}`);
-  } else {
-    lineas.push(`Contra dashes: ${dashes.slice(0, 3).join(', ')} (en ${linea} no hay anti-dash)`);
-  }
-
   const curacion = nombresTop(['Esmeralda', 'Uranus', 'Thamuz']);
-  if (puede('antiheal')) {
-    check(curacion.some((n) => H(n)?.tags.includes('antiheal')),
-      `Contra curación propone antiheal: ${curacion.slice(0, 3).join(', ')}`,
-      `Contra curación NO propone antiheal: ${curacion.join(', ')}`);
-  } else {
-    lineas.push(`Contra curación: ${curacion.slice(0, 3).join(', ')} (en ${linea} no hay antiheal)`);
-  }
+  lineas.push(`Contra dashes: ${dashes.slice(0, 3).join(', ')}`);
+  lineas.push(`Contra curación: ${curacion.slice(0, 3).join(', ')}`);
 
-  check(dashes[0] !== curacion[0],
-    'La recomendación cambia según el equipo enemigo',
+  const comunes = dashes.filter((n) => curacion.includes(n)).length;
+  check(comunes < dashes.length,
+    `La recomendación cambia según el equipo enemigo (${dashes.length - comunes} de ${dashes.length} distintos)`,
     'MISMA recomendación ante equipos enemigos opuestos: el draft no influye');
+
+  // Y que el componente de counter ordene por el DATO, no por cualquier cosa:
+  // quien mejor cruce real tiene contra esos tres tiene que puntuar más alto en
+  // counter que quien peor lo tiene. Sin esto el ranking podría moverse por
+  // ruido y esta sección seguiría en verde.
+  if (metaCtx.counters) {
+    const enemigos = ['Fanny', 'Ling', 'Lancelot'].map(H).filter(Boolean);
+    const cruce = (hero) => {
+      const v = enemigos.map((e) => matchup(metaCtx.counters, hero.name, e.name)).filter((x) => x != null);
+      return v.length ? v.reduce((a, b) => a + b, 0) / v.length : null;
+    };
+    const conCounter = rankRoamers(roamPool, { enemies: enemigos, meta: metaCtx, mastery })
+      .filter((r) => cruce(r.hero) != null)
+      .sort((a, b) => b.parts.counter.value - a.parts.counter.value);
+    if (conCounter.length >= 4) {
+      const mejor = cruce(conCounter[0].hero);
+      const peor = cruce(conCounter[conCounter.length - 1].hero);
+      check(mejor > peor,
+        `El counter ordena por el dato real (${(mejor * 100).toFixed(1)}% vs ${(peor * 100).toFixed(1)}%)`,
+        `El counter NO ordena por el dato real: el mejor puntuado cruza al ${(mejor * 100).toFixed(1)}% y el peor al ${(peor * 100).toFixed(1)}%`);
+    }
+  }
 
   // Que el winrate esté influyendo de verdad y no todo valga 0.50.
   const valoresMeta = roamPool.map((h) => metaScore(metaCtx.stats?.[normName(h.name)],

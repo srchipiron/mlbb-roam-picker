@@ -8,6 +8,16 @@ que esto no se olvida.
 Criterio: `0.X.0` cuando cambia cómo decide la app o qué hace; `0.0.X` para
 correcciones.
 
+## 1.5.1
+
+- **El Diagnóstico vuelve a decir la verdad.** Con la matriz completa daba tres
+  fallos que no lo eran: seguía exigiendo que contra tres asesinos de dash la
+  app propusiera un anti-dash, que es justo la creencia que el dato nuevo no
+  sostiene. Ahora comprueba dos cosas mejores: que ante equipos enemigos
+  opuestos cambie la lista de recomendados (no solo el primer nombre — un héroe
+  puede ser la mejor respuesta a los dos), y que la nota de counter ordene igual
+  que los cruces reales.
+
 ## 1.5.0
 
 **La app deja de adivinar.** Hasta ahora, de cada 100 cruces posibles entre tu
