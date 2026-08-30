@@ -47,14 +47,21 @@ const RANK = args.rank ?? 'glory';
 const DAYS = Number(args.days ?? 7);
 const RANKS = (args.ranks ?? 'epic,legend,mythic,glory').split(',').map((r) => r.trim());
 
-/** Bases conocidas, de la más actual a la más antigua. */
-const BASES = [
-  args.base,
-  process.env.MLBB_API_BASE,
+/**
+ * Bases conocidas, de la más actual a la más antigua.
+ *
+ * Si se pasa una a mano (--base o MLBB_API_BASE) se usa ESA Y SOLO ESA. Antes
+ * se ponía la primera y se seguía cayendo a las demás, así que la prueba que
+ * dice correr "contra una base inalcanzable" hacía en realidad una ingesta
+ * completa contra la API de verdad: tardaba más de un minuto, dependía de la
+ * red y disparaba cuarenta peticiones en cada despliegue.
+ */
+const BASE_FIJADA = args.base ?? process.env.MLBB_API_BASE;
+const BASES = BASE_FIJADA ? [BASE_FIJADA] : [
   'https://arena-hv.fastapicloud.dev/api',   // responde: /heroes/hero-rank/ existe
   'https://arena.rone.dev/api',
   'https://api-mobilelegends.vercel.app/api', // legado
-].filter(Boolean);
+];
 
 /**
  * Descriptores de lo que necesitamos. La ruta real se busca en el esquema
@@ -71,6 +78,11 @@ const WANTED = {
   // dedicadas, que son las que traen los pares legibles.
   counter: [/counters?\/?$/i, /counter/i, /matchup/i, /relations?\/?$/i, /relation/i],
   compatibility: [/compatibilit/i, /compat/i, /synerg/i, /teammates?\/?$/i, /partner/i, /relations?\/?$/i, /relation/i],
+  // Ficha de un heroe. Solo se usa para su "speciality", y solo de los heroes
+  // que no tienen tags escritos a mano: son 7, no 133, asi que el despliegue no
+  // paga la diferencia. El patron exige que la ruta ACABE en el parametro, para
+  // no coger /{id}/stats ni /{id}/trends.
+  detail: [/heroes?\/\{[^}]+\}\/?$/i],
 };
 
 /** Prefijos de grupo de rutas que ha usado el proyecto en distintas versiones. */
@@ -216,7 +228,7 @@ async function discoverRoutes() {
 
       const routes = {};
       for (const [key, patterns] of Object.entries(WANTED)) {
-        const wantsId = key === 'counter' || key === 'compatibility';
+        const wantsId = key === 'counter' || key === 'compatibility' || key === 'detail';
         // Por patrón, en orden de preferencia, no todos mezclados.
         let candidatos = [];
         for (const re of patterns) {
@@ -372,6 +384,52 @@ function extraerRol(node, depth = 0, dentro = false) {
     if (r) return r;
   }
   return '';
+}
+
+/**
+ * Etiquetas de Moonton ("Guard", "Initiator", "Regen"...). Igual que el rol,
+ * vienen hondas y pueden cambiar de sitio, asi que se buscan por contexto de
+ * clave. Se recogen tal cual: traducirlas a nuestros tags es cosa de
+ * SPECIALITY_TAGS, que se deriva del catalogo y se mide.
+ */
+function extraerSpeciality(node, out = new Set(), depth = 0, dentro = false) {
+  if (depth > HONDURA || node == null) return [...out];
+
+  if (typeof node === 'string') {
+    const s = node.trim();
+    if (dentro && s && s.length < 30) out.add(s);
+    return [...out];
+  }
+  if (typeof node !== 'object') return [...out];
+
+  const entradas = Array.isArray(node) ? node.map((v) => [null, v]) : Object.entries(node);
+  for (const [k, v] of entradas) {
+    extraerSpeciality(v, out, depth + 1, dentro || (k != null && /special/i.test(k)));
+  }
+  return [...out];
+}
+
+/**
+ * Speciality de unos pocos heroes concretos. Devuelve { nombre: [etiquetas] }.
+ * Si la ruta no esta en el esquema o un heroe falla, se devuelve lo que haya:
+ * quedarse con los tags del rol es peor, pero no es una averia.
+ */
+async function fetchSpeciality(heroes) {
+  const out = {};
+  if (!ROUTES?.detail || !heroes.length) return out;
+  for (const h of heroes) {
+    try {
+      const { data } = await callRoute(ROUTES.detail, { lang: 'en' }, h.id ?? h.name);
+      const esp = extraerSpeciality(data);
+      if (esp.length) out[h.name] = esp;
+    } catch (err) {
+      if (diagnostics.speciality.errores.length < 4) {
+        diagnostics.speciality.errores.push(`${h.name}: ${err.message}`);
+      }
+    }
+    await sleep(250);
+  }
+  return out;
 }
 
 async function fetchHeroList() {
@@ -530,6 +588,21 @@ async function main() {
     console.warn(`  · lista de héroes: fallo (${err.message}); conservo la anterior`);
   }
 
+  // Speciality SOLO de los heroes que no tienen tags escritos a mano: son los
+  // unicos que la necesitan. Hoy son 7 peticiones; los 126 del catalogo ya
+  // tienen algo mejor que deducir.
+  const enCatalogo = new Set(heroes.heroes.map((h) => h.name));
+  const sinTagsPropios = heroList.filter((h) => !enCatalogo.has(h.name));
+  diagnostics.speciality = { pedidos: sinTagsPropios.length, ok: 0, errores: [] };
+  try {
+    const esp = await fetchSpeciality(sinTagsPropios);
+    for (const h of heroList) if (esp[h.name]) h.speciality = esp[h.name];
+    diagnostics.speciality.ok = Object.keys(esp).length;
+    console.log(`  · speciality: ${diagnostics.speciality.ok}/${sinTagsPropios.length} heroes sin tags propios`);
+  } catch (err) {
+    console.warn(`  · speciality: fallo (${err.message}); usan solo los tags de su rol`);
+  }
+
   // Con la lista de la API ya en mano: roamer es quien lo sea en el catalogo o
   // quien la API clasifique como tank/support, exactamente igual que en la app.
   const roamNames = [...new Set(
@@ -599,6 +672,7 @@ async function main() {
       schema: diagnostics.schema ?? null,
       routes: diagnostics.routes ?? null,
       relations: diagnostics.relations ?? null,
+      speciality: diagnostics.speciality ?? null,
       rangos: diagnostics.rangos ?? null,
       ok: [...new Set(diagnostics.ok)].slice(0, 6),
       failed: Object.keys(statsByRank).length ? [] : [...new Set(diagnostics.failed)].slice(0, 12),

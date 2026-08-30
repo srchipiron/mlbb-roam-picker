@@ -1,5 +1,7 @@
 import {
   ROLE_DEFAULTS,
+  SPECIALITY_TAGS,
+  ROLE_VETO,
   COUNTER_RULES,
   DANGER_RULES,
   TEAM_NEEDS,
@@ -8,6 +10,12 @@ import {
 } from './rules.js';
 
 const clamp01 = (n) => Math.max(0, Math.min(1, n));
+
+/**
+ * Precisión medida de los tags deducidos (rol + speciality) frente a los
+ * escritos a mano. Sale de scripts/derivar-tags.mjs, no de una intuición.
+ */
+const PRECISION_DEDUCIDA = 0.67;
 
 /** Ventaja máxima que un roamer puede acumular contra un enemigo: 1.4 + 0.9/2. */
 const SUB_MAX = 1.85;
@@ -99,6 +107,11 @@ const CONFIANZA_SIN_MUESTRA = 0.7;
  * héroe con más etiquetas en el catálogo, no al que mejor le va de verdad.
  */
 function ventajaPorTags(roamHero, enemy, reasons) {
+  // Si los tags del roamer están deducidos, lo que salga de ellos vale menos:
+  // acertamos el 67%. Se encoge hacia el empate, igual que un matchup con poca
+  // muestra. Sin esto, un héroe nuevo con seis tags adivinados disparaba más
+  // reglas que nadie y salía nº1 en el 69% de los drafts.
+  const fiable = roamHero.inferred ? PRECISION_DEDUCIDA : 1;
   const positivas = [];
   let penalizacion = 0;
 
@@ -118,7 +131,7 @@ function ventajaPorTags(roamHero, enemy, reasons) {
   const sub = (positivas[0] ?? 0) + (positivas[1] ?? 0) * 0.5 + penalizacion;
   // Escalado, no recortado: con un multiplicador fijo media plantilla marcaba
   // 1.00 y dejaba de distinguir a quien corta dashes de quien solo hace peel.
-  return 0.5 + clamp01(sub / SUB_MAX) * 0.5;
+  return 0.5 + clamp01(sub / SUB_MAX) * 0.5 * fiable;
 }
 
 /**
@@ -253,8 +266,14 @@ export function compScore(roamHero, allies) {
 
   const raw = clamp01(score / techo);
   const confidence = Math.min(1, allies.length / 3);
+  // Un héroe cuyos tags están DEDUCIDOS no puede reclamar el techo de
+  // composición como uno etiquetado a mano: la deducción acierta el 67% de los
+  // tags, y comp es justo el componente que premia acumular etiquetas. Sin
+  // esto, un héroe nuevo con seis tags adivinados salía nº1 en el 69% de los
+  // drafts, que es el sesgo que ya costó una corrección con Carmilla.
+  const fiabilidad = roamHero.inferred ? PRECISION_DEDUCIDA : 1;
   return {
-    value: 0.5 + (raw - 0.5) * (0.35 + 0.65 * confidence),
+    value: 0.5 + (raw - 0.5) * (0.35 + 0.65 * confidence) * fiabilidad,
     reasons: allies.length
       ? contados.map((n) => ({ text: n.why, good: true, w: n.weight }))
       : [],
@@ -442,12 +461,29 @@ export function mergeCatalog(catalogHeroes, apiHeroes = []) {
     byName.set(api.name, {
       name: api.name,
       role,
-      tags: ROLE_DEFAULTS[role] ?? [],
+      tags: tagsDeducidos(role, api.speciality),
       roam: role === 'tank' || role === 'support',
       inferred: true,
     });
   }
   return [...byName.values()];
+}
+
+/**
+ * Tags de un héroe que no está en el catálogo escrito a mano.
+ *
+ * Base: los tags por defecto de su rol. Encima, lo que se pueda traducir de la
+ * "speciality" que publica Moonton, quitando lo que el catálogo dice que nunca
+ * le corresponde a ese rol. Con solo el rol se acertaba el 39.6% de los tags
+ * reales; sumando la speciality, el 52.5%, sin perder precisión.
+ */
+export function tagsDeducidos(role, speciality = []) {
+  const porRol = ROLE_DEFAULTS[role] ?? [];
+  const veto = new Set(ROLE_VETO[role] ?? []);
+  const porEsp = (speciality ?? [])
+    .flatMap((e) => SPECIALITY_TAGS[e] ?? [])
+    .filter((t) => !veto.has(t));
+  return [...new Set([...porRol, ...porEsp])];
 }
 
 /**

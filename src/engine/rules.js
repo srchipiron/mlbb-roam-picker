@@ -118,6 +118,51 @@ export const ROLE_DEFAULTS = {
 };
 
 /**
+ * Etiquetas de Moonton ("speciality") traducidas a nuestros tags.
+ *
+ * NO están escritas a ojo: las deriva `scripts/derivar-tags.mjs` mirando qué
+ * tags tienen en el catálogo los héroes que llevan cada etiqueta. Sirven para
+ * los héroes que la API conoce y el catálogo todavía no: antes dependían solo
+ * de los tags genéricos de su rol.
+ *
+ * Medido dejando cada héroe fuera del aprendizaje, sobre los 126 del catálogo:
+ *   solo rol                precisión 66.8%  cobertura 39.6%  F1 49.2%
+ *   rol + speciality        precisión 66.9%  cobertura 52.7%  F1 57.4%
+ *   rol + speciality + veto precisión 67.4%  cobertura 52.5%  F1 57.6%
+ *
+ * Reejecuta el script cuando crezca el catálogo o Moonton cambie sus etiquetas.
+ */
+export const SPECIALITY_TAGS = {
+  'Guard': ['immobile', 'peel'],
+  'Crowd Control': ['engage', 'tanky', 'zone', 'cc_hard'],
+  'Initiator': ['engage', 'tanky', 'cc_hard'],
+  'Regen': ['tanky', 'heal'],
+  'Chase': ['mobile', 'dash', 'dive'],
+  'Poke': ['poke'],
+  'Charge': ['cc_hard', 'dive'],
+};
+
+/**
+ * Tags que NUNCA le corresponden a un rol, según el propio catálogo.
+ *
+ * Hacen falta porque la tabla de arriba recoge correlaciones, no propiedades:
+ * casi todos los héroes de "Crowd Control" son tanques, así que sin este filtro
+ * una maga con CC salía etiquetada como `tanky` y la composición se creía la
+ * primera línea cubierta. Ningún mago, tirador ni asesino del catálogo (0 de
+ * 61) lleva `tanky`, así que el veto lo dicta el dato, no mi criterio.
+ *
+ * Solo filtra lo que añade la speciality: los tags por defecto del rol pasan
+ * siempre, porque son la base sobre la que se mide todo lo demás.
+ */
+export const ROLE_VETO = {
+  'tank': ['assassin_late', 'dash'],
+  'fighter': ['anti_dive', 'assassin_late', 'sustain', 'vision'],
+  'assassin': ['anti_dive', 'anti_mobility', 'antiheal', 'cc_chain', 'engage', 'immobile', 'peel', 'sustain', 'tanky', 'zone'],
+  'mage': ['anti_dive', 'anti_mobility', 'antiheal', 'assassin_late', 'engage', 'shield', 'sustain', 'tanky'],
+  'marksman': ['anti_mobility', 'antiheal', 'cc_chain', 'engage', 'heal', 'peel', 'shield', 'sustain', 'tanky', 'vision'],
+};
+
+/**
  * Qué hace peligroso a un heroe enemigo contra TU equipo ya elegido.
  * Es una tabla propia porque la de counters describe lo contrario: lo que un
  * roamer le hace a un enemigo. Reutilizarla al revés daba avisos sin sentido.

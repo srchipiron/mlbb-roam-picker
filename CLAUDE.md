@@ -12,7 +12,7 @@ comprobaciones automáticas importan más de lo normal.
 
 ## Reglas de trabajo
 
-**Nunca subas nada sin pasar `npm test`.** Son cuatro comprobaciones y 33
+**Nunca subas nada sin pasar `npm test`.** Son cuatro comprobaciones y 36
 pruebas (orden de declaraciones, CSS, versión documentada y motor). El
 despliegue corre esas cuatro más una quinta que no está en `npm test`: que
 `roam-meta.json` se haya regenerado hace menos de media hora. Si algo falla, el despliegue se detiene y la app se queda
@@ -65,6 +65,13 @@ Todos estos llegaron a producción y costaron rondas enteras de ida y vuelta:
   para los 34 roamers) — se filtran los que aparecen en más del 60%.
 - **El peel recomendado hacia tanques aliados**, porque un tanque también está
   etiquetado como `immobile`.
+- **Tags deducidos tratados como certezas** (0.6.0, cazado antes de publicar).
+  Al deducir los tags de Marcel desde su `speciality` le salían seis, disparaba
+  más reglas que nadie y era nº1 en el 69% de 300 drafts simulados, contra el
+  43% del líder anterior. Mismo sesgo por acumular etiquetas que el de Carmilla.
+  Ahora todo lo que sale de tags deducidos (reglas de counter y composición) se
+  encoge por `PRECISION_DEDUCIDA`. Si añades otro componente que lea `tags`,
+  descuéntalo también.
 - **El límite de profundidad de la ingesta, en 6** — la API envuelve el dato
   hondo: el título de la línea vive en el nivel 8. Los 133 héroes salían sin rol
   y sin línea y nada fallaba. Efecto invisible doble: los héroes que no están en
@@ -103,12 +110,15 @@ y el botón Diagnóstico mentía sobre los rangos. No le quites el `--out`.
 
 ## Lo que queda pendiente
 
-- 7 héroes usan los tags genéricos de su rol en vez de los suyos: Marcel,
-  Hirara, Zetian, Sora, Obsidia, Cici y Valir. Desde 0.5.0 esto ya es lo que
-  dice la frase —antes se quedaban sin ningún tag—, así que es una mejora, no
-  una avería: escribirles tags propios en `heroes.json` afina, pero el rol de la
-  API ya los hace utilizables. Valir no es un desajuste de nombre: es un héroe
-  real que falta en el catálogo escrito a mano.
+- 7 héroes siguen sin tags escritos a mano: Marcel, Hirara, Zetian, Sora,
+  Obsidia, Cici y Valir. Desde 0.6.0 no dependen solo del rol: se les deduce de
+  la `speciality` de Moonton, con una precisión medida del 67% y una cobertura
+  del 52,5%. Escribirles tags propios en `heroes.json` sigue siendo mejor
+  —quita el descuento por deducción—, pero ya no es urgente. Valir no es un
+  desajuste de nombre: es un héroe real que falta en el catálogo.
+- La deducción se apoya en `SPECIALITY_TAGS` y `ROLE_VETO`, que NO se editan a
+  mano: las regenera `node scripts/derivar-tags.mjs` del propio catálogo.
+  Reejecútalo cuando crezca `heroes.json` o Moonton cambie sus etiquetas.
 - El registro de partidas necesita unas 30 de cada tipo antes de decir nada.
   Cuando las haya, mirar si conviene reajustar los pesos con datos reales.
 - La cobertura de la matriz de counters es del 7,5%: la API devuelve unos 10

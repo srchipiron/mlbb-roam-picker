@@ -10,7 +10,7 @@ import { fileURLToPath } from 'node:url';
 import {
   metaScore, counterScore, compScore, masteryScore, rankRoamers,
   suggestBans, mergeCatalog, indexByName, normName, coverage, empatados,
-  riesgoContrapick, densidadCounters,
+  riesgoContrapick, densidadCounters, tagsDeducidos,
 } from '../src/engine/score.js';
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
@@ -329,6 +329,79 @@ test('el riesgo de contrapick y la densidad leen la matriz con nombres crudos', 
     'riesgoContrapick devuelve null: no encuentra los matchups');
   ok(densidadCounters([pool[0]], matriz, rivales).cobertura > 0,
     'densidadCounters da 0%: no encuentra los matchups');
+});
+
+test('la speciality de Moonton suma tags al rol, sin contradecirlo', async () => {
+  const { SPECIALITY_TAGS, ROLE_VETO, ROLE_DEFAULTS } = await import('../src/engine/rules.js');
+
+  // Suma: un support con "Crowd Control" gana control duro sobre sus tags base.
+  const marcel = tagsDeducidos('support', ['Crowd Control']);
+  for (const t of ROLE_DEFAULTS.support) ok(marcel.includes(t), `pierde el tag de rol ${t}`);
+  ok(marcel.includes('cc_hard'), 'no recoge el control duro de "Crowd Control"');
+
+  // Veto: la MISMA speciality no puede hacer tanque a una maga. Es correlacion
+  // del catalogo (casi todo "Crowd Control" es tanque), no una propiedad suya,
+  // y una maga marcada de primera linea enganaria a la composicion.
+  const zetian = tagsDeducidos('mage', ['Crowd Control']);
+  ok(!zetian.includes('tanky'), `una maga no puede salir tanky: ${zetian.join(', ')}`);
+
+  // Sin speciality se comporta como siempre.
+  const a = tagsDeducidos('marksman', []);
+  ok(a.join() === (ROLE_DEFAULTS.marksman ?? []).join(), 'sin speciality debe dar los tags del rol');
+
+  // Las tablas solo hablan de tags que el motor conoce.
+  const conocidos = new Set(Object.values(ROLE_DEFAULTS).flat()
+    .concat(cat.heroes.flatMap((h) => h.tags)));
+  const inventados = [...new Set(Object.values(SPECIALITY_TAGS).flat())]
+    .filter((x) => !conocidos.has(x));
+  ok(!inventados.length, `SPECIALITY_TAGS usa tags que no existen: ${inventados.join(', ')}`);
+  const vetoRaro = [...new Set(Object.values(ROLE_VETO).flat())].filter((x) => !conocidos.has(x));
+  ok(!vetoRaro.length, `ROLE_VETO usa tags que no existen: ${vetoRaro.join(', ')}`);
+});
+
+test('lo que sale de tags deducidos pesa menos que lo escrito a mano', () => {
+  // Estuvo a punto de colarse: al deducir los tags de Marcel desde su
+  // speciality salia con seis, disparaba mas reglas que nadie y era el nº1 en
+  // el 69% de 300 drafts, contra el 43% del lider anterior. Es el mismo sesgo
+  // por acumular etiquetas que ya costo una correccion con Carmilla.
+  //
+  // Se comprueban los DOS descuentos por separado: quitar solo uno dejaba la
+  // prueba en verde y el sesgo a medio arreglar.
+  const tags = ['peel', 'sustain', 'engage', 'tanky', 'zone', 'cc_hard'];
+  const aMano = { name: 'AMano', role: 'support', tags, roam: true };
+  const deducido = { ...aMano, name: 'Deducido', inferred: true };
+  const enemigo = h('Fanny');
+
+  // 1) reglas por tags (counter), sin matriz: todo el valor sale de los tags
+  const cMano = counterScore(aMano, [enemigo], null).value;
+  const cDed = counterScore(deducido, [enemigo], null).value;
+  ok(cDed < cMano, `el counter por tags no se descuenta: ${cDed} vs ${cMano}`);
+
+  // 2) composicion
+  const aliados = [h('Granger'), h('Cecilion'), h('Ling')].filter(Boolean);
+  const pMano = compScore(aMano, aliados).value;
+  const pDed = compScore(deducido, aliados).value;
+  ok(pDed < pMano, `la composición no se descuenta: ${pDed} vs ${pMano}`);
+
+  // 3) y el efecto neto: baja en el ranking
+  const pool = [...cat.heroes.filter((x) => x.roam), deducido];
+  const conDescuento = rankRoamers(pool, { enemies: [enemigo], meta: {} })
+    .findIndex((x) => x.hero.name === 'Deducido');
+  const sinDescuento = rankRoamers(pool.map((x) => (x.name === 'Deducido' ? { ...x, inferred: false } : x)),
+    { enemies: [enemigo], meta: {} }).findIndex((x) => x.hero.name === 'Deducido');
+  ok(conDescuento > sinDescuento,
+    `deducido debería quedar por detrás (puesto ${conDescuento + 1} vs ${sinDescuento + 1})`);
+});
+
+test('un héroe con speciality entra al catálogo con ella aplicada', () => {
+  const merged = mergeCatalog(cat.heroes, [
+    { name: 'RoamerNuevo', role: 'support', speciality: ['Crowd Control', 'Regen'] },
+  ]);
+  const h = merged.find((x) => x.name === 'RoamerNuevo');
+  ok(h?.roam, 'un support debe entrar al pool de roam');
+  ok(h.tags.includes('cc_hard') && h.tags.includes('heal'),
+    `no aplica la speciality: ${h.tags.join(', ')}`);
+  ok(h.inferred, 'debe quedar marcado como deducido');
 });
 
 test('un héroe nuevo de la API entra con los tags de su rol', () => {

@@ -8,6 +8,32 @@ que esto no se olvida.
 Criterio: `0.X.0` cuando cambia cómo decide la app o qué hace; `0.0.X` para
 correcciones.
 
+## 0.6.0
+
+- Los héroes que no están en el catálogo escrito a mano ya no dependen solo de
+  los tags genéricos de su rol: la app traduce la etiqueta que Moonton le pone a
+  cada héroe ("Guard", "Initiator", "Regen"…) a sus propios tags. Medido sobre
+  los 126 héroes que sí tienes etiquetados, acierta el 52,5% de sus tags reales
+  en vez del 39,6%, sin perder precisión.
+- La traducción no está escrita a ojo: la deriva `scripts/derivar-tags.mjs`
+  del propio catálogo, y se puede reejecutar cuando Moonton cambie sus
+  etiquetas.
+- Un filtro impide que una correlación se cuele como propiedad: casi todos los
+  héroes con "Crowd Control" son tanques, así que sin él una maga con control
+  salía marcada como primera línea y la composición se creía cubierta.
+- Lo que sale de tags deducidos pesa menos que lo escrito a mano, en la misma
+  proporción en que acierta. Sin eso, Marcel salía nº1 en el 69% de 300 drafts
+  simulados —frente al 43% del líder anterior— solo por tener seis tags
+  adivinados: el mismo sesgo por acumular etiquetas que ya costó una corrección
+  con Carmilla. Con el descuento, la concentración se queda en el 42% de
+  siempre y la recomendación solo cambia en el 7% de los drafts.
+- Las dependencias quedan fijadas con lockfile: el despliegue instala versiones
+  exactas y no puede colarse sola una versión nueva rota.
+- La prueba de la ingesta ya corre de verdad sin red. Decía hacerlo, pero
+  `--base` no se respetaba al descubrir rutas y acababa haciendo una ingesta
+  completa contra la API real: más de un minuto y cuarenta peticiones en cada
+  despliegue. Ahora tarda nueve segundos.
+
 ## 0.5.1
 
 - Las recomendaciones avisan con un "tags de su rol" cuando el héroe no está en
