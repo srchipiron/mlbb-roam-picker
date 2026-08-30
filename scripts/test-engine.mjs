@@ -1004,6 +1004,52 @@ test('se puede buscar un heroe por su nombre en espanol', async () => {
   }
 });
 
+test('eligiendo pronto recomienda heroes menos castigables que eligiendo ultimo', () => {
+  // Lo que hace distinto elegir primero no es saber menos del rival: los
+  // enemigos que faltan te eligen A TI en contra. Asi que con la pantalla casi
+  // vacia el nº1 tiene que ser mas dificil de castigar que con el draft hecho.
+  const porNombre = (nombre) => {
+    let x = 2166136261 ^ 31;
+    for (const ch of nombre) x = Math.imul(x ^ ch.charCodeAt(0), 16777619);
+    return ((x >>> 0) % 100000) / 100000;
+  };
+  const stats = indexByName(Object.fromEntries(
+    all.map((x) => [x.name, { winRate: 0.497 + (porNombre(x.name) - 0.5) * 0.05, matches: 5000 }])));
+  // Cada heroe con SU amplitud: unos tienen cruces planos (dificiles de
+  // castigar) y otros muy abiertos (castigables). Con la misma amplitud para
+  // todos, el riesgo sale saturado e igual para el pool entero y no hay nada
+  // que medir: la primera version de esta prueba fallaba por eso, no por el
+  // motor.
+  const amplitud = (n) => 0.03 + porNombre(`ancho:${n}`) * 0.17;
+  const counters = indexByName(Object.fromEntries(all.map((a) => [a.name,
+    Object.fromEntries(all.filter((b) => b.name !== a.name)
+      .map((b) => [b.name, 0.5 + (porNombre(a.name + b.name) - 0.5) * amplitud(a.name)]))])), 2);
+  const meta = { stats, counters, patchAvgWinRate: 0.497 };
+
+  // Se compara el MISMO draft con y sin el descuento, no un draft pronto
+  // contra otro tarde: con enemigos distintos cambia el nº1 de todas formas y
+  // la comprobacion pasaba aunque se quitara el descuento entero. Sin
+  // `candidatos` no hay riesgo que calcular, asi que ese es el "sin".
+  const riesgoDelPrimero = (enemigos, conDescuento) => {
+    const ctx = { enemies: enemigos.map(h), meta, ...(conDescuento ? { candidatos: pool } : {}) };
+    return riesgoContrapick(rankRoamers(pool, ctx)[0].hero, counters, pool);
+  };
+
+  const conDescuento = riesgoDelPrimero(['Fanny'], true);
+  const sinDescuento = riesgoDelPrimero(['Fanny'], false);
+  ok(conDescuento != null && sinDescuento != null, 'no hay riesgo que medir: la comprobacion no vale');
+  ok(conDescuento < sinDescuento,
+    `con un solo enemigo deberia recomendar algo menos castigable: ${conDescuento?.toFixed(3)} vs ${sinDescuento?.toFixed(3)}`);
+
+  // Y con el draft completo el descuento NO puede existir: ya no te puede
+  // contrapickear nadie, asi que ahi manda el counter y nada mas.
+  const completo = ['Fanny', 'Ling', 'Lancelot', 'Gusion', 'Hayabusa'].map(h);
+  const conRiesgo = rankRoamers(pool, { enemies: completo, meta, candidatos: pool });
+  const sinCandidatos = rankRoamers(pool, { enemies: completo, meta });
+  eq(conRiesgo[0].hero.name, sinCandidatos[0].hero.name,
+    'con los cinco enemigos elegidos el riesgo de contrapick todavia cambia el orden');
+});
+
 await Promise.all(pendientes); // se esperan de verdad, sin plazos inventados
 
 console.log(`\n${pasadas} pruebas correctas, ${fallos} fallos.`);

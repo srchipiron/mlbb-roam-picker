@@ -309,6 +309,14 @@ export function compScore(roamHero, allies) {
   const porTags = clamp01(suma((n) => !n.medido) / techo);
   const bonoMedido = suma((n) => n.medido) / techo;
 
+  // OJO: para ORDENAR, esto no hace nada. `normalizarComponente` reescala el
+  // componente dentro del pool, y un factor igual para todos los héroes se va
+  // entero en esa reescala. Medido: el rango de la contribución de comp es
+  // 0.0800 con uno, dos o tres aliados elegidos, o sea el peso completo.
+  // Sirve para quien llame a `compScore` suelto (el diagnóstico), no para el
+  // ranking. Se deja porque el valor devuelto sí debe ser honesto; si algún día
+  // hay que encoger de verdad la composición con pocos aliados, el único sitio
+  // donde eso se nota es el PESO, no aquí.
   const confidence = Math.min(1, allies.length / 3);
   // Un héroe cuyos tags están DEDUCIDOS no puede reclamar el techo de
   // composición como uno etiquetado a mano: la deducción acierta el 67% de los
@@ -389,8 +397,21 @@ export function scoreHero(roamHero, ctx) {
   };
 }
 
-/** Cuánto puede descontar como máximo el riesgo de contrapick. */
-const RIESGO_MAX = 0.10;
+/**
+ * Cuánto puede descontar como máximo el riesgo de contrapick.
+ *
+ * Esto es lo que hace distinto elegir pronto o tarde, y es lo único que lo
+ * hace: los enemigos que faltan por elegir no son desconocidos cualesquiera,
+ * te eligen A TI en contra. Eligiendo primero interesa un héroe difícil de
+ * castigar; eligiendo último, ir a por el counter y ya está -y ahí `cegera` es
+ * 0, así que este descuento no existe-.
+ *
+ * De 0.10 a 0.20 en 1.4.0, medido en 1200 drafts con un solo enemigo en
+ * pantalla: el riesgo medio del nº1 baja de 0.477 a 0.380, y la concentración
+ * no se mueve (el líder sale en el 10.3% contra el 10.4%, 85 héroes distintos
+ * contra 83). Subirlo a 0.30 ya no mejora: 0.391.
+ */
+const RIESGO_MAX = 0.20;
 
 /** Umbral por debajo del cual se considera que un componente no aporta señal. */
 const SENAL_MINIMA = 0.02;

@@ -20,7 +20,7 @@ comprobaciones automáticas importan más de lo normal.
 
 ## Reglas de trabajo
 
-**Nunca subas nada sin pasar `npm test`.** Son cuatro comprobaciones y 47
+**Nunca subas nada sin pasar `npm test`.** Son cuatro comprobaciones y 48
 pruebas (orden de declaraciones, CSS, versión documentada y motor). El
 despliegue corre esas cuatro más dos que no están en `npm test`: que
 `roam-meta.json` se haya regenerado hace menos de media hora, y que la corrida
@@ -103,6 +103,16 @@ Todos estos llegaron a producción y costaron rondas enteras de ida y vuelta:
   datos se salvaban, así que solo se notaba en cuatro errores falsos dentro del
   diagnóstico… que además, al llenar el tope de errores, tapaban los de verdad.
   Hay una prueba que comprueba que todo campo leído esté inicializado.
+- **Un encogimiento que la normalización se comía entero** — `compScore`
+  multiplica por `confidence` (aliados/3) para pesar menos con el draft a
+  medias, y ese factor NO llega al ranking: `normalizarComponente` reescala
+  cada componente dentro del pool, así que un factor igual para todos los
+  héroes desaparece en la reescala. Medido: el rango de la contribución de
+  `comp` es 0.0800 con uno, dos o tres aliados, o sea el peso entero. Lo mismo
+  le pasaría a cualquier otro encogimiento global que añadas. Si hay que pesar
+  menos un componente por el estado del draft, el ÚNICO sitio donde se nota es
+  el peso. Lo que sí sobrevive es lo que varía entre héroes, como
+  `PRECISION_DEDUCIDA`.
 - **Dos criterios distintos de "quién es roamer"** — la app usaba
   `mergeCatalog` (catálogo + rol de la API) y la ingesta miraba solo el catálogo,
   así que Marcel entraba en las recomendaciones sin que nadie le pidiera

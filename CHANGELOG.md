@@ -8,6 +8,25 @@ que esto no se olvida.
 Criterio: `0.X.0` cuando cambia cómo decide la app o qué hace; `0.0.X` para
 correcciones.
 
+## 1.4.0
+
+- **Eligiendo pronto, te propone héroes que no te puedan castigar.** Ya lo hacía
+  un poco; ahora el doble. Con un solo enemigo en pantalla, lo castigable que es
+  el héroe recomendado baja de 0,48 a 0,38 en la escala de la app: una quinta
+  parte menos de exposición. Y con los cinco enemigos ya elegidos esto no
+  interviene para nada — ahí ya no te puede contrapickear nadie, así que la app
+  va al counter y punto. Medido en 1.200 drafts por fase, sin que la app se
+  cierre en unos pocos héroes (el líder sale en el 10,4% con un enemigo, igual
+  que antes).
+
+Lo que probé y NO subí, por si te lo preguntas: bajar el peso del counter
+cuando se ve poco del equipo rival. Suena razonable y es falso — los enemigos
+que faltan son desconocidos para todos los héroes por igual, así que no
+favorecen a ninguno. Al medirlo, no hacía a los picks más seguros y reducía los
+héroes distintos que la app llega a recomendar de 85 a 65. Lo que de verdad
+cambia entre elegir pronto y tarde es que los que faltan te eligen a ti en
+contra, y eso es justo lo que sí se ha reforzado.
+
 ## 1.3.0
 
 - **La app ya mira de qué pega tu equipo.** Es el aviso de draft más repetido en
