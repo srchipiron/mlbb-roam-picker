@@ -26,15 +26,21 @@ const h = (n) => {
 
 let pasadas = 0;
 let fallos = 0;
+// Las pruebas asíncronas se APUNTAN y se esperan al final, una por una.
+// Antes se les daba un plazo fijo de 60 ms: en mi máquina llegaban, pero en
+// GitHub seis se quedaban fuera de la cuenta, y como process.exit ya había
+// corrido, un fallo suyo NO tumbaba el despliegue. Entre ellas, la que vigila
+// el fallo de ROUTES. Lo destapó la vigilancia automática el primer día.
+const pendientes = [];
+
 const test = (nombre, fn) => {
   try {
     const r = fn();
-    // Algunas pruebas necesitan import() dinámico y devuelven una promesa.
     if (r instanceof Promise) {
-      r.then(() => { pasadas++; }).catch((err) => {
+      pendientes.push(r.then(() => { pasadas++; }).catch((err) => {
         fallos++;
         console.error(`  FALLA  ${nombre}\n         ${err.message}`);
-      });
+      }));
       return;
     }
     pasadas++;
@@ -703,7 +709,7 @@ test('el autodiagnóstico detecta datos rotos y aprueba los buenos', async () =>
   ok(roto.texto.includes('Winrate NO influye'), 'no detecta que los winrates no entran');
 });
 
-await new Promise((r) => setTimeout(r, 60)); // deja terminar la prueba asíncrona
+await Promise.all(pendientes); // se esperan de verdad, sin plazos inventados
 
 console.log(`\n${pasadas} pruebas correctas, ${fallos} fallos.`);
 process.exit(fallos ? 1 : 0);

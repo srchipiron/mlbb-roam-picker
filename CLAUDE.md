@@ -12,7 +12,7 @@ comprobaciones automáticas importan más de lo normal.
 
 ## Reglas de trabajo
 
-**Nunca subas nada sin pasar `npm test`.** Son cuatro comprobaciones y 38
+**Nunca subas nada sin pasar `npm test`.** Son cuatro comprobaciones y 39
 pruebas (orden de declaraciones, CSS, versión documentada y motor). El
 despliegue corre esas cuatro más una quinta que no está en `npm test`: que
 `roam-meta.json` se haya regenerado hace menos de media hora. Si algo falla, el despliegue se detiene y la app se queda
@@ -71,6 +71,11 @@ Todos estos llegaron a producción y costaron rondas enteras de ida y vuelta:
   las hacía fallar sin tocar una línea del código. Peor: pasaban en parte por
   suerte del orden. Ahora el winrate de cada héroe sale de SU NOMBRE. Si añades
   héroes, mételos al final igualmente: es el diff mínimo.
+- **Pruebas asíncronas que no se contaban** — el arnés esperaba 60 ms fijos y
+  luego llamaba a `process.exit`. En local llegaban; en GitHub, seis se
+  quedaban fuera, así que un fallo suyo NO tumbaba el despliegue. Entre ellas la
+  que vigila el fallo de `ROUTES`. Ahora se apuntan y se esperan con
+  `Promise.all`. Si añades una prueba `async`, no le pongas plazos: ya se espera.
 - **Tags deducidos tratados como certezas** (0.6.0, cazado antes de publicar).
   Al deducir los tags de Marcel desde su `speciality` le salían seis, disparaba
   más reglas que nadie y era nº1 en el 69% de 300 drafts simulados, contra el

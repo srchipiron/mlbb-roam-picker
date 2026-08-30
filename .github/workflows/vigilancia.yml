@@ -21,6 +21,12 @@ permissions:
   contents: read
   issues: write
 
+# Una vigilancia cada vez: si se solapan, una puede cerrar la incidencia que la
+# otra acaba de abrir.
+concurrency:
+  group: vigilancia
+  cancel-in-progress: false
+
 jobs:
   vigilar:
     runs-on: ubuntu-latest
