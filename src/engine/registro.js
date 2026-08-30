@@ -1,3 +1,5 @@
+import { normName } from './score.js';
+
 /**
  * Registro de partidas.
  *
@@ -26,9 +28,19 @@ export function apuntar(partidas, entrada, tope = 500) {
   return [limpia, ...partidas].slice(0, tope);
 }
 
-/** ¿El pick estaba entre lo que la app recomendaba? */
+/**
+ * ¿El pick estaba entre lo que la app recomendaba?
+ *
+ * Comparado por nombre normalizado, no crudo. Estas partidas viven en el móvil
+ * durante meses y la API ya ha cambiado la grafía de algún héroe ("X.Borg" /
+ * "X Borg"): con la comparación cruda, una partida vieja pasaría de pronto a
+ * contar como "por libre" y se falsearía el único dato con el que se puede
+ * comprobar si la app acierta.
+ */
 export function siguioConsejo(partida) {
-  return (partida.recomendados ?? []).includes(partida.pick);
+  const pick = normName(partida?.pick);
+  if (!pick) return false;
+  return (partida.recomendados ?? []).some((n) => normName(n) === pick);
 }
 
 /**

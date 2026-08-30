@@ -72,20 +72,41 @@ const lookup = (map, name) => {
 /**
  * Winrate de A contra B, mirando también el sentido contrario.
  *
- * La API devuelve unos diez matchups por héroe, y no siempre los mismos en las
- * dos direcciones: de los 1330 pares con dato, 690 existen en ambos sentidos.
- * Cuando existen, suman EXACTAMENTE 1 (medido: diferencia 0.0000 hasta en el
- * peor caso), así que `1 - counters[B][A]` no es una estimación, es el mismo
- * dato por el otro lado.
+ * Cuando un par existe en los dos sentidos suman EXACTAMENTE 1 (medido:
+ * diferencia 0.0000 hasta en el peor caso), así que `1 - counters[B][A]` no es
+ * una estimación, es el mismo dato por el otro lado.
  *
- * Aprovecharlo sube la cobertura de cruces del 7,6% al 11,2%: un 47% más de
- * decisiones apoyadas en partidas reales en vez de en mis reglas por tags.
+ * Desde 1.5.0 la matriz viene completa y la vuelta casi nunca hace falta. Se
+ * queda porque cuesta nada y porque es justo lo que salva a un héroe recién
+ * salido, del que la API publica sus cruces antes que su fila propia. Cuando la
+ * matriz estaba a medias, esto subía la cobertura del 7,6% al 11,2%.
  */
 export function matchup(counterMatrix, a, b) {
   const ida = lookup(lookup(counterMatrix, a), b);
   if (ida != null) return ida;
   const vuelta = lookup(lookup(counterMatrix, b), a);
   return vuelta != null ? 1 - vuelta : undefined;
+}
+
+/**
+ * Sinergia de A con B, mirando también el sentido contrario.
+ *
+ * Mismo problema que en los counters y misma solución, pero SIN darle la
+ * vuelta al número: llevar a A con B es exactamente lo mismo que llevar a B
+ * con A, así que el dato es el mismo por los dos lados. Comprobado sobre los
+ * datos de verdad: en los 271 pares que la API da en ambos sentidos, la
+ * diferencia es 0.000000.
+ *
+ * Leyendo solo la fila del héroe se perdía el 37% de los cruces que la API sí
+ * tenía: 1330 de 2118. No se notaba porque cuando falta el dato entran las
+ * reglas por tags y la nota sale igual de razonable, solo que peor fundada.
+ * Desde 1.5.0 la matriz viene completa y esto es, como en los counters, la red
+ * para los héroes nuevos.
+ */
+export function sinergia(synergyMatrix, a, b) {
+  const ida = lookup(lookup(synergyMatrix, a), b);
+  if (ida != null) return ida;
+  return lookup(lookup(synergyMatrix, b), a);
 }
 
 /**
@@ -211,6 +232,22 @@ export function counterScore(roamHero, enemies, counterMatrix, enemyRoamName = n
   return { value: total / pesoTotal, reasons: dedupe(reasons) };
 }
 
+/**
+ * ¿Es un aliado de los que hay que proteger?
+ *
+ * Un tanque también lleva el tag `immobile`, así que sin este filtro la app
+ * recomendaba hacerle peel a la primera línea -y banear a quien le saltara
+ * encima-, que es justo al revés de cómo se juega.
+ *
+ * Vive aquí y no dentro de una función porque el criterio se necesita en DOS
+ * sitios: la sinergia y los baneos. Estaba escrito solo en el primero, y el
+ * fallo sobrevivió entero en el segundo: el 12,1% de los avisos de peligro
+ * protegían a un tanque.
+ */
+export const hayQueProtegerlo = (hero) =>
+  ['hypercarry', 'poke', 'burst'].some((t) => hero?.tags?.includes(t))
+  && !hero?.tags?.includes('tanky');
+
 /** Sinergia con aliados ya elegidos. Mismo patron: dato real, si no, tags. */
 export function synergyScore(roamHero, allies, synergyMatrix) {
   if (!allies.length) return { value: 0.5, reasons: [] };
@@ -218,20 +255,14 @@ export function synergyScore(roamHero, allies, synergyMatrix) {
   let total = 0;
 
   for (const ally of allies) {
-    const pair = lookup(lookup(synergyMatrix, roamHero.name), ally.name);
+    const pair = sinergia(synergyMatrix, roamHero.name, ally.name);
     if (pair != null) {
       total += clamp01((pair - 0.46) / 0.10);
       if (pair >= 0.53) reasons.push({ clave: 'regla.combinaCon', params: { a: ally.name }, good: true, w: 0.7 });
       continue;
     }
     let sub = 0;
-    // Solo se protege a quien hay que proteger. Un tanque aliado también está
-    // etiquetado como inmóvil, y la regla anterior recomendaba hacerle peel a
-    // la primera línea, que es justo al revés de cómo se juega.
-    const esCarry = ['hypercarry', 'poke', 'burst'].some((t) => ally.tags.includes(t))
-      && !ally.tags.includes('tanky');
-
-    if (esCarry && ally.tags.includes('immobile') && roamHero.tags.includes('peel')) {
+    if (hayQueProtegerlo(ally) && ally.tags.includes('immobile') && roamHero.tags.includes('peel')) {
       sub += 0.8;
       reasons.push({ clave: 'regla.protege', params: { a: ally.name }, good: true, w: 0.8 });
     }
@@ -396,6 +427,23 @@ export function scoreHero(roamHero, ctx) {
     banned: false,
   };
 }
+
+/**
+ * Lo lejos del empate que llega el décimo peor cruce del héroe MÁS castigable.
+ *
+ * Sale del reparto real, no de una intuición: con la matriz completa el p10 de
+ * cada héroe va de 0.465 a 0.492, así que la distancia al empate va de 0.008 a
+ * 0.035. Dividir por eso reparte el riesgo entre 0.22 y 1.00, con la mediana
+ * en 0.43.
+ *
+ * Estaba en 0.08, y ese número venía de cuando la API solo devolvía los cinco
+ * cruces MÁS EXTREMOS de cada héroe. Con esa muestra sesgada el p10 parecía
+ * 0.467; con la matriz entera es 0.485. Manteniendo 0.08, el héroe más
+ * castigable del juego marcaba 0.43 y NADIE pasaba de 0.6: el aviso de "estás
+ * eligiendo a ciegas y este pick es castigable" no habría vuelto a salir
+ * nunca, sin que nada fallara.
+ */
+const PEOR_CRUCE_REAL = 0.035;
 
 /**
  * Cuánto puede descontar como máximo el riesgo de contrapick.
@@ -653,10 +701,13 @@ export function poolDeLinea(heroes, indiceLineas, linea) {
  */
 export function suggestBans(allHeroes, ctx) {
   const { allies = [], enemies = [], bans = [], meta = {} } = ctx;
-  const taken = new Set([...allies, ...enemies, ...bans].map((h) => h.name));
+  // Normalizado, igual que en rankRoamers y por la misma razón: un pick
+  // guardado con otra grafía seguía apareciendo como ban recomendado aunque ya
+  // estuviera en la pantalla.
+  const taken = new Set([...allies, ...enemies, ...bans].map((h) => normName(h.name)));
 
   return allHeroes
-    .filter((h) => !taken.has(h.name) && lookup(meta.stats, h.name))
+    .filter((h) => !taken.has(normName(h.name)) && lookup(meta.stats, h.name))
     .map((hero) => {
       const stat = lookup(meta.stats, hero.name);
       const power = metaScore(stat, meta.patchAvgWinRate ?? 0.5).value;
@@ -669,6 +720,7 @@ export function suggestBans(allHeroes, ctx) {
       for (const ally of allies) {
         for (const rule of DANGER_RULES) {
           if (!ally.tags.includes(rule.allyTag) || !hero.tags.includes(rule.enemyTag)) continue;
+          if (rule.soloSiFragil && !hayQueProtegerlo(ally)) continue;
           positivas.push(rule.weight);
           reasons.push({ clave: rule.why, params: { a: ally.name }, good: false, w: rule.weight });
         }
@@ -713,8 +765,7 @@ export function riesgoContrapick(roamHero, counterMatrix, candidatos) {
   if (valores.length < 10) return null;
 
   const p10 = valores[Math.floor(valores.length * 0.1)];
-  // 0.42 sería un matchup desastroso; 0.50, ninguno malo.
-  return clamp01((0.50 - p10) / 0.08);
+  return clamp01((0.50 - p10) / PEOR_CRUCE_REAL);
 }
 
 /** Cuántos roamers tienen datos reales. Si baja, algo se ha roto en silencio. */

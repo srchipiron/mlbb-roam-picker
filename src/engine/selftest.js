@@ -83,14 +83,15 @@ export function runSelfTest({ catalog, meta, metaCtx, allHeroes, roamPool, maste
   if (cov.conCounters) {
     const d = densidadCounters(roamPool, metaCtx.counters, allHeroes);
     lineas.push(`Matriz: ${d.media.toFixed(0)} rivales por roamer de media · cubre el ${(d.cobertura * 100).toFixed(1)}% de los cruces posibles`);
-    // El umbral mide la SALUD de la descarga, no la ambición. La API devuelve
-    // una decena de matchups por héroe, no los 133, así que el techo real ronda
-    // el 7,5%: exigir un 25% era un aviso encendido para siempre, y un aviso que
-    // nunca se apaga deja de avisar. Lo que sí importa es si la descarga se
-    // queda corta respecto a lo que la fuente suele dar.
-    check(d.media >= 5,
-      `Cobertura normal para lo que da la API (una decena de rivales por héroe)`,
-      `Solo ${d.media.toFixed(0)} rivales por roamer: la descarga de counters se ha quedado corta`,
+    // El umbral mide la SALUD de la descarga, no la ambición. Desde 1.5.0 la
+    // ingesta trae los 132 rivales de cada héroe, no una decena: la ruta que
+    // daba cinco seguía existiendo y se elegía sola, así que este número es lo
+    // que avisa si volvemos a caer en ella. 60 deja sitio a que la API tenga un
+    // mal día sin encender un aviso permanente, y chilla mucho antes de que la
+    // app vuelva a decidir con reglas escritas a mano.
+    check(d.media >= 60,
+      `Matriz completa: ${d.media.toFixed(0)} rivales por héroe`,
+      `Solo ${d.media.toFixed(0)} rivales por héroe: la descarga se ha quedado en la ruta corta`,
       true);
   }
 

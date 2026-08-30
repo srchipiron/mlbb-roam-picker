@@ -20,7 +20,7 @@ comprobaciones automáticas importan más de lo normal.
 
 ## Reglas de trabajo
 
-**Nunca subas nada sin pasar `npm test`.** Son cuatro comprobaciones y 48
+**Nunca subas nada sin pasar `npm test`.** Son cuatro comprobaciones y 54
 pruebas (orden de declaraciones, CSS, versión documentada y motor). El
 despliegue corre esas cuatro más dos que no están en `npm test`: que
 `roam-meta.json` se haya regenerado hace menos de media hora, y que la corrida
@@ -39,12 +39,15 @@ el 55%; una derrota no dice nada. Si hay que tocar el motor, mídelo antes con
 drafts simulados (hay utilidades en las pruebas) y comprueba concentración y
 sensatez táctica, no solo que "parezca mejor".
 
-**Prefiere el dato a la regla escrita a mano.** Los pesos de `DEFAULT_WEIGHTS`
-dan el 92% de la decisión a datos reales y el 8% a `rules.js`. El porcentaje que
-de verdad manda es más bajo, porque donde no hay counter entran las reglas por
-tags, y la matriz solo cubre el 11% de los cruces. El botón **Diagnóstico** lo
-mide en vivo: fíate de ese número, no de este párrafo. Cada regla nueva que
-añadas a `rules.js` es deuda: envejece cuando Moonton reequilibra.
+**Prefiere el dato a la regla escrita a mano.** Desde 1.5.0 la matriz de
+counters está COMPLETA (17.556 cruces, el 100%), así que las reglas de
+`rules.js` ya no deciden ningún counter: solo entran con un héroe tan nuevo que
+la API no publica ni un cruce suyo. Y hay con qué medirlas:
+`node scripts/medir-reglas.mjs` compara cada regla con las partidas reales. Hoy
+solo una de las doce se ve en el dato (cortar dashes, +0,43 puntos); las once
+restantes no se distinguen del ruido. No se han borrado porque el dato es de
+presencia en la partida y no del duelo de carril, y eso diluye los efectos
+reales — pero no te apoyes en ellas. Cada regla nueva es deuda.
 
 ## Errores ya cometidos, para no repetirlos
 
@@ -113,6 +116,30 @@ Todos estos llegaron a producción y costaron rondas enteras de ida y vuelta:
   menos un componente por el estado del draft, el ÚNICO sitio donde se nota es
   el peso. Lo que sí sobrevive es lo que varía entre héroes, como
   `PRECISION_DEDUCIDA`.
+- **Elegir la ruta de la API por su nombre en vez de por lo que devuelve** — el
+  descubrimiento descartaba a propósito las rutas de `/academy` ("son material
+  didáctico"). Era falso: `/academy/heroes/{id}/counters` devuelve los 132
+  cruces de cada héroe y la que se prefería, CINCO. La app decidía el 89% de los
+  counters con reglas escritas a mano teniendo el dato disponible, y nada
+  fallaba. Ahora `elegirRutaConMasDatos` llama a cada candidata y se queda con
+  la que más pares trae. Si añades un objetivo a `WANTED`, recoge TODOS los
+  candidatos de todos los patrones, no solo los del primero que acierte: por
+  cortar ahí, la ruta de `teammates` no llegaba a compararse nunca.
+- **Constantes calibradas sobre una muestra sesgada** — `riesgoContrapick`
+  dividía por 0.08 porque el p10 de los cruces parecía 0.467. Ese p10 salía de
+  los cinco cruces MÁS EXTREMOS de cada héroe, que era todo lo que daba la ruta
+  corta. Con la matriz entera el p10 real es 0.485, ningún héroe pasaba de 0.43
+  y el aviso de "pick castigable a ciegas" no habría vuelto a salir jamás. Hoy
+  la constante es `PEOR_CRUCE_REAL`. Si cambias de fuente de datos, revisa
+  TODAS las constantes calibradas contra la anterior.
+- **La sensatez táctica apoyada en un agujero** — la prueba "contra tres
+  asesinos de dash el nº1 corta dashes" solo pasaba porque el 89% de los cruces
+  no tenía dato y mandaban las reglas por tags. Con dato para todo, deja de
+  cumplirse, y medir dice por qué: los anti-dash promedian 0.5042 contra los
+  dashers y el resto 0.4999. La prueba se cambió por dos que sí se sostienen
+  (que la recomendación cambia con el equipo enemigo, y que el componente de
+  counter ordena igual que el dato real), más otra que vigila las reglas donde
+  siguen mandando: los héroes sin dato.
 - **Dos criterios distintos de "quién es roamer"** — la app usaba
   `mergeCatalog` (catálogo + rol de la API) y la ingesta miraba solo el catálogo,
   así que Marcel entraba en las recomendaciones sin que nadie le pidiera
@@ -214,7 +241,6 @@ y el botón Diagnóstico mentía sobre los rangos. No le quites el `--out`.
   Cuenta habilidades, no daño real, así que a un tirador le falta su ataque
   básico: Melissa sale "mixto" cuando es física. Sale barato porque la ingesta ya
   pedía esa ficha; ahora la pide para los 133 en vez de para 7.
-- La cobertura de la matriz de counters es del 11%: la API devuelve unos 10
-  matchups por héroe, no los 133, y `matchup()` aprovecha los dos sentidos (un
-  32% más de cruces que leyendo solo la fila del héroe). En los que faltan
-  mandan las reglas.
+- La cobertura de la matriz de counters es del 100% desde 1.5.0: 132 rivales
+  por héroe. `matchup()` y `sinergia()` siguen mirando los dos sentidos, que
+  ahora solo hace falta para héroes recién salidos.

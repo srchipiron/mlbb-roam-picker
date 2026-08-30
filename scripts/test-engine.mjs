@@ -10,7 +10,7 @@ import { fileURLToPath } from 'node:url';
 import {
   metaScore, counterScore, compScore, masteryScore, rankRoamers,
   suggestBans, mergeCatalog, indexByName, normName, coverage, empatados,
-  riesgoContrapick, densidadCounters, tagsDeducidos, idRazon,
+  riesgoContrapick, densidadCounters, tagsDeducidos, idRazon, matchup,
 } from '../src/engine/score.js';
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
@@ -304,8 +304,60 @@ test('contra dashes sube un anti-mobility; contra curación, un antiheal', () =>
 });
 
 test('la recomendación responde al equipo enemigo', () => {
-  // Winrate por NOMBRE, no por posición en el fichero: si no, reordenar
-  // heroes.json cambiaba el sorteo y con él el veredicto de esta prueba.
+  // Esta prueba EXIGIA que contra tres asesinos de dash el nº1 cortara dashes.
+  // Se cambio en 1.5.0 y conviene saber por que, para no "arreglarla" de vuelta.
+  //
+  // Con la matriz de counters completa (17.556 cruces reales en vez de 1.330)
+  // se puede medir la regla: los heroes con `anti_mobility` promedian 0.5042
+  // contra los que tienen `dash`, y los demas 0.4999. Cuatro decimas de punto.
+  // La regla es la MEJOR de las doce escritas a mano -las otras once no se ven
+  // siquiera-, y aun asi no basta para mandar sobre el resto del motor.
+  //
+  // Aquella exigencia solo se cumplia porque el dato era escaso: sin winrate de
+  // la pareja mandaban las reglas por tags, asi que la sensatez tactica se
+  // apoyaba en un agujero, no en una decision. Ahora hay dato para todo.
+  //
+  // Lo que SI tiene que cumplirse, y es mas fuerte:
+  //   1. cambiar el equipo enemigo cambia la recomendacion,
+  //   2. el componente de counter ordena el pool igual que el dato real.
+  const porNombre = (nombre) => {
+    let x = 2166136261 ^ 31;
+    for (const ch of nombre) x = Math.imul(x ^ ch.charCodeAt(0), 16777619);
+    return ((x >>> 0) % 100000) / 100000;
+  };
+  const stats = indexByName(Object.fromEntries(
+    all.map((x) => [x.name, { winRate: 0.497 + (porNombre(x.name) - 0.5) * 0.05, matches: 5000, pickRate: 0.02 }])));
+  const counters = indexByName(Object.fromEntries(all.map((a) => [a.name,
+    Object.fromEntries(all.filter((b) => b.name !== a.name)
+      .map((b) => [b.name, 0.5 + (porNombre(`${a.name}|${b.name}`) - 0.5) * 0.12]))])), 2);
+  const meta = { stats, counters, patchAvgWinRate: 0.497 };
+
+  const ranking = (nombres) => rankRoamers(pool, { enemies: nombres.map(h), meta });
+
+  const unos = ranking(['Fanny', 'Ling', 'Lancelot']);
+  const otros = ranking(['Esmeralda', 'Uranus', 'Thamuz']);
+  ok(unos[0].hero.name !== otros[0].hero.name,
+    'la recomendación no cambia entre dos composiciones enemigas opuestas');
+
+  // Y que el counter ordene por el dato: quien mejor cruce tiene contra esos
+  // tres tiene que puntuar mas alto en counter que quien peor lo tiene. Sin
+  // esto, el componente podria estar leyendo cualquier cosa y nadie se
+  // enteraria mientras el ranking siguiera moviendose.
+  const enemigos = ['Fanny', 'Ling', 'Lancelot'].map(h);
+  const cruceMedio = (nombre) => {
+    const v = enemigos.map((e) => matchup(counters, nombre, e.name)).filter((x) => x != null);
+    return v.reduce((a, b) => a + b, 0) / v.length;
+  };
+  const porCounter = [...unos].sort((a, b) => b.parts.counter.value - a.parts.counter.value);
+  ok(cruceMedio(porCounter[0].hero.name) > cruceMedio(porCounter[porCounter.length - 1].hero.name),
+    'el componente de counter no ordena el pool como el dato real de los cruces');
+});
+
+test('las reglas por tags siguen mandando donde NO hay dato', () => {
+  // Ahora que la matriz viene completa, las reglas escritas a mano no deciden
+  // casi nunca. Su trabajo es otro: sostener a un heroe recien salido, del que
+  // la API todavia no publica ni un cruce. Si eso se rompe, un heroe nuevo se
+  // quedaria sin ninguna lectura tactica y nadie lo notaria.
   const porNombre = (nombre) => {
     let x = 2166136261 ^ 31;
     for (const ch of nombre) x = Math.imul(x ^ ch.charCodeAt(0), 16777619);
@@ -313,19 +365,18 @@ test('la recomendación responde al equipo enemigo', () => {
   };
   const stats = indexByName(Object.fromEntries(
     all.map((x) => [x.name, { winRate: 0.497 + (porNombre(x.name) - 0.5) * 0.05, matches: 5000 }])));
-  const meta = { stats, patchAvgWinRate: 0.497 };
+  const meta = { stats, counters: undefined, patchAvgWinRate: 0.497 };
   const top3 = (nombres) =>
     rankRoamers(pool, { enemies: nombres.map(h), meta }).slice(0, 3).map((x) => x.hero.name);
 
   const vsDashes = top3(['Fanny', 'Ling', 'Lancelot']);
   const vsCuracion = top3(['Esmeralda', 'Uranus', 'Thamuz']);
-
   ok(h(vsDashes[0]).tags.includes('anti_mobility'),
-    `contra tres asesinos móviles el nº1 debería frenar dashes: ${vsDashes.join(', ')}`);
+    `sin datos, contra tres asesinos móviles el nº1 debería frenar dashes: ${vsDashes.join(', ')}`);
   ok(h(vsCuracion[0]).tags.includes('antiheal'),
-    `contra tres héroes de curación el nº1 debería cortar curación: ${vsCuracion.join(', ')}`);
+    `sin datos, contra tres héroes de curación el nº1 debería cortar curación: ${vsCuracion.join(', ')}`);
   ok(vsDashes[0] !== vsCuracion[0],
-    'la recomendación no cambia entre dos composiciones enemigas opuestas');
+    'sin datos, la recomendación no cambia entre dos composiciones enemigas opuestas');
 });
 
 test('ningún héroe acapara por acumular etiquetas', () => {
@@ -853,7 +904,10 @@ test('una corrida de ingesta degradada no llega a los datos guardados', async ()
   const buena = {
     heroes: Array.from({ length: 10 }, (_, i) => heroe(`H${i}`, ['roam'])),
     stats: Object.fromEntries(Array.from({ length: 10 }, (_, i) => [`H${i}`, {}])),
-    counters: Object.fromEntries(Array.from({ length: 10 }, (_, i) => [`H${i}`, {}])),
+    counters: Object.fromEntries(Array.from({ length: 10 }, (_, i) => [`H${i}`,
+      Object.fromEntries(Array.from({ length: 9 }, (_, j) => [`H${j}`, 0.5]))])),
+    synergies: Object.fromEntries(Array.from({ length: 10 }, (_, i) => [`H${i}`,
+      Object.fromEntries(Array.from({ length: 9 }, (_, j) => [`H${j}`, 0.5]))])),
   };
 
   ok(comparar(buena, buena).peores.length === 0, 'marca como peor una corrida identica');
@@ -873,6 +927,14 @@ test('una corrida de ingesta degradada no llega a los datos guardados', async ()
   const menosCounters = { ...buena, counters: { H0: {}, H1: {} } };
   ok(comparar(menosCounters, buena).peores.some((p) => p.clave === 'counters'),
     'no detecta que la corrida nueva trae muchos menos counters');
+
+  // Y el caso mas traicionero: los 10 heroes siguen teniendo fila, pero con
+  // dos cruces en vez de nueve. En el recuento de filas no cambia nada.
+  const filasFlacas = { ...buena,
+    counters: Object.fromEntries(Object.entries(buena.counters)
+      .map(([k, v]) => [k, Object.fromEntries(Object.entries(v).slice(0, 2))])) };
+  ok(comparar(filasFlacas, buena).peores.some((p) => p.clave === 'cruces'),
+    'no detecta que las filas vienen casi vacias, con los mismos heroes');
 
   // El margen esta para que el ruido normal de la API no pare el despliegue:
   // que un heroe no devuelva counters un dia no es una regresion.
@@ -1048,6 +1110,128 @@ test('eligiendo pronto recomienda heroes menos castigables que eligiendo ultimo'
   const sinCandidatos = rankRoamers(pool, { enemies: completo, meta });
   eq(conRiesgo[0].hero.name, sinCandidatos[0].hero.name,
     'con los cinco enemigos elegidos el riesgo de contrapick todavia cambia el orden');
+});
+
+test('la sinergia se lee en los dos sentidos, como los counters', async () => {
+  const { sinergia, synergyScore, indexByName } = await import('../src/engine/score.js');
+
+  // Llevar a A con B es lo mismo que llevar a B con A, asi que el dato vale
+  // igual por los dos lados. NO se le da la vuelta: eso es cosa de los
+  // counters, donde A gana lo que B pierde.
+  const m = indexByName({ Tigreal: { Layla: 0.56 } }, 2);
+  eq(sinergia(m, 'Tigreal', 'Layla'), 0.56);
+  eq(sinergia(m, 'Layla', 'Tigreal'), 0.56, 'no encuentra el dato por el otro lado');
+  eq(sinergia(m, 'Layla', 'Franco'), undefined, 'se inventa una sinergia que no existe');
+
+  // Y que synergyScore lo aproveche de verdad: sin esto el dato existia y no
+  // lo miraba nadie, que es como se perdia el 37% de los cruces.
+  const yo = { name: 'Layla', tags: [] };
+  const aliado = { name: 'Tigreal', tags: [] };
+  const conDato = synergyScore(yo, [aliado], m).value;
+  const sinDato = synergyScore(yo, [aliado], indexByName({}, 2)).value;
+  ok(conDato > sinDato, 'no usa el dato de sinergia cuando solo esta apuntado del otro lado');
+});
+
+test('un heroe ya elegido no se propone como ban aunque se escriba distinto', async () => {
+  const { suggestBans, indexByName } = await import('../src/engine/score.js');
+
+  // Mismo fallo que ya se arreglo en rankRoamers: comparar nombres crudos. La
+  // API y el catalogo escriben "X.Borg" y "X Borg", asi que un pick guardado
+  // con otra grafia seguia saliendo como ban recomendado.
+  const heroes = [
+    { name: 'X.Borg', tags: [], role: 'fighter' },
+    { name: 'Tigreal', tags: [], role: 'tank' },
+  ];
+  const stats = indexByName({ 'X.Borg': { winRate: 0.56, pickRate: 0.05, banRate: 0.4 },
+    Tigreal: { winRate: 0.51, pickRate: 0.04, banRate: 0.1 } });
+  const meta = { stats, patchAvgWinRate: 0.5 };
+
+  const sinNada = suggestBans(heroes, { meta }).map((b) => b.hero.name);
+  ok(sinNada.includes('X.Borg'), 'la comprobacion no vale: X.Borg no salia como ban de todas formas');
+
+  const conPick = suggestBans(heroes, { meta, enemies: [{ name: 'X Borg', tags: [] }] }).map((b) => b.hero.name);
+  ok(!conPick.includes('X.Borg'), 'propone banear a un heroe que ya esta elegido, escrito con otra grafia');
+});
+
+test('el registro sigue contando bien si la API cambia la grafia de un heroe', async () => {
+  const { siguioConsejo, resumen } = await import('../src/engine/registro.js');
+
+  // Las partidas viven meses en el movil. Si la API pasa de "X.Borg" a
+  // "X Borg", una partida vieja no puede cambiar de bando: es el unico dato
+  // con el que se puede comprobar si la app acierta.
+  ok(siguioConsejo({ pick: 'X.Borg', recomendados: ['X Borg', 'Chou'] }),
+    'una grafia distinta convierte un acierto en "por libre"');
+  ok(siguioConsejo({ pick: 'Yi Sun-shin', recomendados: ['Yi Sun Shin'] }),
+    'no reconoce el mismo heroe escrito con espacios');
+  ok(!siguioConsejo({ pick: 'Chou', recomendados: ['Franco'] }), 'da por seguido un consejo que no se siguio');
+  ok(!siguioConsejo({ pick: '', recomendados: [''] }), 'cuenta una partida sin pick');
+
+  // Y que el resumen no concluya nada sin muestra en LAS DOS ramas.
+  const con = Array.from({ length: 40 }, () => ({ pick: 'A', recomendados: ['A'], gane: true }));
+  const sin = Array.from({ length: 3 }, () => ({ pick: 'B', recomendados: ['A'], gane: false }));
+  ok(!resumen([...con, ...sin]).concluyente, 'concluye con 40 partidas contra 3');
+});
+
+test('el JSON de datos se guarda compacto y se vuelve a leer entero', async () => {
+  const { serializar } = await import('./ingest.mjs');
+
+  const fila = (n) => Object.fromEntries(
+    Array.from({ length: 132 }, (_, i) => [`H${i}`, 0.5 + ((n * 7 + i) % 100) / 10000]));
+  const datos = {
+    generatedAt: '2026-01-01T00:00:00.000Z',
+    heroes: [{ name: 'H0', lanes: ['roam'] }],
+    counters: Object.fromEntries(Array.from({ length: 133 }, (_, i) => [`H${i}`, fila(i)])),
+    synergies: Object.fromEntries(Array.from({ length: 133 }, (_, i) => [`H${i}`, fila(i)])),
+  };
+
+  const texto = serializar(datos);
+  const vuelta = JSON.parse(texto);
+
+  const pares = (m) => Object.values(m).reduce((n, f) => n + Object.keys(f).length, 0);
+  eq(pares(vuelta.counters), pares(datos.counters), 'se pierden cruces al guardar');
+  eq(pares(vuelta.synergies), pares(datos.synergies), 'se pierden sinergias al guardar');
+  eq(vuelta.generatedAt, datos.generatedAt, 'se pierde algo fuera de las matrices');
+
+  // La marca de sustitucion no puede quedarse en el fichero: la primera
+  // version usaba \u0000 y JSON.stringify lo escapaba, asi que el fichero
+  // salia con basura donde iban los datos y seguia siendo JSON valido.
+  ok(!texto.includes('@@fila'), 'la marca interna se ha quedado en el fichero');
+  ok(!/\\u0000/.test(texto), 'quedan caracteres de control escapados en el fichero');
+
+  // Una linea por heroe, no una por numero: es lo que hace el diff legible
+  // desde el movil. 133 + 133 filas y el resto de campos, no 35.000 lineas.
+  ok(texto.split('\n').length < 1000,
+    `el fichero se ha vuelto a partir en una linea por numero: ${texto.split('\n').length} lineas`);
+
+  // Y redondeado: la quinta cifra de un winrate es ruido y ocupa.
+  const v = Object.values(vuelta.counters.H0)[0];
+  ok(String(v).replace(/^0\./, '').length <= 4, `winrate sin redondear: ${v}`);
+});
+
+test('no propone banear a quien salta encima de tu TANQUE', async () => {
+  const { suggestBans, hayQueProtegerlo, indexByName } = await import('../src/engine/score.js');
+
+  // Un tanque tambien lleva el tag `immobile`. Sin filtrar, la app decia
+  // "banealo porque salta encima de tu Tigreal", que es al reves de como se
+  // juega. Ya se corrigio en el peel de la sinergia y aqui habia sobrevivido.
+  ok(!hayQueProtegerlo({ tags: ['immobile', 'tanky', 'burst'] }), 'trata a un tanque como si hubiera que protegerlo');
+  ok(hayQueProtegerlo({ tags: ['immobile', 'hypercarry'] }), 'no protege a un tirador inmovil');
+
+  const asesino = { name: 'Asesino', tags: ['dive', 'burst'], role: 'assassin' };
+  const otro = { name: 'Otro', tags: [], role: 'mage' };
+  const stats = indexByName({ Asesino: { winRate: 0.52, pickRate: 0.03, banRate: 0.1 },
+    Otro: { winRate: 0.52, pickRate: 0.03, banRate: 0.1 } });
+  const meta = { stats, patchAvgWinRate: 0.5 };
+
+  const conTanque = suggestBans([asesino, otro], { meta, allies: [{ name: 'Tigreal', tags: ['immobile', 'tanky'] }] });
+  const razonesTanque = conTanque.find((b) => b.hero.name === 'Asesino')?.reasons ?? [];
+  eq(razonesTanque.length, 0, 'avisa de que le van a saltar encima al tanque, que es lo que el tanque quiere');
+
+  // Y con un tirador de verdad SI tiene que avisar: si no, la comprobacion
+  // pasaria por haber apagado la regla entera.
+  const conCarry = suggestBans([asesino, otro], { meta, allies: [{ name: 'Layla', tags: ['immobile', 'hypercarry'] }] });
+  const razonesCarry = conCarry.find((b) => b.hero.name === 'Asesino')?.reasons ?? [];
+  ok(razonesCarry.length > 0, 'ya no avisa de que le van a saltar encima al tirador');
 });
 
 await Promise.all(pendientes); // se esperan de verdad, sin plazos inventados

@@ -8,6 +8,48 @@ que esto no se olvida.
 Criterio: `0.X.0` cuando cambia cómo decide la app o qué hace; `0.0.X` para
 correcciones.
 
+## 1.5.0
+
+**La app deja de adivinar.** Hasta ahora, de cada 100 cruces posibles entre tu
+héroe y un enemigo, la app tenía el dato real de 11. En los otros 89 decidía con
+reglas que escribí yo a mano. Ahora tiene los 100.
+
+- **17.556 cruces reales en vez de 1.330**, y lo mismo en sinergias. El dato
+  estaba ahí desde siempre: la API tiene dos rutas para lo mismo y la app estaba
+  pidiendo por la que devuelve cinco rivales por héroe en vez de los 132. Ahora
+  la ingesta prueba las rutas candidatas y se queda con la que más trae, así que
+  si vuelven a mover las cosas de sitio se entera sola.
+- **Se nota mucho en lo que te recomienda.** En 3.600 drafts simulados, el héroe
+  más repetido pasa de salir nº1 el 12% de las veces al 7%, y los héroes
+  distintos que llegan a ser nº1 pasan de 85 a 105. Es decir: la app responde al
+  draft que tienes delante en vez de repetir sus favoritos.
+- **El aviso de "estás eligiendo a ciegas y este pick es castigable" vuelve a
+  salir.** Estaba calibrado sobre los cinco cruces más extremos de cada héroe,
+  que era todo lo que había; con la matriz entera, ningún héroe llegaba al
+  umbral y el aviso no habría vuelto a aparecer nunca sin que nada fallara.
+  Ahora sale en el 23% de los drafts.
+- **La sinergia se lee en los dos sentidos.** Llevar a A con B es lo mismo que
+  llevar a B con A, pero la app solo miraba un lado y se dejaba el 37% de los
+  datos. Cambia el héroe recomendado en 1 de cada 10 drafts.
+- **Ya no propone banear a quien salta encima de tu tanque.** Un tanque está
+  etiquetado como "inmóvil", así que la app lo trataba como si hubiera que
+  protegerlo. Era el 12% de los avisos de peligro. Al tanque le saltan encima a
+  propósito: para eso está.
+- El registro de partidas no se descuadra si la API cambia cómo escribe el
+  nombre de un héroe. Tus partidas viven meses en el móvil y una partida vieja
+  no puede cambiar de bando.
+- El fichero de datos ocupa la mitad de lo que ocuparía y su diff se lee: una
+  línea por héroe en vez de una por número.
+
+Una cosa que descubrí de camino y te interesa saber: ahora que hay dato de
+todos los cruces se pueden **medir las doce reglas tácticas** que llevo escritas
+a mano. Solo una se ve en las partidas — la de cortar dashes, y por cuatro
+décimas de punto. Las otras once no se distinguen del ruido. No las he borrado,
+porque el dato de la API es de "estar en la misma partida" y no del duelo de
+carril, así que diluye los efectos reales; pero deja claro que el motor no
+debería apoyarse en ellas, y ya no lo hace: solo entran cuando se trata de un
+héroe tan nuevo que la API aún no publica ni un cruce suyo.
+
 ## 1.4.0
 
 - **Eligiendo pronto, te propone héroes que no te puedan castigar.** Ya lo hacía

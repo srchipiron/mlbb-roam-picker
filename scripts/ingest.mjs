@@ -229,30 +229,40 @@ async function discoverRoutes() {
       const routes = {};
       for (const [key, patterns] of Object.entries(WANTED)) {
         const wantsId = key === 'counter' || key === 'compatibility' || key === 'detail';
-        // Por patrón, en orden de preferencia, no todos mezclados.
-        let candidatos = [];
+        // Por patrón, en orden de preferencia: manda el primero que exista,
+        // pero se guardan TODOS los que encajan con cualquier patrón. Antes se
+        // cortaba en el primer patrón con resultados, y por eso la ruta de
+        // teammates -que encaja con un patrón posterior- no llegaba nunca a
+        // compararse con la de compatibility.
+        const candidatos = [];
         for (const re of patterns) {
-          candidatos = allPaths.filter((p) => re.test(p));
-          if (candidatos.length) break;
-        }
-        // Las rutas de /academy son material didáctico, no estadística de partidas.
-        if (candidatos.length > 1) {
-          const propias = candidatos.filter((p) => !/academy/i.test(p));
-          if (propias.length) candidatos = propias;
+          for (const p of allPaths) {
+            if (re.test(p) && !candidatos.includes(p)) candidatos.push(p);
+          }
         }
         // Para counter y compatibilidad se prefiere la ruta con {id}, pero si la
         // API pide el héroe como parámetro normal, también sirve: exigir {id}
         // dejaba la ruta sin encontrar y tiraba todos los counters.
-        const match = wantsId
-          ? candidatos.find((p) => /\{/.test(p)) ?? candidatos[0]
-          : candidatos.find((p) => !/\{/.test(p));
+        const conId = candidatos.filter((p) => /\{/.test(p));
+        const orden = wantsId ? [...conId, ...candidatos] : candidatos.filter((p) => !/\{/.test(p));
+        const match = orden[0];
         if (!match) continue;
-        const [method, op] = Object.entries(schema.paths[match])[0];
-        routes[key] = {
-          template: origin + match,
-          method: method.toUpperCase(),
-          params: (op?.parameters ?? []).map((prm) => prm.name),
+
+        const describir = (ruta) => {
+          const [method, op] = Object.entries(schema.paths[ruta])[0];
+          return {
+            template: origin + ruta,
+            method: method.toUpperCase(),
+            params: (op?.parameters ?? []).map((prm) => prm.name),
+          };
         };
+        routes[key] = describir(match);
+        // Los candidatos que quedan, para poder ELEGIR midiendo en vez de
+        // suponiendo. Aquí antes se descartaban las rutas de /academy dando por
+        // hecho que eran material didáctico. Era falso y caro: /academy da los
+        // 132 cruces de cada héroe y la que se prefería, cinco.
+        const otras = [...new Set(orden)].filter((p) => p !== match);
+        if (wantsId && otras.length) routes[key].alternativas = otras.map(describir);
       }
 
       diagnostics.routes = Object.fromEntries(
@@ -527,6 +537,87 @@ async function fetchStats(rank) {
  * media, y distinguirlos por su tamaño fallaba: un delta de +0.25 se tomaba por
  * un winrate del 25%. Ahora se mira QUÉ campo vino, que es lo que lo determina.
  */
+/**
+ * Entre las rutas candidatas, la que MAS cruces devuelve de verdad.
+ *
+ * El esquema dice que varias rutas hablan de counters; no dice cual trae el
+ * dato entero. Antes se elegia por el nombre -y se descartaban las de
+ * /academy dando por hecho que eran material didactico-. Era falso y salia
+ * caro: la ruta preferida devolvia CINCO cruces por heroe y la descartada los
+ * 132, o sea la matriz completa. La cobertura de la app pasaba del 11% al 100%
+ * por elegir mal una ruta.
+ *
+ * Ahora se llama a cada candidata con un heroe de prueba y gana la que mas
+ * pares legibles trae. Si la API vuelve a mover las rutas de sitio, esto se
+ * entera solo, que es la regla de toda la ingesta.
+ */
+async function elegirRutaConMasDatos(clave, heroeDePrueba) {
+  const ruta = ROUTES?.[clave];
+  if (!ruta?.alternativas?.length) return;
+
+  const values = { days: DAYS, past_days: DAYS, rank: RANK, rank_id: RANK, lang: 'en', size: 200, index: 1 };
+  const medir = async (r) => {
+    try {
+      const { data } = await callRoute(r, { ...values, hero_id: heroeDePrueba, id: heroeDePrueba }, heroeDePrueba);
+      return Object.keys(relationMap(recogerPares(data), new Map())).length || recogerPares(data).length;
+    } catch {
+      return -1;
+    }
+  };
+
+  let mejor = { ruta, pares: await medir(ruta) };
+  for (const alt of ruta.alternativas) {
+    const pares = await medir(alt);
+    await sleep(200);
+    if (pares > mejor.pares) mejor = { ruta: alt, pares };
+  }
+
+  (diagnostics.rutasMedidas ??= {})[clave] = `${mejor.pares} pares · ${mejor.ruta.template}`;
+  if (mejor.ruta !== ruta) {
+    console.log(`  · ${clave}: gana ${mejor.ruta.template} con ${mejor.pares} pares`);
+    ROUTES[clave] = { ...mejor.ruta, alternativas: ruta.alternativas };
+  } else {
+    console.log(`  · ${clave}: se queda ${ruta.template} con ${mejor.pares} pares`);
+  }
+}
+
+/**
+ * El JSON de salida, con las dos matrices en UNA LINEA POR HEROE.
+ *
+ * Desde que los counters vienen completos son 17.556 numeros. Con la
+ * indentacion normal eso son 17.556 lineas: el fichero pasa de 377 KB a 623 KB
+ * y el diff se vuelve ilegible, justo lo que Javi no puede permitirse
+ * revisando desde el movil. Con una linea por heroe, el diff dice "cambiaron
+ * estos 12 heroes" en vez de doce mil lineas sueltas.
+ *
+ * Los winrates se redondean a cuatro decimales. La quinta cifra de un winrate
+ * es ruido: la API la da, pero no significa nada y ocupa.
+ */
+export function serializar(out) {
+  // Marca de texto normal, no un caracter de control: JSON.stringify escapa
+  // \u0000 como la secuencia literal "\u0000", asi que la marca no volvia a
+  // encontrarse y el fichero salia con basura donde iban los datos.
+  const MARCA = '@@fila';
+  const filas = [];
+  const compactar = (m) => Object.fromEntries(Object.entries(m ?? {}).map(([k, fila]) => {
+    const redondeada = Object.fromEntries(
+      Object.entries(fila ?? {}).map(([n, v]) => [n, typeof v === 'number' ? Math.round(v * 1e4) / 1e4 : v]),
+    );
+    filas.push(JSON.stringify(redondeada));
+    return [k, `${MARCA}:${filas.length - 1}:${MARCA}`];
+  }));
+
+  const texto = JSON.stringify(
+    { ...out, counters: compactar(out.counters), synergies: compactar(out.synergies) },
+    null,
+    2,
+  );
+  return texto.replace(
+    new RegExp(`"${MARCA}:(\\d+):${MARCA}"`, 'g'),
+    (_, i) => filas[Number(i)],
+  );
+}
+
 async function fetchRelations(roamNames, stats, heroList) {
   const counters = {};
   const synergies = {};
@@ -564,7 +655,8 @@ async function fetchRelations(roamNames, stats, heroList) {
     if (idPorNombre.has(norm(name))) diagnostics.relations.conId++;
     else diagnostics.relations.porNombre++;
     try {
-      const values = { days: DAYS, past_days: DAYS, rank: RANK, rank_id: RANK, lang: 'en' };
+      // size grande: por defecto la API pagina de 20 en 20 y se perdian cruces.
+      const values = { days: DAYS, past_days: DAYS, rank: RANK, rank_id: RANK, lang: 'en', size: 200, index: 1 };
       const [c, s] = await Promise.all([
         // Sin ruta en el esquema no se prueba a ciegas: acababa llamando a
         // dominios muertos y llenando el diagnóstico de errores de Vercel que
@@ -689,6 +781,17 @@ async function main() {
   }
   const stats = statsByRank[RANK] ?? Object.values(statsByRank)[0] ?? previous?.stats ?? {};
 
+  // Antes de pedir 266 veces, comprobar por cual de las rutas candidatas viene
+  // el dato completo. Cuesta unas pocas peticiones y ha valido la matriz entera.
+  const heroeDePrueba = heroList.find((h) => h.id)?.id ?? nombresPedir[0];
+  for (const clave of ['counter', 'compatibility']) {
+    try {
+      await elegirRutaConMasDatos(clave, heroeDePrueba);
+    } catch (err) {
+      console.warn(`  · ${clave}: no se ha podido comparar rutas (${err.message}); se usa la del esquema`);
+    }
+  }
+
   let relations = { counters: previous?.counters ?? {}, synergies: previous?.synergies ?? {} };
   try {
     const fresh = await fetchRelations(nombresPedir, stats, heroList);
@@ -743,6 +846,7 @@ async function main() {
       routes: diagnostics.routes ?? null,
       relations: diagnostics.relations ?? null,
       speciality: diagnostics.speciality ?? null,
+      rutasMedidas: diagnostics.rutasMedidas ?? null,
       dano: diagnostics.dano ?? null,
       rangos: diagnostics.rangos ?? null,
       ok: [...new Set(diagnostics.ok)].slice(0, 6),
@@ -755,7 +859,7 @@ async function main() {
   };
 
   await mkdir(dirname(OUT), { recursive: true });
-  await writeFile(OUT, JSON.stringify(out, null, 2) + '\n');
+  await writeFile(OUT, serializar(out) + '\n');
 
   console.log(`Escrito ${OUT}`);
   if (diagnostics.relations) {

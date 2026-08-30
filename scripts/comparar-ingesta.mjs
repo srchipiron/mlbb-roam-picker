@@ -28,6 +28,11 @@ export function medir(datos) {
     conDano: heroes.filter((h) => h?.damage).length,
     stats: Object.keys(datos?.stats ?? {}).length,
     counters: Object.keys(datos?.counters ?? {}).length,
+    // Los PARES, no solo cuantos heroes tienen fila. Una corrida puede traer
+    // los 133 con fila y cinco cruces cada uno en vez de 132: son los mismos
+    // 133 en este recuento y una app mucho mas tonta.
+    cruces: Object.values(datos?.counters ?? {}).reduce((n, fila) => n + Object.keys(fila ?? {}).length, 0),
+    sinergias: Object.values(datos?.synergies ?? {}).reduce((n, fila) => n + Object.keys(fila ?? {}).length, 0),
   };
 }
 

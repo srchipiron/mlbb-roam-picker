@@ -33,12 +33,15 @@ export function analizarDraft({
 
   // 1. Tu carril. Es lo primero que quieres saber.
   //
-  //    Primero se busca el matchup DE LA PAREJA, que es el dato bueno. Pero la
-  //    API solo cubre un 11% de los cruces, así que casi nunca lo hay: medido,
-  //    esta frase salía en el 2% de los drafts.
+  //    Primero se busca el matchup DE LA PAREJA, que es el dato bueno. Desde
+  //    1.5.0 lo hay SIEMPRE: la matriz viene completa. Aun así esta frase solo
+  //    sale en el 4,9% de los drafts, y está bien que así sea: la mayoría de
+  //    los cruces reales quedan a menos de tres puntos del empate, y decir
+  //    "ganas tu carril al 51%" no es información, es ruido con formato.
   //
-  //    Cuando falta, se comparan los winrates sueltos de los dos héroes. Es
-  //    peor información -dice quién está fuerte este parche, no quién le gana a
+  //    Cuando el cruce está demasiado igualado -o el rival es un héroe recién
+  //    salido, sin dato- se comparan los winrates sueltos de los dos. Es peor
+  //    información -dice quién está fuerte este parche, no quién le gana a
   //    quién- y por eso se dice con otras palabras, para no vender una cosa por
   //    otra.
   if (rivalLinea) {

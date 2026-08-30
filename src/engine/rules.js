@@ -174,9 +174,17 @@ export const ROLE_VETO = {
  * Es una tabla propia porque la de counters describe lo contrario: lo que un
  * roamer le hace a un enemigo. Reutilizarla al revés daba avisos sin sentido.
  */
+/**
+ * `soloSiFragil`: la regla solo vale si el aliado es de los que hay que
+ * proteger. Un tanque tambien lleva el tag `immobile`, asi que sin esto la app
+ * proponia banear a un asesino "porque salta encima de tu Tigreal", que es al
+ * reves de como se juega: el tanque QUIERE que le salten encima. Es el mismo
+ * fallo que ya se corrigio en el peel de synergyScore y que aqui sobrevivio.
+ * Medido: el 12,1% de los disparos de esta tabla protegian a un tanque.
+ */
 export const DANGER_RULES = [
-  { allyTag: 'immobile', enemyTag: 'dive', weight: 1.0, why: 'peligro.saltaEncima' },
-  { allyTag: 'immobile', enemyTag: 'burst', weight: 0.9, why: 'peligro.revienta' },
+  { allyTag: 'immobile', enemyTag: 'dive', weight: 1.0, why: 'peligro.saltaEncima', soloSiFragil: true },
+  { allyTag: 'immobile', enemyTag: 'burst', weight: 0.9, why: 'peligro.revienta', soloSiFragil: true },
   { allyTag: 'hypercarry', enemyTag: 'assassin_late', weight: 0.9, why: 'peligro.cazaLate' },
   { allyTag: 'heal', enemyTag: 'antiheal', weight: 0.8, why: 'peligro.anulaCuracion' },
   { allyTag: 'sustain', enemyTag: 'antiheal', weight: 0.8, why: 'peligro.anulaCuracion' },
