@@ -20,10 +20,11 @@ comprobaciones automáticas importan más de lo normal.
 
 ## Reglas de trabajo
 
-**Nunca subas nada sin pasar `npm test`.** Son cuatro comprobaciones y 42
+**Nunca subas nada sin pasar `npm test`.** Son cuatro comprobaciones y 44
 pruebas (orden de declaraciones, CSS, versión documentada y motor). El
-despliegue corre esas cuatro más una quinta que no está en `npm test`: que
-`roam-meta.json` se haya regenerado hace menos de media hora. Si algo falla, el despliegue se detiene y la app se queda
+despliegue corre esas cuatro más dos que no están en `npm test`: que
+`roam-meta.json` se haya regenerado hace menos de media hora, y que la corrida
+nueva no resuelva menos que la guardada (`comparar-ingesta.mjs`). Si algo falla, el despliegue se detiene y la app se queda
 con la versión anterior funcionando, que es lo correcto.
 
 **Sube la versión en `package.json` y documéntala en `CHANGELOG.md`.** Criterio:
@@ -41,7 +42,7 @@ sensatez táctica, no solo que "parezca mejor".
 **Prefiere el dato a la regla escrita a mano.** Los pesos de `DEFAULT_WEIGHTS`
 dan el 92% de la decisión a datos reales y el 8% a `rules.js`. El porcentaje que
 de verdad manda es más bajo, porque donde no hay counter entran las reglas por
-tags, y la matriz solo cubre el 7,5% de los cruces. El botón **Diagnóstico** lo
+tags, y la matriz solo cubre el 11% de los cruces. El botón **Diagnóstico** lo
 mide en vivo: fíate de ese número, no de este párrafo. Cada regla nueva que
 añadas a `rules.js` es deuda: envejece cuando Moonton reequilibra.
 
@@ -106,6 +107,17 @@ Todos estos llegaron a producción y costaron rondas enteras de ida y vuelta:
   `mergeCatalog` (catálogo + rol de la API) y la ingesta miraba solo el catálogo,
   así que Marcel entraba en las recomendaciones sin que nadie le pidiera
   counters. Ahora la ingesta importa `mergeCatalog`. No vuelvas a duplicarlo.
+- **Una corrida degradada commiteada por el bot de datos** — `update-data.yml`
+  ejecutaba la ingesta encima de `public/data` y commiteaba lo que saliera. Salió
+  una corrida con los 133 héroes SIN `lanes` y SIN `role`, y con counters de 34
+  héroes en vez de 133. Cuatro de las cinco líneas se quedaban con el pool vacío.
+  El diff no chillaba porque la ingesta conserva los datos anteriores cuando un
+  endpoint falla: parecía una corrida normal con `generatedAt` nuevo. El
+  despliegue tampoco lo habría parado: comprobaba la frescura y que hubiera
+  estadísticas, no que se hubiera resuelto tanto como antes. Ahora las dos
+  ingestas escriben a un temporal (`--out`), `scripts/comparar-ingesta.mjs`
+  compara con lo guardado y solo se copia encima si no empeora. Hay una prueba
+  que falla si alguien vuelve a apuntar la ingesta directa a `public/data`.
 
 ## Los idiomas
 
@@ -175,5 +187,7 @@ y el botón Diagnóstico mentía sobre los rangos. No le quites el `--out`.
   antes de que comparar los dos winrates signifique algo; el diagnóstico dice
   cuántas faltan. Hasta entonces NO toques los pesos: es exactamente el error
   que la regla de arriba prohíbe, solo que con más pasos.
-- La cobertura de la matriz de counters es del 7,5%: la API devuelve unos 10
-  matchups por héroe, no los 133. En los cruces sin dato mandan las reglas.
+- La cobertura de la matriz de counters es del 11%: la API devuelve unos 10
+  matchups por héroe, no los 133, y `matchup()` aprovecha los dos sentidos (un
+  32% más de cruces que leyendo solo la fila del héroe). En los que faltan
+  mandan las reglas.

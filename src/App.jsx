@@ -305,7 +305,7 @@ export default function App() {
             {t('app.sinWinrates')}
             {meta?.diagnostics && (
               <details className="diag">
-                <summary>Ver por qué</summary>
+                <summary>{t('app.verPorQue')}</summary>
                 <p>Base: <code>{meta.diagnostics.base ?? 'ninguna'}</code></p>
                 {meta.diagnostics.schema && (
                   <p>Esquema: <code>{meta.diagnostics.schema.pathCount} rutas en {meta.diagnostics.schema.url}</code></p>

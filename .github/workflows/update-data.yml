@@ -18,7 +18,18 @@ jobs:
           node-version: '20'
 
       - name: Ingesta
-        run: node scripts/ingest.mjs --rank glory --days 7
+        # A un temporal, no encima de los datos buenos: si esta corrida sale
+        # peor, los de antes tienen que seguir intactos para poder compararlos.
+        run: node scripts/ingest.mjs --rank glory --days 7 --out /tmp/nueva.json
+
+      - name: Descartar la corrida si resuelve menos que la guardada
+        # La ingesta se degrada en silencio y por diseño. Sin esto, el bot
+        # commiteaba la corrida mala igual: paso de 133 heroes con linea y rol
+        # a 0, y de 133 counters a 34, sin que nada avisara.
+        run: node scripts/comparar-ingesta.mjs /tmp/nueva.json public/data/roam-meta.json
+
+      - name: Guardar la corrida buena
+        run: cp /tmp/nueva.json public/data/roam-meta.json
 
       - name: Avisar de héroes nuevos sin tags
         run: |

@@ -8,6 +8,23 @@ que esto no se olvida.
 Criterio: `0.X.0` cuando cambia cómo decide la app o qué hace; `0.0.X` para
 correcciones.
 
+## 1.2.1
+
+- **La app ya no puede publicarse con los datos a medias.** La descarga de datos
+  se rompe en silencio a propósito: si la API falla, conserva lo anterior y
+  sigue. El problema es que nadie comprobaba si lo nuevo era peor que lo
+  guardado, y ya había pasado: una corrida dejó a los 133 héroes sin línea y sin
+  rol, y los cruces de 133 héroes a 34. Con esos datos, cuatro de las cinco
+  líneas se quedan sin héroes que recomendar y la app no tiene de qué quejarse.
+  Ahora una corrida que resuelva menos que la anterior se descarta y el
+  despliegue se para, que es lo correcto: te quedas con la app de antes
+  funcionando.
+- El aviso de "cuidado con" lee los cruces en las dos direcciones, como el resto
+  del motor. Ve un tercio más de datos, aunque en la práctica el aviso sale casi
+  las mismas veces: lo que se ganaba estaba casi todo del lado bueno.
+- En inglés ya no se cuelan seis textos en español (el "Ver por qué" del
+  diagnóstico y las etiquetas de accesibilidad de los botones).
+
 ## 1.2.0
 
 La app se abre al público.

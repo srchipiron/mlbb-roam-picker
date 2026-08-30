@@ -840,6 +840,58 @@ test('el autodiagnóstico detecta datos rotos y aprueba los buenos', async () =>
   ok(roto.texto.includes('Winrate NO influye'), 'no detecta que los winrates no entran');
 });
 
+test('una corrida de ingesta degradada no llega a los datos guardados', async () => {
+  // Esto llego a produccion: el bot de datos commiteo una corrida con los 133
+  // heroes SIN linea y SIN rol, y con counters de 34 en vez de 133. Cuatro de
+  // las cinco lineas se quedaban sin pool. El diff parecia normal porque la
+  // ingesta conserva los datos anteriores cuando un endpoint falla: solo
+  // cambiaba generatedAt.
+  const { comparar, medir } = await import('./comparar-ingesta.mjs');
+
+  const heroe = (n, lanes) => ({ name: n, role: 'tank', lanes });
+  const buena = {
+    heroes: Array.from({ length: 10 }, (_, i) => heroe(`H${i}`, ['roam'])),
+    stats: Object.fromEntries(Array.from({ length: 10 }, (_, i) => [`H${i}`, {}])),
+    counters: Object.fromEntries(Array.from({ length: 10 }, (_, i) => [`H${i}`, {}])),
+  };
+
+  ok(comparar(buena, buena).peores.length === 0, 'marca como peor una corrida identica');
+
+  const sinLineas = { ...buena, heroes: buena.heroes.map((h) => ({ ...h, lanes: [] })) };
+  ok(comparar(sinLineas, buena).peores.some((p) => p.clave === 'conLinea'),
+    'no detecta que la corrida nueva se ha quedado sin lineas');
+
+  const sinRol = { ...buena, heroes: buena.heroes.map(({ role, ...h }) => h) };
+  ok(comparar(sinRol, buena).peores.some((p) => p.clave === 'conRol'),
+    'no detecta que la corrida nueva se ha quedado sin roles');
+
+  const menosCounters = { ...buena, counters: { H0: {}, H1: {} } };
+  ok(comparar(menosCounters, buena).peores.some((p) => p.clave === 'counters'),
+    'no detecta que la corrida nueva trae muchos menos counters');
+
+  // El margen esta para que el ruido normal de la API no pare el despliegue:
+  // que un heroe no devuelva counters un dia no es una regresion.
+  const unoMenos = { ...buena, counters: Object.fromEntries(Object.entries(buena.counters).slice(0, 9)) };
+  ok(comparar(unoMenos, buena).peores.length === 0, 'un heroe de menos no puede parar el despliegue');
+
+  // Y la primera vez no hay con que comparar: no puede bloquear.
+  ok(medir({}).heroes === 0, 'medir() no aguanta un JSON vacio');
+});
+
+test('los workflows que publican datos pasan por el guardarrail', () => {
+  // Si alguien vuelve a poner la ingesta escribiendo directa sobre
+  // public/data, el guardarrail deja de mirar y volvemos al fallo de arriba.
+  for (const f of ['deploy.yml', 'update-data.yml']) {
+    const yml = readFileSync(resolve(ROOT, '.github/workflows', f), 'utf8');
+    const ingesta = yml.split('\n').filter((l) => l.includes('scripts/ingest.mjs'));
+    ok(ingesta.length > 0, `${f}: ya no ejecuta la ingesta`);
+    for (const l of ingesta) {
+      ok(l.includes('--out'), `${f}: la ingesta escribe directa sobre los datos buenos`);
+    }
+    ok(yml.includes('scripts/comparar-ingesta.mjs'), `${f}: no compara la corrida con la guardada`);
+  }
+});
+
 await Promise.all(pendientes); // se esperan de verdad, sin plazos inventados
 
 console.log(`\n${pasadas} pruebas correctas, ${fallos} fallos.`);

@@ -35,7 +35,21 @@ jobs:
         # Sin continue-on-error: si la ingesta revienta, el despliegue debe
         # fallar. Con el, se publicaba la app nueva con los datos congelados del
         # despliegue anterior y no habia forma de notarlo salvo mirando la hora.
-        run: node scripts/ingest.mjs --rank glory --days 7
+        #
+        # A un temporal: hasta saber que esta corrida no es peor que la
+        # guardada, los datos buenos no se tocan.
+        run: node scripts/ingest.mjs --rank glory --days 7 --out /tmp/nueva.json
+
+      - name: Descartar la corrida si resuelve menos que la guardada
+        # Reventar es facil de ver; degradarse no. La ingesta conserva los datos
+        # anteriores cuando un endpoint falla, asi que una corrida mala pasaba
+        # la comprobacion de frescura y se publicaba: 133 heroes con linea y rol
+        # a 0, y los counters de 133 a 34. Cuatro de las cinco lineas se quedan
+        # sin pool y la app no tiene con que quejarse.
+        run: node scripts/comparar-ingesta.mjs /tmp/nueva.json public/data/roam-meta.json
+
+      - name: Guardar la corrida buena
+        run: cp /tmp/nueva.json public/data/roam-meta.json
 
       - name: Comprobar que los datos son de ahora
         run: |

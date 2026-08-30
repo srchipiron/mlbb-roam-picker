@@ -43,6 +43,12 @@ const ES = {
   'app.sinWinrates': 'Sin winrates: el ranking sale solo de composición y counters por rol.',
   'app.sinPool': 'Todavía no hay datos de qué héroes se juegan en {linea}. Se descargan con el meta: vuelve a abrir la app en un rato.',
   'app.errorDatos': 'No se han podido cargar los datos ({error}).',
+  'app.verPorQue': 'Ver por qué',
+  'app.quitar': 'Quitar {nombre}',
+  'app.elegirHeroe': 'Elegir héroe',
+  'app.elegirLinea': 'Elegir línea',
+  'app.marcarRivalDe': 'Marcar a {nombre} como tu rival',
+  'app.apuntarPartida': 'Apuntar partida',
 
   // --- líneas ---
   'linea.roam': 'Roam',
@@ -165,6 +171,12 @@ const EN = {
   'app.sinWinrates': 'No win rates: ranking comes only from composition and role counters.',
   'app.sinPool': 'No data yet on which heroes are played in {linea}. It arrives with the meta: reopen the app in a while.',
   'app.errorDatos': 'Could not load the data ({error}).',
+  'app.verPorQue': 'See why',
+  'app.quitar': 'Remove {nombre}',
+  'app.elegirHeroe': 'Choose hero',
+  'app.elegirLinea': 'Choose lane',
+  'app.marcarRivalDe': 'Mark {nombre} as your rival',
+  'app.apuntarPartida': 'Log match',
 
   'linea.roam': 'Roam',
   'linea.jungle': 'Jungle',

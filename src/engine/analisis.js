@@ -30,7 +30,6 @@ export function analizarDraft({
   if (!top) return salida;
 
   const hero = top.hero ?? top;
-  const fila = lookup(meta.counters, hero.name);
 
   // 1. Tu carril. Es lo primero que quieres saber.
   //
@@ -63,9 +62,12 @@ export function analizarDraft({
 
   // 2. Quién te va a hacer daño. El peor matchup entre los que YA están
   //    elegidos, no un enemigo hipotético.
-  if (fila && enemies.length) {
+  if (enemies.length) {
+    // matchup() y no lookup(): mira las dos direcciones, igual que el resto
+    // del motor. Con el lookup de una sola se perdía el 47% de los cruces que
+    // la API sí tiene, solo que apuntados al revés.
     const peor = enemies
-      .map((e) => ({ e, v: lookup(fila, e.name) }))
+      .map((e) => ({ e, v: matchup(meta.counters, hero.name, e.name) }))
       .filter((x) => x.v != null && x.v < 0.5 - MATCHUP_CLARO)
       .sort((a, b) => a.v - b.v)[0];
     if (peor && peor.e.name !== rivalLinea) {

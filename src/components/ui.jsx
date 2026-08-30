@@ -13,14 +13,6 @@ const PART_COLORS = {
   mastery: 'var(--c-mastery)',
 };
 
-const PART_LABELS = {
-  meta: 'Meta',
-  counter: 'Counter',
-  synergy: 'Sinergia',
-  comp: 'Composición',
-  mastery: 'Tu maestría',
-};
-
 /** Fila de huecos de un bando. Tocar un hueco abre el selector. */
 export function Side({ title, kind, picks, max, onAdd, onRemove, markedName, onMark, markHint, autoName, t = tPorDefecto }) {
   const slots = [...picks, ...Array(Math.max(0, max - picks.length)).fill(null)];
@@ -42,14 +34,14 @@ export function Side({ title, kind, picks, max, onAdd, onRemove, markedName, onM
                   className="mark"
                   onClick={() => onMark(hero)}
                   aria-pressed={markedName === hero.name}
-                  aria-label={`Marcar a ${hero.name} como su roam`}
-                  title="Marcar como su roam"
+                  aria-label={t('app.marcarRivalDe', { nombre: hero.name })}
+                  title={t('app.marcarRivalDe', { nombre: hero.name })}
                 >
                   {markedName === hero.name ? '◉' : (!markedName && autoName === hero.name ? '◎' : '○')}
                 </button>
               ) : null}
               <span className="slot-name">{hero.name}</span>
-              <button className="x" onClick={() => onRemove(hero)} aria-label={`Quitar ${hero.name}`}>×</button>
+              <button className="x" onClick={() => onRemove(hero)} aria-label={t('app.quitar', { nombre: hero.name })}>×</button>
             </div>
           ) : (
             <button key={`empty-${i}`} className="slot empty" onClick={onAdd}>
@@ -87,7 +79,7 @@ export function HeroSheet({ heroes, taken, stats, onPick, onClose, t = tPorDefec
   }, [heroes, q, stats]);
 
   return (
-    <div className="sheet" role="dialog" aria-label="Elegir héroe">
+    <div className="sheet" role="dialog" aria-label={t('app.elegirHeroe')}>
       <div className="sheet-head">
         <input
           ref={inputRef}
@@ -256,7 +248,7 @@ export function MasteryEditor({ pool, mastery, onChange, onClose, t = tPorDefect
   };
 
   return (
-    <div className="sheet" role="dialog" aria-label="Tu maestría">
+    <div className="sheet" role="dialog" aria-label={t('app.maestria')}>
       <div className="sheet-head">
         <strong style={{ flex: 1, alignSelf: 'center' }}>{t('app.maestria')}</strong>
         <button className="close" onClick={onClose}>{t('app.cancelar')}</button>
@@ -435,7 +427,7 @@ export function RegistroPartida({ pool, recomendados, onGuardar, onClose, t = tP
   }, [pool, recomendados]);
 
   return (
-    <div className="sheet" role="dialog" aria-label="Apuntar partida">
+    <div className="sheet" role="dialog" aria-label={t('app.apuntarPartida')}>
       <div className="sheet-head">
         <strong style={{ flex: 1, alignSelf: 'center' }}>{t('registro.conQuien')}</strong>
         <button className="close" onClick={onClose}>{t('app.cancelar')}</button>
@@ -473,7 +465,7 @@ export function RegistroPartida({ pool, recomendados, onGuardar, onClose, t = tP
  */
 export function SelectorDeLinea({ lineas, valor, onElegir, onClose, t = tPorDefecto }) {
   return (
-    <div className="sheet" role="dialog" aria-label="Elegir línea">
+    <div className="sheet" role="dialog" aria-label={t('app.elegirLinea')}>
       <div className="sheet-head">
         <strong style={{ flex: 1, alignSelf: 'center' }}>{t('linea.pregunta')}</strong>
         {onClose && <button className="close" onClick={onClose}>{t('app.cerrar')}</button>}
