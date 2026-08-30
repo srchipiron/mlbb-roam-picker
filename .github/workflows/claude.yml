@@ -1,0 +1,99 @@
+name: Claude a petición
+
+# Claude trabaja sobre una incidencia o un pull request cuando alguien lo llama
+# con @claude. NO se dispara solo: hace falta que Javi lo pida, porque cada
+# ejecución cuesta dinero de su clave de API.
+#
+# Está apagado mientras no exista el secreto ANTHROPIC_API_KEY. Si no está, el
+# workflow avisa en el registro y no hace nada más: ni falla ni gasta.
+on:
+  issue_comment:
+    types: [created]
+  pull_request_review_comment:
+    types: [created]
+  issues:
+    types: [assigned]
+
+# contents: write hace falta para crear la RAMA de trabajo. Que trabaje en una
+# rama y proponga sale de base_branch/branch_prefix más la instrucción del
+# prompt, y de que las pruebas corran en cada propuesta (pruebas-pr.yml).
+#
+# El candado DURO sería proteger la rama main en Settings -> Branches, exigiendo
+# pull request para cualquiera. Hoy NO está puesto, y no lo pongo yo porque
+# también obligaría a Javi (y a mí en sus sesiones) a pasar por PR para cada
+# cambio, y eso es una decisión suya sobre cómo quiere trabajar, no mía.
+permissions:
+  contents: write
+  pull-requests: write
+  issues: write
+
+concurrency:
+  group: claude-${{ github.event.issue.number || github.event.pull_request.number }}
+  cancel-in-progress: false
+
+jobs:
+  claude:
+    # Solo el dueño del repositorio. Sin esto, en un repositorio público
+    # cualquiera podría escribir "@claude" y gastar la clave de Javi.
+    if: |
+      github.event.sender.login == github.repository_owner &&
+      (contains(github.event.comment.body, '@claude') ||
+       contains(github.event.issue.body, '@claude') ||
+       github.event.action == 'assigned')
+    runs-on: ubuntu-latest
+    env:
+      TIENE_CLAVE: ${{ secrets.ANTHROPIC_API_KEY != '' }}
+    steps:
+      - name: Sin clave no hay nada que hacer
+        if: env.TIENE_CLAVE != 'true'
+        run: |
+          echo "::notice::Falta el secreto ANTHROPIC_API_KEY."
+          echo "Se añade en Settings -> Secrets and variables -> Actions."
+          echo "Hasta entonces este workflow no hace nada, y no gasta nada."
+
+      - if: env.TIENE_CLAVE == 'true'
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - if: env.TIENE_CLAVE == 'true'
+        uses: actions/setup-node@v7
+        with:
+          node-version: '20'
+
+      - if: env.TIENE_CLAVE == 'true'
+        run: npm ci
+
+      - if: env.TIENE_CLAVE == 'true'
+        uses: anthropics/claude-code-action@v1
+        with:
+          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          # Trabaja en una rama propia y propone; nunca escribe en main.
+          base_branch: main
+          branch_prefix: claude/
+          # Nada de red ni de comandos sueltos: leer, escribir y las
+          # comprobaciones del proyecto. WebFetch queda fuera a propósito.
+          claude_args: >-
+            --allowedTools "Read,Edit,Write,Glob,Grep,
+            Bash(npm test),Bash(npm run build),Bash(npm ci),
+            Bash(node scripts/diagnostico.mjs*),Bash(node scripts/test-engine.mjs),
+            Bash(git diff*),Bash(git log*),Bash(git status*)"
+            --max-turns 40
+          prompt: |
+            Trabajas en la app de Javi para elegir roamer en Mobile Legends.
+
+            LEE PRIMERO CLAUDE.md. No es documentación de cortesía: lleva la
+            lista de fallos que ya llegaron a producción y las reglas del
+            proyecto. Respétalas, sobre todo estas:
+
+            - Nunca propongas nada sin pasar `npm test`. Si falla, no propongas.
+            - Sube la versión en package.json y documéntala en CHANGELOG.md,
+              escrita para quien USA la app, no para quien lee el diff.
+            - No ajustes los pesos del motor por una partida ni por intuición.
+              Si tocas el motor, mídelo antes con drafts simulados.
+            - Prefiere el dato a la regla escrita a mano.
+
+            No escribas en main: deja tu trabajo en una rama y propón un pull
+            request. Si algo necesita criterio que no puedes verificar -por
+            ejemplo inventarle tags a un héroe que no has leído-, no lo hagas:
+            dilo en un comentario y para.
