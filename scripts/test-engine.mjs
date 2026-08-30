@@ -86,6 +86,39 @@ test('el dato real de la API puede contradecir a las reglas por tags', () => {
   ok(bueno > malo, 'el dato real no ordena los matchups');
 });
 
+test('se deduce quién es el roamer enemigo, y se calla si hay duda', async () => {
+  const { detectarRoamEnemigo, indiceDeLineas } = await import('../src/engine/roam-enemigo.js');
+
+  const info = indiceDeLineas([
+    { name: 'Angela', role: 'support', lane: 'roam' },
+    { name: 'Fredrinn', role: 'fighter', lane: 'jungle,exp' },
+    { name: 'Zilong', role: 'fighter', lane: 'exp,gold' },
+    { name: 'Kagura', role: 'mage', lane: 'mid' },
+    { name: 'Claude', role: 'marksman', lane: 'gold' },
+    { name: 'Minotaur', role: 'tank', lane: 'roam' },
+    { name: 'Floryn', role: 'support', lane: 'roam' },
+    { name: 'Melissa', role: 'marksman', lane: 'gold' },
+    { name: 'Argus', role: 'fighter', lane: 'exp' },
+    { name: 'Saber', role: 'assassin', lane: 'jungle' },
+  ]);
+
+  // Draft real: solo Angela hace roam.
+  ok(detectarRoamEnemigo(['Fredrinn', 'Angela', 'Zilong', 'Kagura', 'Claude'].map(h), info) === 'Angela',
+    'no reconoce a Angela como su roam');
+
+  // Draft real con DOS candidatos: equivocarse duplica el peso del matchup malo,
+  // así que callarse es la respuesta correcta.
+  ok(detectarRoamEnemigo(['Melissa', 'Argus', 'Saber', 'Minotaur', 'Floryn'].map(h), info) === null,
+    'se moja habiendo dos roamers posibles');
+
+  ok(detectarRoamEnemigo(['Kagura', 'Claude', 'Zilong', 'Saber', 'Argus'].map(h), info) === null,
+    'inventa un roam donde no hay ninguno');
+
+  // Sin datos de la API debe seguir funcionando con el catálogo.
+  ok(detectarRoamEnemigo(['Fredrinn', 'Angela', 'Zilong', 'Kagura', 'Claude'].map(h), new Map()) === 'Angela',
+    'sin datos de líneas no acierta ni con el catálogo');
+});
+
 test('el roamer enemigo marcado pesa el doble', () => {
   const m = indexByName({ Khufra: { Fanny: 0.58, Layla: 0.42 } }, 2);
   const neutro = counterScore(h('Khufra'), [h('Fanny'), h('Layla')], m).value;

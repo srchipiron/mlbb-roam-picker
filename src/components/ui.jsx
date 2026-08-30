@@ -17,7 +17,7 @@ const PART_LABELS = {
 };
 
 /** Fila de huecos de un bando. Tocar un hueco abre el selector. */
-export function Side({ title, kind, picks, max, onAdd, onRemove, markedName, onMark, markHint }) {
+export function Side({ title, kind, picks, max, onAdd, onRemove, markedName, onMark, markHint, autoName }) {
   const slots = [...picks, ...Array(Math.max(0, max - picks.length)).fill(null)];
   return (
     <section className={`side ${kind}`}>
@@ -28,7 +28,10 @@ export function Side({ title, kind, picks, max, onAdd, onRemove, markedName, onM
       <div className="slots">
         {slots.map((hero, i) =>
           hero ? (
-            <div key={hero.name} className={`slot ${markedName === hero.name ? 'marked' : ''}`}>
+            <div
+              key={hero.name}
+              className={`slot ${markedName === hero.name ? 'marked' : ''} ${!markedName && autoName === hero.name ? 'auto' : ''}`}
+            >
               {onMark ? (
                 <button
                   className="mark"
@@ -37,7 +40,7 @@ export function Side({ title, kind, picks, max, onAdd, onRemove, markedName, onM
                   aria-label={`Marcar a ${hero.name} como su roam`}
                   title="Marcar como su roam"
                 >
-                  {markedName === hero.name ? '◉' : '○'}
+                  {markedName === hero.name ? '◉' : (!markedName && autoName === hero.name ? '◎' : '○')}
                 </button>
               ) : null}
               <span className="slot-name">{hero.name}</span>

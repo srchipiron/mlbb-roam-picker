@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { rankRoamers, mergeCatalog, suggestBans, indexByName, coverage, empatados, normName } from './engine/score.js';
 import { runSelfTest, leerEntorno } from './engine/selftest.js';
+import { detectarRoamEnemigo, indiceDeLineas } from './engine/roam-enemigo.js';
 import { Side, HeroSheet, Pick, Legend, MasteryEditor, RankPicker, BanSuggestions, Footer, SelfTest } from './components/ui.jsx';
 
 const MASTERY_KEY = 'roam-picker:mastery';
@@ -99,15 +100,24 @@ export default function App() {
     [roamPool, metaCtx],
   );
 
+  // Roamer enemigo deducido de las líneas que juega cada héroe. Lo que marques
+  // a mano manda siempre: esto solo rellena el hueco cuando no has tocado nada.
+  const lineas = useMemo(() => indiceDeLineas(meta?.heroes), [meta]);
+  const roamAuto = useMemo(
+    () => detectarRoamEnemigo(enemies, lineas),
+    [enemies, lineas],
+  );
+  const enemyRoamEfectivo = enemyRoam ?? roamAuto;
+
   const ranked = useMemo(
     () => (catalog
       ? rankRoamers(roamPool, {
-        enemies, allies, bans, mastery, meta: metaCtx, enemyRoam,
+        enemies, allies, bans, mastery, meta: metaCtx, enemyRoam: enemyRoamEfectivo,
         // Héroes que el enemigo aún podría elegir: base del riesgo de contrapick.
         candidatos: allHeroes.filter((h) => !taken.has(h.name)),
       })
       : []),
-    [catalog, roamPool, allHeroes, taken, metaCtx, enemies, allies, bans, mastery, enemyRoam],
+    [catalog, roamPool, allHeroes, taken, metaCtx, enemies, allies, bans, mastery, enemyRoamEfectivo],
   );
 
   const empate = useMemo(() => empatados(ranked), [ranked]);
@@ -174,7 +184,8 @@ export default function App() {
               onAdd={() => setSheet('enemy')} onRemove={remove(setEnemyNames)}
               markedName={enemyRoam}
               onMark={(h) => setEnemyRoam((r) => (r === h.name ? null : h.name))}
-              markHint="Marca su roam" />
+              markHint={roamAuto && !enemyRoam ? `su roam: ${roamAuto}` : 'Marca su roam'}
+              autoName={roamAuto} />
         <Side title="Tu equipo" kind="ally" picks={allies} max={4}
               onAdd={() => setSheet('ally')} onRemove={remove(setAllyNames)} />
         <details className="more">

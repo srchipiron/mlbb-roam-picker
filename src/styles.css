@@ -162,6 +162,9 @@ button:focus-visible, [tabindex]:focus-visible { outline: 2px solid var(--gold);
 .slot .slot-name { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .slot .mark { color: var(--muted); font-size: 13px; line-height: 1; padding: 0 1px; }
 .slot.marked { border-color: var(--gold) !important; }
+/* Deducido por la app, no marcado por ti: se distingue del marcado a mano. */
+.slot.auto { border-color: var(--gold) !important; border-style: dashed; }
+.slot.auto .mark { color: var(--gold); opacity: 0.75; }
 .slot.marked .mark { color: var(--gold); }
 .side.enemy .slot:not(.empty) { border-color: var(--enemy); }
 .side.ally  .slot:not(.empty) { border-color: var(--ally); }

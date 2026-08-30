@@ -112,6 +112,16 @@ salen en tu perfil del juego. El winrate va en porcentaje (`50,6` o `50.6`, las 
 la conversión a fracción se hace al guardar. Los héroes que ya tienen datos suben arriba de la lista.
 Se guarda en `localStorage` y no sale del móvil.
 
+## Roamer enemigo
+
+Es con quien más vas a chocar, así que su matchup pesa el doble. La app lo
+deduce sola de las líneas en las que se juega cada héroe (dato de la API), lo
+marca con un círculo punteado y puedes corregirlo tocando otro.
+
+**Se calla cuando hay duda.** Con dos tanques o dos supports enfrente podría ser
+cualquiera, y equivocarse es peor que no decir nada: duplicaría el peso del
+matchup equivocado. Exige un margen mínimo sobre el segundo candidato.
+
 ## Riesgo de contrapick
 
 Como roam sueles elegir pronto, sin ver el equipo enemigo entero. Ahí no interesa

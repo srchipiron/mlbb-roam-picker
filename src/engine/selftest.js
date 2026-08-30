@@ -1,5 +1,5 @@
 import {
-  rankRoamers, metaScore, masteryScore, coverage, normName,
+  rankRoamers, metaScore, masteryScore, coverage, normName, densidadCounters,
 } from './score.js';
 import { DEFAULT_WEIGHTS } from './rules.js';
 
@@ -71,6 +71,15 @@ export function runSelfTest({ catalog, meta, metaCtx, allHeroes, roamPool, maste
   check(cov.conCounters > 0,
     `Counters: ${cov.conCounters}/${cov.total} roamers`,
     'Counters: ninguno. El motor usa reglas por tags, no partidas reales');
+
+  if (cov.conCounters) {
+    const d = densidadCounters(roamPool, metaCtx.counters, allHeroes);
+    lineas.push(`Matriz: ${d.media.toFixed(0)} rivales por roamer de media · cubre el ${(d.cobertura * 100).toFixed(0)}% de los cruces posibles`);
+    check(d.cobertura > 0.25,
+      'Hay dato real para buena parte de los cruces',
+      `Solo el ${(d.cobertura * 100).toFixed(0)}% de los cruces tiene dato: el resto lo deciden mis reglas`,
+      true);
+  }
 
   if (!cov.conCounters && meta?.diagnostics) {
     lineas.push(`  ruta counter: ${meta.diagnostics.relations?.rutaCounter ?? 'no encontrada en el esquema'}`);

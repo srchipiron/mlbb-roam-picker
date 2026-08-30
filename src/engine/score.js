@@ -182,8 +182,13 @@ export function synergyScore(roamHero, allies, synergyMatrix) {
       continue;
     }
     let sub = 0;
-    // Un carry inmóvil pide peel; un dive aliado pide engage que lo acompañe.
-    if (ally.tags.includes('immobile') && roamHero.tags.includes('peel')) {
+    // Solo se protege a quien hay que proteger. Un tanque aliado también está
+    // etiquetado como inmóvil, y la regla anterior recomendaba hacerle peel a
+    // la primera línea, que es justo al revés de cómo se juega.
+    const esCarry = ['hypercarry', 'poke', 'burst'].some((t) => ally.tags.includes(t))
+      && !ally.tags.includes('tanky');
+
+    if (esCarry && ally.tags.includes('immobile') && roamHero.tags.includes('peel')) {
       sub += 0.8;
       reasons.push({ text: `protege a ${ally.name}, que no tiene escape`, good: true, w: 0.8 });
     }
@@ -517,6 +522,31 @@ export function riesgoContrapick(roamHero, counterMatrix, candidatos) {
 }
 
 /** Cuántos roamers tienen datos reales. Si baja, algo se ha roto en silencio. */
+/**
+ * Densidad de la matriz de counters: cuántos rivales cubre cada roamer de media.
+ *
+ * "34/34 con counters" solo dice que cada roamer tiene FILA, no que tenga dato
+ * contra los cinco enemigos de tu partida. La API devuelve los matchups más
+ * relevantes, no los 133. Donde no hay dato entran mis reglas por tags, así que
+ * este número es lo que de verdad mide cuánto se apoya la app en partidas.
+ */
+export function densidadCounters(pool, counters, candidatos) {
+  if (!counters) return { media: 0, cobertura: 0 };
+  const tam = pool.map((h) => Object.keys(lookup(counters, h.name) ?? {}).length);
+  const media = tam.reduce((a, b) => a + b, 0) / (tam.length || 1);
+
+  let conDato = 0;
+  let total = 0;
+  for (const h of pool) {
+    const fila = lookup(counters, h.name) ?? {};
+    for (const e of candidatos ?? []) {
+      total++;
+      if (fila[normName(e.name)] != null) conDato++;
+    }
+  }
+  return { media, cobertura: total ? conDato / total : 0 };
+}
+
 export function coverage(pool, stats, counters) {
   const missing = stats ? pool.filter((h) => !lookup(stats, h.name)).map((h) => h.name) : pool.map((h) => h.name);
   const conCounters = counters

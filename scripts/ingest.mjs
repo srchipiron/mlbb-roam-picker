@@ -295,6 +295,36 @@ function firstArray(node, depth = 0) {
 /** Rutas descubiertas en el esquema OpenAPI. La rellena discoverRoutes(). */
 let ROUTES = null;
 
+/**
+ * Líneas en las que se juega un héroe. La API las devuelve de formas distintas
+ * (una cadena, una lista, objetos con nombre), así que se recogen todas las
+ * cadenas que parezcan una línea conocida.
+ */
+const LINEAS = ['roam', 'jungle', 'mid', 'gold', 'exp', 'support', 'farm'];
+
+function extraerLineas(node, out = new Set(), depth = 0, dentro = false) {
+  if (depth > 6 || node == null) return [...out];
+
+  // Solo se leen las cadenas que estén DENTRO de una clave de línea. Sin ese
+  // contexto, el nombre del héroe o la URL de su icono podían colar palabras
+  // como "gold" o "mid" y darle líneas que no juega.
+  if (typeof node === 'string') {
+    if (dentro) for (const l of LINEAS) if (node.toLowerCase().includes(l)) out.add(l);
+    return [...out];
+  }
+  if (typeof node !== 'object') return [...out];
+
+  if (Array.isArray(node)) {
+    for (const v of node) extraerLineas(v, out, depth + 1, dentro);
+    return [...out];
+  }
+
+  for (const [k, v] of Object.entries(node)) {
+    extraerLineas(v, out, depth + 1, dentro || /lane|position|road/i.test(k));
+  }
+  return [...out];
+}
+
 async function fetchHeroList() {
   const values = { size: 300, index: 1, page_size: 300, page_index: 1, lang: 'en' };
   const { rows } = ROUTES?.position
@@ -309,6 +339,8 @@ async function fetchHeroList() {
       id: idPrincipal(row),
       role: String(pick(row, ['role', 'hero_role', 'primary_role']) ?? '').toLowerCase(),
       lane: String(pick(row, ['lane', 'hero_lane', 'primary_lane']) ?? '').toLowerCase(),
+      // Varias líneas por héroe: es lo que permite adivinar quién es su roam.
+      lanes: extraerLineas(row),
     });
   }
   return heroes;
