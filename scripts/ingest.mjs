@@ -19,6 +19,11 @@ import { fileURLToPath } from 'node:url';
 import {
   NAME_KEYS, ID_KEYS, asRate, pick, recogerPares, relationMap, esIdDeHeroe, idPrincipal,
 } from './parse-relations.mjs';
+// La MISMA funcion que usa la app para decidir quien entra al pool de roam.
+// Duplicar el criterio aqui ya costo un fallo: la app metia a Marcel (support
+// segun la API) y la ingesta no le pedia counters, porque miraba solo el
+// catalogo escrito a mano.
+import { mergeCatalog } from '../src/engine/score.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const ROOT = resolve(__dirname, '..');
@@ -306,8 +311,17 @@ let ROUTES = null;
  */
 const LINEAS = ['roam', 'jungle', 'mid', 'gold', 'exp', 'support', 'farm'];
 
+/**
+ * Profundidad maxima al bajar por la respuesta. La API envuelve el dato util
+ * muy hondo: el titulo de la linea vive en
+ * data.hero.data.roadsort[].data.road_sort_title, o sea nivel 8. Con el limite
+ * de 6 que habia antes NUNCA se llegaba, y los 133 heroes salian sin linea y
+ * sin rol sin que nada fallara.
+ */
+const HONDURA = 12;
+
 function extraerLineas(node, out = new Set(), depth = 0, dentro = false) {
-  if (depth > 6 || node == null) return [...out];
+  if (depth > HONDURA || node == null) return [...out];
 
   // Solo se leen las cadenas que estén DENTRO de una clave de línea. Sin ese
   // contexto, el nombre del héroe o la URL de su icono podían colar palabras
@@ -329,6 +343,37 @@ function extraerLineas(node, out = new Set(), depth = 0, dentro = false) {
   return [...out];
 }
 
+/**
+ * Roles que usa la API. Se reconocen por igualdad exacta, no por subcadena:
+ * asi una URL o un nombre de heroe no puede colar un rol que no es.
+ */
+const ROLES = ['tank', 'fighter', 'assassin', 'mage', 'marksman', 'support'];
+
+/**
+ * Rol del heroe. Igual que las lineas, viene hondo y con otro nombre segun la
+ * version de la API (sortid[].data.sort_title hoy), asi que se busca por
+ * contexto de clave en vez de por ruta fija.
+ */
+function extraerRol(node, depth = 0, dentro = false) {
+  if (depth > HONDURA || node == null) return '';
+
+  if (typeof node === 'string') {
+    if (!dentro) return '';
+    const s = node.trim().toLowerCase();
+    return ROLES.includes(s) ? s : '';
+  }
+  if (typeof node !== 'object') return '';
+
+  const entradas = Array.isArray(node) ? node.map((v) => [null, v]) : Object.entries(node);
+  for (const [k, v] of entradas) {
+    // 'road' se excluye a proposito: roadsort lleva la LINEA, no el rol.
+    const aqui = dentro || (k != null && /sort|role|class/i.test(k) && !/road/i.test(k));
+    const r = extraerRol(v, depth + 1, aqui);
+    if (r) return r;
+  }
+  return '';
+}
+
 async function fetchHeroList() {
   const values = { size: 300, index: 1, page_size: 300, page_index: 1, lang: 'en' };
   const { rows } = ROUTES?.position
@@ -341,7 +386,8 @@ async function fetchHeroList() {
     heroes.push({
       name: String(name).trim(),
       id: idPrincipal(row),
-      role: String(pick(row, ['role', 'hero_role', 'primary_role']) ?? '').toLowerCase(),
+      // pick() primero por si la API vuelve a una forma plana; si no, se busca.
+      role: String(pick(row, ['role', 'hero_role', 'primary_role']) ?? '').toLowerCase() || extraerRol(row),
       lane: String(pick(row, ['lane', 'hero_lane', 'primary_lane']) ?? '').toLowerCase(),
       // Varias líneas por héroe: es lo que permite adivinar quién es su roam.
       lanes: extraerLineas(row),
@@ -405,7 +451,12 @@ async function fetchRelations(roamNames, stats, heroList) {
 
   diagnostics.relations = {
     rutaCounter: ROUTES?.counter ? `${ROUTES.counter.method} ${ROUTES.counter.template}` : null,
-    conId: 0, porNombre: 0, ok: 0, errores: [],
+    // 'ejemplos' tiene que estar aqui: mas abajo se lee su .length, y sin
+    // inicializar reventaba con un TypeError por cada roamer al que SI le
+    // llegaban los counters. Los datos se salvaban (se asignan antes), pero el
+    // diagnostico se llenaba de cuatro errores falsos y, con el tope de 4
+    // alcanzado, tapaba los errores de verdad.
+    conId: 0, porNombre: 0, ok: 0, errores: [], ejemplos: [],
   };
 
   for (const name of roamNames) {
@@ -462,7 +513,6 @@ async function main() {
   }
 
   const heroes = JSON.parse(await readFile(HEROES, 'utf8'));
-  const roamNames = [...new Set(heroes.heroes.filter((h) => h.roam).map((h) => h.name))];
 
   let previous = null;
   try {
@@ -479,6 +529,13 @@ async function main() {
   } catch (err) {
     console.warn(`  · lista de héroes: fallo (${err.message}); conservo la anterior`);
   }
+
+  // Con la lista de la API ya en mano: roamer es quien lo sea en el catalogo o
+  // quien la API clasifique como tank/support, exactamente igual que en la app.
+  const roamNames = [...new Set(
+    mergeCatalog(heroes.heroes, heroList).filter((h) => h.roam).map((h) => h.name),
+  )];
+  console.log(`  · ${roamNames.length} roamers a los que pedir counters`);
 
   const statsByRank = { ...(previous?.statsByRank ?? {}) };
   diagnostics.rangos = {};
@@ -585,4 +642,4 @@ if (ejecutadoDirectamente) {
   });
 }
 
-export { main };
+export { main, extraerLineas, extraerRol };

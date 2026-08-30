@@ -72,10 +72,13 @@ lleve dentro, mejor: las reglas escritas a mano envejecen, los datos no.
 | Tu maestría | 15% | tus propias partidas |
 | Composición | 8% | reglas escritas a mano (lo único que envejece) |
 
-Alrededor del 90% de lo que decide la recomendación sale de partidas reales.
-El botón **Diagnóstico** lo mide y lo enseña, para no tener que fiarse de esta
-tabla: si algún día ese porcentaje baja, es que los datos han dejado de llegar
-y las reglas están tapando el hueco.
+Los pesos dan el 92% a datos reales y el 8% a reglas escritas a mano. Medido en
+un draft de verdad sale menos —en torno al 77%— porque donde no hay dato de la
+pareja entran las reglas por tags, y la matriz de counters solo cubre el 7,5% de
+los cruces posibles. Los dos números son ciertos: uno es la intención, el otro
+lo que pasa. El botón **Diagnóstico** mide el segundo en vivo, así que fíate de
+él y no de esta tabla: si ese porcentaje baja, los datos han dejado de llegar y
+las reglas están tapando el hueco.
 
 La confianza en cada matchup **también la decide el dato**: se encoge hacia el
 empate según lo jugado que esté el rival, porque contra un héroe raro un 57% es

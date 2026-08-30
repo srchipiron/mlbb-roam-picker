@@ -43,6 +43,9 @@ jobs:
           if (!(d.heroCount ?? 0)) { console.error('Sin estadisticas'); process.exit(1); }"
 
 
+      - name: Comprobar que la versión está documentada
+        run: node scripts/check-version.mjs
+
       - name: Comprobar orden de declaraciones
         run: node scripts/check-order.mjs src/App.jsx src/components/ui.jsx
 

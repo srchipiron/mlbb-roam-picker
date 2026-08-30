@@ -255,6 +255,49 @@ test('la app no busca estadísticas con el nombre crudo', () => {
   ok(!sinNormalizar.length, `sin normalizar: ${sinNormalizar.join(', ')}`);
 });
 
+test('el rol y la línea se leen aunque vengan hondos en la respuesta', async () => {
+  // Forma REAL de la API: el titulo de la linea vive en el nivel 8. El limite de
+  // profundidad estaba en 6, asi que los 133 heroes salian sin rol y sin linea
+  // sin que nada fallara: los que no estan en el catalogo se quedaban con CERO
+  // tags, y la deteccion del roamer enemigo perdia su senal principal.
+  const { extraerLineas, extraerRol } = await import('./ingest.mjs');
+  const fila = {
+    data: {
+      hero: {
+        data: {
+          name: 'Marcel',
+          roadsort: [{ data: { road_sort_title: 'Roam', road_sort_icon: 'https://x/y.svg' } }, ''],
+          sortid: [{ data: { sort_title: 'support' } }, ''],
+        },
+      },
+    },
+  };
+  ok(extraerLineas(fila).includes('roam'), `no encuentra la linea: [${extraerLineas(fila)}]`);
+  ok(extraerRol(fila) === 'support', `no encuentra el rol: "${extraerRol(fila)}"`);
+
+  // Y no se inventa nada donde no lo hay.
+  ok(extraerRol({ data: { hero: { data: { name: 'Gold Lane Guy' } } } }) === '',
+    'saca un rol de donde no hay');
+});
+
+test('el diagnóstico de la ingesta no lee campos sin inicializar', () => {
+  // Esto estuvo publicado: se leia diagnostics.relations.ejemplos.length sin
+  // que 'ejemplos' existiera, y saltaba un TypeError por cada roamer al que SI
+  // le llegaban los counters. La prueba de humo no lo veia porque corre contra
+  // una base inalcanzable, donde ese camino nunca se ejecuta.
+  const ing = readFileSync(resolve(ROOT, 'scripts/ingest.mjs'), 'utf8');
+  const literal = ing.match(/diagnostics\.relations\s*=\s*\{([\s\S]*?)\n\s*\};/)?.[1] ?? '';
+  const inicializados = new Set([...literal.matchAll(/(\w+)\s*:/g)].map((m) => m[1]));
+
+  const leidos = [...ing.matchAll(/diagnostics\.relations\.(\w+)/g)].map((m) => m[1]);
+  const asignados = new Set([...ing.matchAll(/diagnostics\.relations\.(\w+)\s*=/g)].map((m) => m[1]));
+
+  const sinInicializar = [...new Set(leidos)]
+    .filter((k) => !inicializados.has(k) && !asignados.has(k));
+  ok(!sinInicializar.length,
+    `campos leidos sin inicializar en diagnostics.relations: ${sinInicializar.join(', ')}`);
+});
+
 test('la matriz de counters se indexa en sus DOS niveles', () => {
   // Este fallo estuvo publicado: App.jsx indexaba con profundidad 1, el segundo
   // nivel se quedaba crudo ("Wanwan") y todo lo que lo buscaba normalizado

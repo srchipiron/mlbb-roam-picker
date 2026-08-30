@@ -74,10 +74,15 @@ export function runSelfTest({ catalog, meta, metaCtx, allHeroes, roamPool, maste
 
   if (cov.conCounters) {
     const d = densidadCounters(roamPool, metaCtx.counters, allHeroes);
-    lineas.push(`Matriz: ${d.media.toFixed(0)} rivales por roamer de media · cubre el ${(d.cobertura * 100).toFixed(0)}% de los cruces posibles`);
-    check(d.cobertura > 0.25,
-      'Hay dato real para buena parte de los cruces',
-      `Solo el ${(d.cobertura * 100).toFixed(0)}% de los cruces tiene dato: el resto lo deciden mis reglas`,
+    lineas.push(`Matriz: ${d.media.toFixed(0)} rivales por roamer de media · cubre el ${(d.cobertura * 100).toFixed(1)}% de los cruces posibles`);
+    // El umbral mide la SALUD de la descarga, no la ambición. La API devuelve
+    // una decena de matchups por héroe, no los 133, así que el techo real ronda
+    // el 7,5%: exigir un 25% era un aviso encendido para siempre, y un aviso que
+    // nunca se apaga deja de avisar. Lo que sí importa es si la descarga se
+    // queda corta respecto a lo que la fuente suele dar.
+    check(d.media >= 5,
+      `Cobertura normal para lo que da la API (una decena de rivales por héroe)`,
+      `Solo ${d.media.toFixed(0)} rivales por roamer: la descarga de counters se ha quedado corta`,
       true);
   }
 

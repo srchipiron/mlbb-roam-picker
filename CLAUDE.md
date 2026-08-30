@@ -12,17 +12,18 @@ comprobaciones automáticas importan más de lo normal.
 
 ## Reglas de trabajo
 
-**Nunca subas nada sin pasar `npm test`.** Son tres comprobaciones y 31 pruebas
-(orden de declaraciones, CSS y motor). El despliegue corre esas tres más una
-cuarta que no está en `npm test`: que `roam-meta.json` se haya regenerado hace
-menos de media hora. Si algo falla, el despliegue se detiene y la app se queda
+**Nunca subas nada sin pasar `npm test`.** Son cuatro comprobaciones y 33
+pruebas (orden de declaraciones, CSS, versión documentada y motor). El
+despliegue corre esas cuatro más una quinta que no está en `npm test`: que
+`roam-meta.json` se haya regenerado hace menos de media hora. Si algo falla, el despliegue se detiene y la app se queda
 con la versión anterior funcionando, que es lo correcto.
 
-**Sube la versión en `package.json` cuando cambies comportamiento.** Criterio:
+**Sube la versión en `package.json` y documéntala en `CHANGELOG.md`.** Criterio:
 `0.X.0` cuando cambia cómo decide la app o qué hace; `0.0.X` para correcciones.
 La versión sale en el pie de la app, así que sirve para saber desde el móvil si
-lo que estás mirando es lo que acabas de subir. Hoy nada lo comprueba
-automáticamente: no hay `CHANGELOG.md` ni un paso de despliegue que lo exija.
+lo que estás mirando es lo que acabas de subir. `check-version.mjs` falla si la
+versión no tiene entrada en el CHANGELOG, y corre tanto en `npm test` como en el
+despliegue. Escribe la entrada para quien USA la app, no para quien lee el diff.
 
 **No ajustes los pesos por una partida.** Los winrates se mueven entre el 48% y
 el 55%; una derrota no dice nada. Si hay que tocar el motor, mídelo antes con
@@ -64,6 +65,21 @@ Todos estos llegaron a producción y costaron rondas enteras de ida y vuelta:
   para los 34 roamers) — se filtran los que aparecen en más del 60%.
 - **El peel recomendado hacia tanques aliados**, porque un tanque también está
   etiquetado como `immobile`.
+- **El límite de profundidad de la ingesta, en 6** — la API envuelve el dato
+  hondo: el título de la línea vive en el nivel 8. Los 133 héroes salían sin rol
+  y sin línea y nada fallaba. Efecto invisible doble: los héroes que no están en
+  `heroes.json` se quedaban con CERO tags (no con los de su rol, como decía este
+  fichero), y `detectarRoamEnemigo` perdía su señal principal y nunca acertaba.
+  Constante `HONDURA`, hoy en 12. Si la API vuelve a envolver más, súbela.
+- **`diagnostics.relations.ejemplos` sin inicializar** — se leía su `.length` y
+  saltaba un `TypeError` por cada roamer al que SÍ le llegaban los counters. Los
+  datos se salvaban, así que solo se notaba en cuatro errores falsos dentro del
+  diagnóstico… que además, al llenar el tope de errores, tapaban los de verdad.
+  Hay una prueba que comprueba que todo campo leído esté inicializado.
+- **Dos criterios distintos de "quién es roamer"** — la app usaba
+  `mergeCatalog` (catálogo + rol de la API) y la ingesta miraba solo el catálogo,
+  así que Marcel entraba en las recomendaciones sin que nadie le pidiera
+  counters. Ahora la ingesta importa `mergeCatalog`. No vuelvas a duplicarlo.
 
 ## La API
 
@@ -88,9 +104,11 @@ y el botón Diagnóstico mentía sobre los rangos. No le quites el `--out`.
 ## Lo que queda pendiente
 
 - 7 héroes usan los tags genéricos de su rol en vez de los suyos: Marcel,
-  Hirara, Zetian, Sora, Obsidia, Cici y "Valir". El último no es un héroe nuevo
-  sino un desajuste de nombre: el catálogo tiene "Vale" y "Valentina", así que
-  hay que averiguar a cuál se refiere la API antes de darle tags.
+  Hirara, Zetian, Sora, Obsidia, Cici y Valir. Desde 0.5.0 esto ya es lo que
+  dice la frase —antes se quedaban sin ningún tag—, así que es una mejora, no
+  una avería: escribirles tags propios en `heroes.json` afina, pero el rol de la
+  API ya los hace utilizables. Valir no es un desajuste de nombre: es un héroe
+  real que falta en el catálogo escrito a mano.
 - El registro de partidas necesita unas 30 de cada tipo antes de decir nada.
   Cuando las haya, mirar si conviene reajustar los pesos con datos reales.
 - La cobertura de la matriz de counters es del 7,5%: la API devuelve unos 10
