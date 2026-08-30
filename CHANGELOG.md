@@ -8,6 +8,21 @@ que esto no se olvida.
 Criterio: `0.X.0` cuando cambia cómo decide la app o qué hace; `0.0.X` para
 correcciones.
 
+## 0.7.0
+
+- Los 7 héroes que quedaban sin tags propios ya los tienen escritos: Marcel,
+  Hirara, Sora, Zetian, Obsidia, Cici y Valir. **El catálogo cubre los 133**.
+- No están puestos a ojo: salen de la descripción de sus habilidades, que la
+  propia API publica. Un par de correcciones que el rol por defecto no podía
+  ver: Marcel no cura nada (le sobraba `sustain`) y Obsidia no es inmóvil
+  (tiene un tirón y un parpadeo).
+- Al tener tags escritos, esos siete dejan de arrastrar el descuento por
+  deducción. Medido sobre 300 drafts con datos reales, la recomendación apenas
+  se mueve: el líder pasa del 41% al 39%.
+- Tablas de deducción regeneradas con el catálogo ampliado. Ya no se aplican a
+  nadie —los 133 tienen tags propios— pero quedan listas para el héroe que
+  salga mañana.
+
 ## 0.6.0
 
 - Los héroes que no están en el catálogo escrito a mano ya no dependen solo de

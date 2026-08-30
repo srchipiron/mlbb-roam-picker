@@ -1322,6 +1322,91 @@
         "burst",
         "dash"
       ]
+    },
+    {
+      "name": "Hirara",
+      "role": "assassin",
+      "tags": [
+        "mobile",
+        "dive",
+        "burst",
+        "dash"
+      ],
+      "roam": false
+    },
+    {
+      "name": "Sora",
+      "role": "fighter",
+      "tags": [
+        "dive",
+        "burst",
+        "dash",
+        "cc_hard",
+        "tanky"
+      ],
+      "roam": false
+    },
+    {
+      "name": "Zetian",
+      "role": "mage",
+      "tags": [
+        "poke",
+        "burst",
+        "cc_hard",
+        "zone",
+        "immobile"
+      ],
+      "roam": false
+    },
+    {
+      "name": "Obsidia",
+      "role": "marksman",
+      "tags": [
+        "hypercarry",
+        "burst",
+        "mobile",
+        "dash",
+        "cc_hard"
+      ],
+      "roam": false
+    },
+    {
+      "name": "Cici",
+      "role": "fighter",
+      "tags": [
+        "dive",
+        "mobile",
+        "dash",
+        "cc_hard",
+        "heal"
+      ],
+      "roam": false
+    },
+    {
+      "name": "Valir",
+      "role": "mage",
+      "tags": [
+        "poke",
+        "burst",
+        "cc_hard",
+        "zone",
+        "peel",
+        "immobile"
+      ],
+      "roam": false
+    },
+    {
+      "name": "Marcel",
+      "role": "support",
+      "tags": [
+        "engage",
+        "cc_hard",
+        "zone",
+        "peel",
+        "tanky",
+        "mobile"
+      ],
+      "roam": true
     }
   ]
 }
