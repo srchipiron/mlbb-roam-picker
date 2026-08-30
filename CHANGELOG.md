@@ -8,6 +8,15 @@ que esto no se olvida.
 Criterio: `0.X.0` cuando cambia cómo decide la app o qué hace; `0.0.X` para
 correcciones.
 
+## 1.5.2
+
+- **El buscador de héroes ya no te deja tirado.** Si lo que escribes no encaja
+  con ningún nombre, ahora prueba con las letras en el orden que las has puesto
+  aunque no estén pegadas: "Lyla" encuentra a Layla, "Tigral" a Tigreal,
+  "Lucard" a Alucard. Solo entra cuando la búsqueda normal no devuelve nada, así
+  que buscar como siempre sigue dando exactamente lo mismo. Pide tres letras: con
+  dos, las letras sueltas encajan en casi cualquier nombre.
+
 ## 1.5.1
 
 - **El Diagnóstico vuelve a decir la verdad.** Con la matriz completa daba tres

@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { nombresDe } from '../engine/alias.js';
+import { filtrarPorNombre } from '../engine/alias.js';
 import { crearT } from '../i18n.js';
 
 // Traductor por defecto para los componentes que no reciben uno. La app le pasa
@@ -68,16 +68,15 @@ export function HeroSheet({ heroes, taken, stats, onPick, onClose, t = tPorDefec
   }, [onClose]);
 
   const list = useMemo(() => {
-    const norm = (s) => s.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
-    const key = (s) => norm(s).replace(/[^a-z0-9]/g, '');
-    const needle = norm(q.trim());
+    const key = (s) => s.toLowerCase().normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]/g, '');
     const pickRate = (h) => stats?.[key(h.name)]?.pickRate ?? -1;
-    return heroes
-      // Tambien por el nombre que el juego usa en otros idiomas: Javi lo tiene
-      // en espanol, ve "Ciclope" y escribia "Ciclope" sin encontrar nada. Lo
-      // que se ENSENA sigue siendo el nombre en ingles, que es la clave de los
-      // datos; solo se amplia por donde se busca.
-      .filter((h) => !needle || nombresDe(h).some((n) => n.includes(needle)))
+    // filtrarPorNombre busca tambien por el nombre que el juego usa en otros
+    // idiomas -Javi lo tiene en espanol y escribia "Ciclope" sin encontrar
+    // nada- y, si aun asi no sale nadie, por las letras en orden. Lo que se
+    // ENSENA sigue siendo el nombre en ingles, que es la clave de los datos;
+    // solo se amplia por donde se busca.
+    return filtrarPorNombre(heroes, q)
       // Sin buscar, primero los más jugados: en 30 segundos de draft, el pick
       // que necesitas suele estar entre los veinte primeros y te ahorras teclear.
       .sort((a, b) => (q ? 0 : pickRate(b) - pickRate(a)) || a.name.localeCompare(b.name));

@@ -20,7 +20,7 @@ comprobaciones automáticas importan más de lo normal.
 
 ## Reglas de trabajo
 
-**Nunca subas nada sin pasar `npm test`.** Son cuatro comprobaciones y 54
+**Nunca subas nada sin pasar `npm test`.** Son cuatro comprobaciones y 55
 pruebas (orden de declaraciones, CSS, versión documentada y motor). El
 despliegue corre esas cuatro más dos que no están en `npm test`: que
 `roam-meta.json` se haya regenerado hace menos de media hora, y que la corrida
