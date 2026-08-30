@@ -52,8 +52,11 @@ const WANTED = {
   position: [/hero[-_]?position/i, /hero[-_]?list/i, /\bheroes?\b\/?$/i],
   // La API llamó a esto "Hero Relation" en versiones anteriores, y puede volver
   // a cambiarle el nombre. Se buscan todas las variantes plausibles.
-  counter: [/counter/i, /matchup/i, /\bagainst\b/i, /hero[-_]?relation/i, /\brelation/i],
-  compatibility: [/compat/i, /synerg/i, /\bwith\b/i, /partner/i, /hero[-_]?relation/i, /\brelation/i],
+  // El orden importa: se prueba patrón por patrón y gana el primero que exista.
+  // /relations devuelve una estructura distinta, así que va detrás de las rutas
+  // dedicadas, que son las que traen los pares legibles.
+  counter: [/counters?\/?$/i, /counter/i, /matchup/i, /relations?\/?$/i, /relation/i],
+  compatibility: [/compatibilit/i, /compat/i, /synerg/i, /teammates?\/?$/i, /partner/i, /relations?\/?$/i, /relation/i],
 };
 
 /** Prefijos de grupo de rutas que ha usado el proyecto en distintas versiones. */
@@ -191,7 +194,17 @@ async function discoverRoutes() {
       const routes = {};
       for (const [key, patterns] of Object.entries(WANTED)) {
         const wantsId = key === 'counter' || key === 'compatibility';
-        const candidatos = allPaths.filter((p) => patterns.some((re) => re.test(p)));
+        // Por patrón, en orden de preferencia, no todos mezclados.
+        let candidatos = [];
+        for (const re of patterns) {
+          candidatos = allPaths.filter((p) => re.test(p));
+          if (candidatos.length) break;
+        }
+        // Las rutas de /academy son material didáctico, no estadística de partidas.
+        if (candidatos.length > 1) {
+          const propias = candidatos.filter((p) => !/academy/i.test(p));
+          if (propias.length) candidatos = propias;
+        }
         // Para counter y compatibilidad se prefiere la ruta con {id}, pero si la
         // API pide el héroe como parámetro normal, también sirve: exigir {id}
         // dejaba la ruta sin encontrar y tiraba todos los counters.
@@ -218,7 +231,7 @@ async function discoverRoutes() {
 
 /** Llama a una ruta ya descubierta, mandando solo los parámetros que acepta. */
 async function callRoute(route, values, pathValue) {
-  const url = new URL(route.template.replace(/\{[^}]+\}/, pathValue ?? ''));
+  const url = new URL(route.template.replace(/\{[^}]+\}/, encodeURIComponent(pathValue ?? '')));
   const accepted = route.params.length
     ? Object.fromEntries(Object.entries(values).filter(([k]) => route.params.includes(k)))
     : values;
@@ -328,6 +341,25 @@ async function fetchStats(rank) {
 const DELTA_KEYS = ['increase_win_rate', 'increase_winrate', 'win_rate_increase'];
 const ABS_KEYS = ['win_rate', 'hero_win_rate', 'winRate'];
 
+/**
+ * Recorre la respuesta entera y recoge cualquier objeto que tenga un nombre de
+ * héroe y una tasa. La API envuelve los datos de formas distintas según el
+ * endpoint, y quedarse con "el primer array que aparezca" fallaba: devolvía una
+ * lista de objetos con una sola clave `data` y no había pares que leer.
+ */
+function recogerPares(node, out = [], depth = 0) {
+  if (depth > 8 || node == null || typeof node !== 'object') return out;
+  if (Array.isArray(node)) {
+    for (const v of node) recogerPares(v, out, depth + 1);
+    return out;
+  }
+  const nombre = NAME_KEYS.find((k) => typeof node[k] === 'string');
+  const tasa = [...DELTA_KEYS, ...ABS_KEYS].find((k) => node[k] != null && typeof node[k] !== 'object');
+  if (nombre && tasa) out.push(node);
+  for (const v of Object.values(node)) recogerPares(v, out, depth + 1);
+  return out;
+}
+
 function relationMap(rows) {
   const map = {};
   for (const row of rows) {
@@ -381,8 +413,8 @@ async function fetchRelations(roamNames, stats, heroList) {
           ? callRoute(ROUTES.compatibility, { ...values, hero_id: id, id }, id)
           : Promise.reject(new Error('sin ruta de compatibilidad en el esquema')),
       ]);
-      counters[name] = relationMap(c.rows);
-      synergies[name] = relationMap(s.rows);
+      counters[name] = relationMap(recogerPares(c.data));
+      synergies[name] = relationMap(recogerPares(s.data));
       if (Object.keys(counters[name]).length) {
         diagnostics.relations.ok++;
       } else if (diagnostics.relations.errores.length < 4) {
@@ -484,7 +516,11 @@ async function main() {
     heroes: heroList,
     newHeroes,
     diagnostics: {
-      base: LOCKED ? `${LOCKED.method} ${LOCKED.base}${LOCKED.prefix}` : null,
+      // Cuando las rutas salen del esquema, LOCKED no llega a usarse: la base
+      // hay que sacarla de ahí o la app muestra "API: desconocida" teniéndola.
+      base: LOCKED
+        ? `${LOCKED.method} ${LOCKED.base}${LOCKED.prefix}`
+        : (ROUTES?.rank ? `${ROUTES.rank.method} ${new URL(ROUTES.rank.template).origin}` : null),
       schema: diagnostics.schema ?? null,
       routes: diagnostics.routes ?? null,
       relations: diagnostics.relations ?? null,
