@@ -16,6 +16,9 @@
 import { writeFile, readFile, mkdir } from 'node:fs/promises';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import {
+  NAME_KEYS, ID_KEYS, asRate, pick, recogerPares, relationMap,
+} from './parse-relations.mjs';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const ROOT = resolve(__dirname, '..');
@@ -49,7 +52,7 @@ const BASES = [
  */
 const WANTED = {
   rank: [/hero[-_]?rank/i, /hero[-_]?rate/i, /\brank\b/i],
-  position: [/hero[-_]?position/i, /hero[-_]?list/i, /\bheroes?\b\/?$/i],
+  position: [/positions?\/?$/i, /hero[-_]?position/i, /hero[-_]?list/i, /\bheroes?\/?$/i],
   // La API llamó a esto "Hero Relation" en versiones anteriores, y puede volver
   // a cambiarle el nombre. Se buscan todas las variantes plausibles.
   // El orden importa: se prueba patrón por patrón y gana el primero que exista.
@@ -259,38 +262,6 @@ function firstArray(node, depth = 0) {
   return null;
 }
 
-/** Busca un valor por varios nombres de campo posibles, a cualquier profundidad. */
-function pick(obj, keys, depth = 0) {
-  if (depth > 5 || obj == null || typeof obj !== 'object') return undefined;
-  for (const k of keys) {
-    if (obj[k] != null && typeof obj[k] !== 'object') return obj[k];
-  }
-  for (const v of Object.values(obj)) {
-    const found = pick(v, keys, depth + 1);
-    if (found !== undefined) return found;
-  }
-  return undefined;
-}
-
-/**
- * La API mezcla 0.52 y 52 para decir lo mismo. Con Math.abs, además, un delta
- * negativo (-2.5, o sea -2,5 puntos) se convierte bien: antes se quedaba en
- * -2.5 y acababa guardado como si fuera un winrate.
- */
-const asRate = (n) => {
-  if (n == null) return null;
-  const x = Number(n);
-  if (Number.isNaN(x)) return null;
-  return Math.abs(x) > 1 ? x / 100 : x;
-};
-
-const NAME_KEYS = [
-  'name', 'hero_name', 'heroname', 'hero', 'heroName',
-  'target_name', 'opponent', 'enemy_name', 'against', 'title', 'label',
-];
-
-let ROUTES = null;
-
 async function fetchHeroList() {
   const values = { size: 300, index: 1, page_size: 300, page_index: 1, lang: 'en' };
   const { rows } = ROUTES?.position
@@ -302,7 +273,7 @@ async function fetchHeroList() {
     if (!name) continue;
     heroes.push({
       name: String(name).trim(),
-      id: pick(row, ['hero_id', 'heroid', 'id']) ?? null,
+      id: pick(row, ['main_heroid', 'hero_id', 'heroid', 'heroId', 'id']) ?? null,
       role: String(pick(row, ['role', 'hero_role', 'primary_role']) ?? '').toLowerCase(),
       lane: String(pick(row, ['lane', 'hero_lane', 'primary_lane']) ?? '').toLowerCase(),
     });
@@ -330,7 +301,7 @@ async function fetchStats(rank) {
       pickRate: asRate(pick(row, ['pick_rate', 'pickRate', 'main_hero_appearance_rate'])),
       banRate: asRate(pick(row, ['ban_rate', 'banRate', 'main_hero_ban_rate'])),
       matches: Number(pick(row, ['matches', 'match_count', 'total']) ?? 0) || null,
-      heroId: pick(row, ['hero_id', 'heroid', 'id']) ?? null,
+      heroId: pick(row, ['main_heroid', 'hero_id', 'heroid', 'heroId', 'id']) ?? null,
     };
   }
   return stats;
@@ -341,63 +312,6 @@ async function fetchStats(rank) {
  * media, y distinguirlos por su tamaño fallaba: un delta de +0.25 se tomaba por
  * un winrate del 25%. Ahora se mira QUÉ campo vino, que es lo que lo determina.
  */
-const DELTA_KEYS = [
-  'increase_win_rate', 'increase_winrate', 'win_rate_increase',
-  'winRateIncrease', 'delta', 'advantage', 'diff',
-];
-const ABS_KEYS = [
-  'win_rate', 'hero_win_rate', 'winRate', 'winrate', 'wr', 'rate', 'value', 'score',
-];
-
-/**
- * Recorre la respuesta entera y recoge cualquier objeto que tenga un nombre de
- * héroe y una tasa. La API envuelve los datos de formas distintas según el
- * endpoint, y quedarse con "el primer array que aparezca" fallaba: devolvía una
- * lista de objetos con una sola clave `data` y no había pares que leer.
- */
-function recogerPares(node, out = [], depth = 0) {
-  if (depth > 10 || node == null) return out;
-
-  // Algunas APIs devuelven el contenido bueno como texto JSON dentro de un
-  // campo. Sin esto, el recorrido se paraba en la cadena y no veía los pares.
-  if (typeof node === 'string') {
-    const t = node.trim();
-    if ((t.startsWith('{') || t.startsWith('[')) && t.length < 200000) {
-      try { return recogerPares(JSON.parse(t), out, depth + 1); } catch { /* no era JSON */ }
-    }
-    return out;
-  }
-
-  if (typeof node !== 'object') return out;
-  if (Array.isArray(node)) {
-    for (const v of node) recogerPares(v, out, depth + 1);
-    return out;
-  }
-  const nombre = NAME_KEYS.find((k) => typeof node[k] === 'string');
-  const tasa = [...DELTA_KEYS, ...ABS_KEYS].find((k) => node[k] != null && typeof node[k] !== 'object');
-  if (nombre && tasa) out.push(node);
-  for (const v of Object.values(node)) recogerPares(v, out, depth + 1);
-  return out;
-}
-
-function relationMap(rows) {
-  const map = {};
-  for (const row of rows) {
-    const name = pick(row, NAME_KEYS);
-    if (!name) continue;
-
-    const delta = asRate(pick(row, DELTA_KEYS));
-    const abs = asRate(pick(row, ABS_KEYS));
-    const valor = delta != null ? 0.5 + delta : abs;
-
-    // Un winrate de pareja fuera de 20%-80% es un dato mal leído, no un matchup.
-    if (valor != null && valor > 0.2 && valor < 0.8) {
-      map[String(name).trim()] = valor;
-    }
-  }
-  return map;
-}
-
 async function fetchRelations(roamNames, stats, heroList) {
   const counters = {};
   const synergies = {};
@@ -408,8 +322,14 @@ async function fetchRelations(roamNames, stats, heroList) {
   // los counters se quedaran vacíos sin decir nada.
   const norm = (n) => String(n ?? '').toLowerCase().replace(/[^a-z0-9]/g, '');
   const idPorNombre = new Map();
-  for (const [n, st] of Object.entries(stats)) if (st.heroId) idPorNombre.set(norm(n), st.heroId);
-  for (const h of heroList ?? []) if (h.id) idPorNombre.set(norm(h.name), h.id);
+  const idToName = new Map();
+  for (const [n, st] of Object.entries(stats)) {
+    if (st.heroId) { idPorNombre.set(norm(n), st.heroId); idToName.set(Number(st.heroId), n); }
+  }
+  for (const h of heroList ?? []) {
+    if (h.id) { idPorNombre.set(norm(h.name), h.id); idToName.set(Number(h.id), h.name); }
+  }
+  console.log(`  · ${idToName.size} héroes con id conocido`);
 
   diagnostics.relations = {
     rutaCounter: ROUTES?.counter ? `${ROUTES.counter.method} ${ROUTES.counter.template}` : null,
@@ -433,10 +353,15 @@ async function fetchRelations(roamNames, stats, heroList) {
           ? callRoute(ROUTES.compatibility, { ...values, hero_id: id, id }, id)
           : Promise.reject(new Error('sin ruta de compatibilidad en el esquema')),
       ]);
-      counters[name] = relationMap(recogerPares(c.data));
-      synergies[name] = relationMap(recogerPares(s.data));
+      counters[name] = relationMap(recogerPares(c.data), idToName);
+      synergies[name] = relationMap(recogerPares(s.data), idToName);
       if (Object.keys(counters[name]).length) {
         diagnostics.relations.ok++;
+        if (diagnostics.relations.ejemplos.length < 2) {
+          const pares = Object.entries(counters[name]).slice(0, 3)
+            .map(([k, v]) => `${k} ${(v * 100).toFixed(1)}%`).join(', ');
+          diagnostics.relations.ejemplos.push(`${name} vs ${pares}`);
+        }
       } else if (diagnostics.relations.errores.length < 2) {
         // Respondió pero no supimos leerlo. Guardamos un trozo de la respuesta
         // TAL CUAL: los nombres de campo son lo único que falta por saber, y

@@ -250,6 +250,43 @@ test('un pick volátil se penaliza a ciegas pero no con el draft completo', () =
   ok(completo < ciego, `volátil: puesto ${ciego} a ciegas y ${completo} con todo visto`);
 });
 
+test('se leen los counters con la forma real que devuelve la API', async () => {
+  const { recogerPares, relationMap, pick } = await import('./parse-relations.mjs');
+
+  // Respuesta REAL capturada con el diagnóstico en el móvil. Los rivales vienen
+  // identificados solo por heroid, sin nombre: solo traen la URL de su icono.
+  const real = {
+    code: 0, message: 'OK',
+    data: { records: [{
+      _createdAt: 1724837698334, _id: '66ceef43af5771f18c501376', _updatedAt: 1788014700432,
+      data: {
+        bigrank: '7', camp_type: '0',
+        main_hero: { data: { head: 'https://x/a.png', name: 'Atlas' } },
+        main_hero_appearance_rate: 0.008016, main_hero_ban_rate: 0.140859,
+        main_hero_win_rate: 0.538425, main_heroid: 93,
+        sub_hero: [
+          { hero: { data: { head: 'https://x/b.png' } }, hero_win_rate: 0.55588,
+            heroid: 20, increase_win_rate: 0.041158, min_win_rate10_12: 0.543624 },
+          { hero: { data: { head: 'https://x/c.png' } }, hero_win_rate: 0.47,
+            heroid: 17, increase_win_rate: -0.028 },
+        ],
+      },
+    }] },
+  };
+
+  ok(pick(real, ['main_heroid']) === 93, 'no encuentra el id del héroe principal');
+
+  const mapa = relationMap(recogerPares(real), new Map([[20, 'Franco'], [17, 'Fanny']]));
+  ok(Math.abs(mapa.Franco - 0.541158) < 1e-6, `Franco mal leído: ${mapa.Franco}`);
+  ok(Math.abs(mapa.Fanny - 0.472) < 1e-6, `Fanny mal leída: ${mapa.Fanny}`);
+  ok(mapa.Franco > mapa.Fanny, 'el signo del delta está invertido');
+
+  // Sin el mapa de ids no hay forma de nombrar a los rivales: debe quedar vacío
+  // en vez de inventarse nombres.
+  ok(!Object.keys(relationMap(recogerPares(real), new Map())).length,
+    'nombra rivales sin tener su id');
+});
+
 test('el autodiagnóstico detecta datos rotos y aprueba los buenos', async () => {
   const { runSelfTest } = await import('../src/engine/selftest.js');
   const env = { version: 'test', rango: 'mythic', width: 412, height: 915, storage: true };
