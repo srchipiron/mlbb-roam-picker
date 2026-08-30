@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { rankRoamers, mergeCatalog, suggestBans, indexByName, coverage, empatados, normName } from './engine/score.js';
-import { Side, HeroSheet, Pick, Legend, MasteryEditor, RankPicker, BanSuggestions, Footer } from './components/ui.jsx';
+import { runSelfTest, leerEntorno } from './engine/selftest.js';
+import { Side, HeroSheet, Pick, Legend, MasteryEditor, RankPicker, BanSuggestions, Footer, SelfTest } from './components/ui.jsx';
 
 const MASTERY_KEY = 'roam-picker:mastery';
 const RANK_KEY = 'roam-picker:rank';
@@ -31,6 +32,7 @@ export default function App() {
 
   const [mastery, setMastery] = useState(() => load(MASTERY_KEY, {}));
   const [editingMastery, setEditingMastery] = useState(false);
+  const [test, setTest] = useState(null);
 
   const saveMastery = (next) => { setMastery(next); save(MASTERY_KEY, next); };
 
@@ -113,6 +115,19 @@ export default function App() {
     [catalog, allHeroes, allies, enemies, bans, metaCtx],
   );
 
+  const lanzarTest = () => {
+    try {
+      setTest(runSelfTest({
+        catalog, meta, metaCtx, allHeroes, roamPool, mastery,
+        env: leerEntorno({ version: __APP_VERSION__, buildTime: __BUILD_TIME__, rango: activeRank }),
+      }));
+    } catch (err) {
+      // Que el diagnóstico falle no debe dejar la app en blanco: el propio error
+      // es información útil, así que se muestra como resultado.
+      setTest({ texto: `El diagnóstico ha fallado:\n${err?.stack ?? err}`, fallos: 1, avisos: 0 });
+    }
+  };
+
   const addTo = (hero) => {
     const setter = { enemy: setEnemyNames, ally: setAllyNames, ban: setBanNames }[sheet];
     setter?.((prev) => [...prev, hero.name]);
@@ -170,6 +185,10 @@ export default function App() {
           </div>
 
           <BanSuggestions items={banIdeas} onBan={(h) => setBanNames((p) => [...p, h.name])} />
+
+          <button className="reset" style={{ marginTop: '14px' }} onClick={lanzarTest}>
+            Diagnóstico
+          </button>
         </details>
 
         <div className="tools">
@@ -223,6 +242,8 @@ export default function App() {
 
         <Legend />
       </main>
+
+      {test && <SelfTest resultado={test} onClose={() => setTest(null)} />}
 
       {editingMastery && (
         <MasteryEditor

@@ -318,6 +318,11 @@ export function Footer({ meta, generado, ageHours, rango, cov }) {
                   ))}
                 </>
               ) : ' La ingesta no dejó diagnóstico: reejecútala.'}
+              {meta.diagnostics?.schema?.heroPaths && (
+                <div className="pie-api">
+                  Rutas de héroes en la API: {meta.diagnostics.schema.heroPaths.join(' · ')}
+                </div>
+              )}
             </div>
           )}
           <div>Compilada: {new Date(__BUILD_TIME__).toLocaleString('es-ES')}</div>
@@ -329,5 +334,45 @@ export function Footer({ meta, generado, ageHours, rango, cov }) {
         {fecha ? ` · datos ${fecha}` : ' · sin datos'}
       </span>
     </footer>
+  );
+}
+
+/** Pantalla de diagnóstico: ejecuta las comprobaciones y deja el texto listo para copiar. */
+export function SelfTest({ resultado, onClose }) {
+  const [copiado, setCopiado] = useState(false);
+
+  const copiar = async () => {
+    try {
+      await navigator.clipboard.writeText(resultado.texto);
+      setCopiado(true);
+      setTimeout(() => setCopiado(false), 2000);
+    } catch {
+      // Sin permiso de portapapeles: se selecciona el texto para copiar a mano.
+      const el = document.getElementById('selftest-texto');
+      const sel = window.getSelection();
+      const rango = document.createRange();
+      rango.selectNodeContents(el);
+      sel.removeAllRanges();
+      sel.addRange(rango);
+    }
+  };
+
+  const compartir = () => navigator.share?.({ text: resultado.texto }).catch(() => {});
+
+  return (
+    <div className="sheet" role="dialog" aria-label="Diagnóstico">
+      <div className="sheet-head">
+        <strong style={{ flex: 1, alignSelf: 'center' }}>
+          {resultado.fallos ? `${resultado.fallos} fallos` : 'Todo correcto'}
+          {resultado.avisos ? ` · ${resultado.avisos} avisos` : ''}
+        </strong>
+        {navigator.share && <button className="close" onClick={compartir}>Enviar</button>}
+        <button className="close" style={{ color: 'var(--gold)' }} onClick={copiar}>
+          {copiado ? 'Copiado' : 'Copiar'}
+        </button>
+        <button className="close" onClick={onClose}>Cerrar</button>
+      </div>
+      <pre id="selftest-texto" className="selftest">{resultado.texto}</pre>
+    </div>
   );
 }

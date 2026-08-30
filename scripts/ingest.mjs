@@ -50,8 +50,10 @@ const BASES = [
 const WANTED = {
   rank: [/hero[-_]?rank/i, /hero[-_]?rate/i, /\brank\b/i],
   position: [/hero[-_]?position/i, /hero[-_]?list/i, /\bheroes?\b\/?$/i],
-  counter: [/hero[-_]?counter/i],
-  compatibility: [/hero[-_]?compat/i],
+  // La API llamó a esto "Hero Relation" en versiones anteriores, y puede volver
+  // a cambiarle el nombre. Se buscan todas las variantes plausibles.
+  counter: [/counter/i, /matchup/i, /\bagainst\b/i, /hero[-_]?relation/i, /\brelation/i],
+  compatibility: [/compat/i, /synerg/i, /\bwith\b/i, /partner/i, /hero[-_]?relation/i, /\brelation/i],
 };
 
 /** Prefijos de grupo de rutas que ha usado el proyecto en distintas versiones. */
@@ -178,16 +180,24 @@ async function discoverRoutes() {
       if (!schema?.paths) continue;
 
       const allPaths = Object.keys(schema.paths);
-      diagnostics.schema = { url: schemaUrl, pathCount: allPaths.length, sample: allPaths.slice(0, 40) };
+      diagnostics.schema = {
+        url: schemaUrl,
+        pathCount: allPaths.length,
+        // Solo las de héroes: son las candidatas y caben en pantalla.
+        heroPaths: allPaths.filter((p) => /hero|counter|relation|compat/i.test(p)).slice(0, 30),
+      };
       console.log(`  · esquema leído: ${allPaths.length} rutas en ${schemaUrl}`);
 
       const routes = {};
       for (const [key, patterns] of Object.entries(WANTED)) {
-        // Sin parámetros de ruta para las listas; con {id} para counter/compat.
         const wantsId = key === 'counter' || key === 'compatibility';
-        const match = allPaths.find(
-          (p) => patterns.some((re) => re.test(p)) && (wantsId ? /\{/.test(p) : !/\{/.test(p)),
-        );
+        const candidatos = allPaths.filter((p) => patterns.some((re) => re.test(p)));
+        // Para counter y compatibilidad se prefiere la ruta con {id}, pero si la
+        // API pide el héroe como parámetro normal, también sirve: exigir {id}
+        // dejaba la ruta sin encontrar y tiraba todos los counters.
+        const match = wantsId
+          ? candidatos.find((p) => /\{/.test(p)) ?? candidatos[0]
+          : candidatos.find((p) => !/\{/.test(p));
         if (!match) continue;
         const [method, op] = Object.entries(schema.paths[match])[0];
         routes[key] = {
@@ -361,12 +371,15 @@ async function fetchRelations(roamNames, stats, heroList) {
     try {
       const values = { days: DAYS, past_days: DAYS, rank: RANK, rank_id: RANK, lang: 'en' };
       const [c, s] = await Promise.all([
+        // Sin ruta en el esquema no se prueba a ciegas: acababa llamando a
+        // dominios muertos y llenando el diagnóstico de errores de Vercel que
+        // no decían nada del problema real.
         ROUTES?.counter
-          ? callRoute(ROUTES.counter, values, id)
-          : fetchResource([`/hero-counter/${id}/`], values),
+          ? callRoute(ROUTES.counter, { ...values, hero_id: id, id }, id)
+          : Promise.reject(new Error('sin ruta de counter en el esquema')),
         ROUTES?.compatibility
-          ? callRoute(ROUTES.compatibility, values, id)
-          : fetchResource([`/hero-compatibility/${id}/`], values),
+          ? callRoute(ROUTES.compatibility, { ...values, hero_id: id, id }, id)
+          : Promise.reject(new Error('sin ruta de compatibilidad en el esquema')),
       ]);
       counters[name] = relationMap(c.rows);
       synergies[name] = relationMap(s.rows);

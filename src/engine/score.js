@@ -76,6 +76,51 @@ export function metaScore(stat, patchAvgWinRate = 0.5) {
  * Counter. Primero intenta el dato real de la API (winrate del heroe A contra B).
  * Si no existe para ese par, cae a las reglas por tags.
  */
+/**
+ * Cuánto del counter sale del winrate real de la pareja frente a mis reglas.
+ * Con datos que reflejan la táctica más ruido de muestra, 0.65 aguanta bien;
+ * con ruido puro haría falta bajar a 0.4, pero eso sería renunciar al dato real
+ * por un caso que no se da. Si tus counters salieran ruidosos, el diagnóstico
+ * lo cantaría en la sección MOTOR.
+ */
+const PESO_DATO = 0.65;
+
+/**
+ * Ventaja de un roamer contra un enemigo según las reglas por tags, en 0..1.
+ * Cuenta la ventaja más fuerte y media la segunda: sumarlas todas premiaba al
+ * héroe con más etiquetas en el catálogo, no al que mejor le va de verdad.
+ */
+function ventajaPorTags(roamHero, enemy, reasons) {
+  const positivas = [];
+  let penalizacion = 0;
+
+  for (const rule of COUNTER_RULES) {
+    if (!enemy.tags.includes(rule.enemyTag) || !roamHero.tags.includes(rule.roamTag)) continue;
+    reasons?.push({
+      text: rule.why(enemy.name),
+      good: rule.weight > 0,
+      w: Math.abs(rule.weight),
+      kind: `${rule.enemyTag}>${rule.roamTag}`,
+    });
+    if (rule.weight > 0) positivas.push(rule.weight);
+    else penalizacion += rule.weight; // las desventajas sí suman: son avisos
+  }
+
+  positivas.sort((a, b) => b - a);
+  const sub = (positivas[0] ?? 0) + (positivas[1] ?? 0) * 0.5 + penalizacion;
+  // Escalado, no recortado: con un multiplicador fijo media plantilla marcaba
+  // 1.00 y dejaba de distinguir a quien corta dashes de quien solo hace peel.
+  return 0.5 + clamp01(sub / SUB_MAX) * 0.5;
+}
+
+/**
+ * Matchup contra los picks enemigos.
+ *
+ * Cuando hay winrate real de la pareja se MEZCLA con las reglas por tags en vez
+ * de sustituirlas. El dato real es mejor, pero sale de pocas partidas y es
+ * ruidoso: dejándole todo el peso, contra tres asesinos de dash podía dejar de
+ * recomendarse un anti-dash, que es justo lo que la app debe acertar.
+ */
 export function counterScore(roamHero, enemies, counterMatrix, enemyRoamName = null) {
   if (!enemies.length) return { value: 0.5, reasons: [] };
 
@@ -87,35 +132,21 @@ export function counterScore(roamHero, enemies, counterMatrix, enemyRoamName = n
     // El roamer rival es con quien más vas a chocar: su matchup pesa el doble.
     const peso = enemyRoamName && normName(enemy.name) === normName(enemyRoamName) ? 2 : 1;
     pesoTotal += peso;
+
+    const porTags = ventajaPorTags(roamHero, enemy, reasons);
     const pair = lookup(lookup(counterMatrix, roamHero.name), enemy.name);
-    if (pair != null) {
-      // pair = winrate de roamHero contra enemy (0..1). 0.50 es neutro.
-      const delta = clamp01((pair - 0.44) / 0.12);
-      total += delta * peso;
-      if (pair >= 0.53) reasons.push({ text: `gana el matchup contra ${enemy.name}`, good: true, w: 1.2 });
-      if (pair <= 0.47) reasons.push({ text: `pierde contra ${enemy.name}`, good: false, w: 1.3 });
+
+    if (pair == null) {
+      total += porTags * peso;
       continue;
     }
 
-    // Fallback por tags. Igual que en composición, contra un enemigo concreto
-    // cuenta la ventaja más fuerte y media la segunda: sumarlas todas premiaba
-    // al héroe con más etiquetas en el catálogo, no al que mejor le va.
-    const positivas = [];
-    let penalizacion = 0;
-    for (const rule of COUNTER_RULES) {
-      if (!enemy.tags.includes(rule.enemyTag) || !roamHero.tags.includes(rule.roamTag)) continue;
-      const r = { text: rule.why(enemy.name), good: rule.weight > 0, w: Math.abs(rule.weight), kind: `${rule.enemyTag}>${rule.roamTag}` };
-      reasons.push(r);
-      if (rule.weight > 0) positivas.push(rule.weight);
-      else penalizacion += rule.weight; // las desventajas sí suman: son avisos
-    }
-    positivas.sort((a, b) => b - a);
-    const sub = (positivas[0] ?? 0) + (positivas[1] ?? 0) * 0.5 + penalizacion;
-    // Escalado, no recortado. Con un multiplicador fijo la puntuación se pegaba
-    // al tope: media plantilla marcaba 1.00 y dejaba de distinguir a quien corta
-    // dashes de quien solo protege al carry. SUB_MAX es la ventaja máxima que
-    // puede acumular un héroe (la mejor regla más media de la segunda).
-    total += (0.5 + clamp01(sub / SUB_MAX) * 0.5) * peso;
+    // pair = winrate de roamHero contra enemy (0..1). 0.50 es neutro.
+    const porDato = clamp01((pair - 0.44) / 0.12);
+    total += (porDato * PESO_DATO + porTags * (1 - PESO_DATO)) * peso;
+
+    if (pair >= 0.53) reasons.push({ text: `gana el matchup contra ${enemy.name}`, good: true, w: 1.2 });
+    if (pair <= 0.47) reasons.push({ text: `pierde contra ${enemy.name}`, good: false, w: 1.3 });
   }
 
   return { value: total / pesoTotal, reasons: dedupe(reasons) };

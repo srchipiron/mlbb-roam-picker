@@ -27,7 +27,15 @@ let pasadas = 0;
 let fallos = 0;
 const test = (nombre, fn) => {
   try {
-    fn();
+    const r = fn();
+    // Algunas pruebas necesitan import() dinámico y devuelven una promesa.
+    if (r instanceof Promise) {
+      r.then(() => { pasadas++; }).catch((err) => {
+        fallos++;
+        console.error(`  FALLA  ${nombre}\n         ${err.message}`);
+      });
+      return;
+    }
     pasadas++;
   } catch (err) {
     fallos++;
@@ -218,6 +226,32 @@ test('un héroe nuevo de la API entra con los tags de su rol', () => {
   const nuevo = merged.find((x) => x.name === 'HeroeNuevo');
   ok(nuevo?.roam && nuevo.tags.length, 'no hereda tags de tanque ni entra al pool de roam');
 });
+
+test('el autodiagnóstico detecta datos rotos y aprueba los buenos', async () => {
+  const { runSelfTest } = await import('../src/engine/selftest.js');
+  const env = { version: 'test', rango: 'mythic', width: 412, height: 915, storage: true };
+  const stats = Object.fromEntries(all.map((x) => [x.name, { winRate: 0.497 + (rnd() - 0.5) * 0.06, pickRate: 0.02 }]));
+  const base = { catalog: cat, allHeroes: all, roamPool: pool, mastery: {}, env };
+
+  const bueno = runSelfTest({
+    ...base,
+    meta: { generatedAt: new Date().toISOString(), ranks: ['mythic'], days: 7, heroCount: 133, stats, statsByRank: { mythic: stats }, diagnostics: {} },
+    metaCtx: { stats: indexByName(stats), counters: undefined, patchAvgWinRate: 0.497 },
+  });
+  // Sin counters siempre hay un fallo; lo que no puede haber son fallos de motor.
+  ok(!bueno.texto.includes('[FALLO] Winrate NO influye'), 'marca el winrate como plano teniéndolo');
+  ok(!bueno.texto.includes('[FALLO] Contra dashes'), 'falla la sensatez táctica con datos buenos');
+
+  const roto = runSelfTest({
+    ...base,
+    meta: { generatedAt: new Date(0).toISOString(), ranks: [], days: 7, heroCount: 0, stats: {}, statsByRank: {}, diagnostics: {} },
+    metaCtx: { stats: {}, counters: undefined, patchAvgWinRate: 0.5 },
+  });
+  ok(roto.fallos > bueno.fallos, 'no distingue unos datos rotos de unos buenos');
+  ok(roto.texto.includes('Winrate NO influye'), 'no detecta que los winrates no entran');
+});
+
+await new Promise((r) => setTimeout(r, 60)); // deja terminar la prueba asíncrona
 
 console.log(`\n${pasadas} pruebas correctas, ${fallos} fallos.`);
 process.exit(fallos ? 1 : 0);

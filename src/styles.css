@@ -368,3 +368,13 @@ button:focus-visible, [tabindex]:focus-visible { outline: 2px solid var(--gold);
 /* Que el pie no tape la última recomendación ni el botón de guardar. */
 .results { padding-bottom: 38px; }
 .mastery-list { padding-bottom: 34px; }
+
+/* ---------- diagnóstico ---------- */
+
+.selftest {
+  flex: 1; overflow: auto; margin: 0;
+  font-family: var(--font-num); font-size: 11px; line-height: 1.55;
+  color: var(--text); white-space: pre-wrap; word-break: break-word;
+  background: var(--panel); border: 1px solid var(--line); border-radius: var(--r);
+  padding: 10px; user-select: text; -webkit-user-select: text;
+}

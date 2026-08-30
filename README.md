@@ -102,6 +102,17 @@ cuánto lo banea el resto de la gente y lo mal que le va a los aliados que ya ha
 - **No lee la pantalla del juego.** Los picks enemigos los metes tú a mano. En 30 segundos de draft
   da tiempo a tres o cuatro toques, no a más: por eso la rejilla tiene botones grandes y buscador.
 
+## Diagnóstico desde el móvil
+
+Botón **Diagnóstico** en "Baneos y ajustes". Ejecuta las comprobaciones contra
+los datos que la app tiene cargados en ese momento y deja un texto para copiar
+o compartir: entorno, frescura de los datos, cobertura de winrates y counters,
+nombres que no casan, sensatez táctica del motor y si tu maestría se aplica.
+
+Es distinto de `npm test`: aquellas pruebas corren en GitHub contra datos
+sintéticos y comprueban que el motor es correcto. Esta comprueba que la descarga
+de hoy salió bien y que tu móvil está mostrando lo que debe.
+
 ## Comprobaciones
 
 ```bash
