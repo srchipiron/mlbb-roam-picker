@@ -88,6 +88,28 @@ salen en tu perfil del juego. El winrate va en porcentaje (`50,6` o `50.6`, las 
 la conversión a fracción se hace al guardar. Los héroes que ya tienen datos suben arriba de la lista.
 Se guarda en `localStorage` y no sale del móvil.
 
+## Riesgo de contrapick
+
+Como roam sueles elegir pronto, sin ver el equipo enemigo entero. Ahí no interesa
+el mejor pick sobre el papel, sino el que menos te pueden castigar después.
+
+Con la matriz de counters, cada roamer tiene un riesgo 0..1 medido por el
+percentil 10 de sus matchups (el mal día típico, no el mínimo absoluto, que sería
+un dato suelto con poca muestra). Ese riesgo descuenta puntos **en proporción a
+cuántos enemigos faltan por ver**: pesa entero en el primer pick y desaparece
+cuando ya están los cinco. Los muy castigables se marcan como "arriesgado como
+pick ciego".
+
+La idea viene de las herramientas de draft de League of Legends, que llevan más
+recorrido en esto. De ahí salen también dos confirmaciones útiles: el shrinkage
+bayesiano sobre los matchups y priorizar tu propio pool, que ya hacíamos.
+
+Y una advertencia que conviene tener presente: en el paper de Kim et al.
+(Universidad de Washington), los modelos entrenados para predecir el resultado a
+partir de las composiciones no pasaron del 53% de acierto. Los personajes están
+demasiado equilibrados como para que el draft decida solo. Esto inclina la
+balanza, no gana partidas.
+
 ## Baneos
 
 En "Baneos y ajustes" hay una lista de a quién conviene banear: mezcla lo fuerte que está el héroe,

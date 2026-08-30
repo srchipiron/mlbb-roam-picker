@@ -1,5 +1,5 @@
 import {
-  rankRoamers, metaScore, masteryScore, coverage, normName, indexByName,
+  rankRoamers, metaScore, masteryScore, coverage, normName,
 } from './score.js';
 import { DEFAULT_WEIGHTS } from './rules.js';
 
@@ -119,6 +119,17 @@ export function runSelfTest({ catalog, meta, metaCtx, allHeroes, roamPool, maste
   check(rango > 0.05,
     `Winrate influye (dispersión ${rango.toFixed(2)})`,
     `Winrate NO influye: todos los héroes puntúan igual (dispersión ${rango.toFixed(2)})`);
+
+  // Riesgo de contrapick: solo se puede calcular con la matriz de counters.
+  if (cov.conCounters) {
+    const conRiesgo = roamPool
+      .map((hero) => ({ hero, r: rankRoamers([hero], { meta: metaCtx, candidatos: allHeroes })[0]?.riesgo }))
+      .filter((x) => x.r != null)
+      .sort((a, b) => b.r - a.r);
+    if (conRiesgo.length) {
+      lineas.push(`Más arriesgados como pick ciego: ${conRiesgo.slice(0, 3).map((x) => `${x.hero.name} ${x.r.toFixed(2)}`).join(', ')}`);
+    }
+  }
 
   // ---------- maestría ----------
   seccion('MAESTRÍA');

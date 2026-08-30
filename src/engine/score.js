@@ -299,6 +299,31 @@ export function scoreHero(roamHero, ctx) {
   };
 }
 
+/** Cuánto puede descontar como máximo el riesgo de contrapick. */
+const RIESGO_MAX = 0.10;
+
+/** Umbral por debajo del cual se considera que un componente no aporta señal. */
+const SENAL_MINIMA = 0.02;
+
+/**
+ * Reescala un componente al rango 0..1 dentro del pool.
+ *
+ * Sin esto los pesos no significaban lo que decían: con datos reales el winrate
+ * se repartía por un rango de 0.55 y la composición por 0.19, así que meta
+ * decidía el triple de lo que marcaba su peso y el draft apenas movía la
+ * recomendación. Medido en la app: influencia real meta 0.121 frente a comp
+ * 0.028, teniendo pesos 0.22 y 0.15.
+ *
+ * Si un componente casi no varía (draft vacío, sin counters, sin maestría) se
+ * deja plano en 0.5: no tiene información y no debe inventarse diferencias.
+ */
+function normalizarComponente(valores) {
+  const min = Math.min(...valores);
+  const max = Math.max(...valores);
+  if (max - min < SENAL_MINIMA) return valores.map(() => 0.5);
+  return valores.map((v) => (v - min) / (max - min));
+}
+
 /** Ordena todo el pool de roam para el estado actual del draft. */
 export function rankRoamers(pool, ctx) {
   // Normalizado: un pick guardado con otra grafía seguiría apareciendo como
@@ -309,18 +334,47 @@ export function rankRoamers(pool, ctx) {
     ...(ctx.bans ?? []),
   ].map((h) => normName(h.name)));
 
+  const weights = ctx.weights ?? DEFAULT_WEIGHTS;
+  const claves = Object.keys(weights);
+
   const resultados = pool
     .filter((h) => !taken.has(normName(h.name)))
     .map((h) => scoreHero(h, ctx));
 
-  return resultados
-    .sort((a, b) =>
-      // Empate exacto: primero lo que mejor lleves, luego el winrate, y por
-      // último el nombre. Sin esto el orden dependía del orden del catálogo.
-      b.score - a.score ||
-      b.parts.mastery.value - a.parts.mastery.value ||
-      b.parts.meta.value - a.parts.meta.value ||
-      a.hero.name.localeCompare(b.hero.name));
+  if (!resultados.length) return resultados;
+
+  // Cada componente se reescala dentro del pool ANTES de aplicar su peso, para
+  // que un peso de 0.36 sea de verdad el 36% de la decisión.
+  const normalizados = {};
+  for (const k of claves) {
+    normalizados[k] = normalizarComponente(resultados.map((r) => r.parts[k]?.value ?? 0.5));
+  }
+
+  // Con el equipo enemigo a medias, un pick muy castigable es una apuesta: se
+  // marca para que lo sepas, y se penaliza en proporción a lo que falta por ver.
+  const porVer = Math.max(0, 5 - (ctx.enemies?.length ?? 0));
+  const cegera = porVer / 5;
+
+  resultados.forEach((r, i) => {
+    r.contributions = Object.fromEntries(claves.map((k) => [k, normalizados[k][i] * weights[k]]));
+    r.score = claves.reduce((acc, k) => acc + r.contributions[k], 0);
+
+    r.riesgo = riesgoContrapick(r.hero, ctx.meta?.counters, ctx.candidatos ?? []);
+    if (r.riesgo != null && cegera > 0) {
+      r.score -= r.riesgo * cegera * RIESGO_MAX;
+      if (r.riesgo > 0.6 && cegera > 0.4) {
+        r.reasons = [{ text: 'arriesgado como pick ciego', good: false, w: 1.5 }, ...r.reasons].slice(0, 3);
+      }
+    }
+  });
+
+  return resultados.sort((a, b) =>
+    // Empate exacto: primero lo que mejor lleves, luego el winrate, y por
+    // último el nombre. Sin esto el orden dependía del orden del catálogo.
+    b.score - a.score ||
+    b.parts.mastery.value - a.parts.mastery.value ||
+    b.parts.meta.value - a.parts.meta.value ||
+    a.hero.name.localeCompare(b.hero.name));
 }
 
 /** Un motivo por tipo de razón: repetir "bloquea los dashes de X" tres veces no informa. */
@@ -397,6 +451,34 @@ export function suggestBans(allHeroes, ctx) {
     })
     .sort((a, b) => b.score - a.score)
     .slice(0, 5);
+}
+
+/**
+ * Riesgo de contrapick: cuánto puede hundirse este roamer si el enemigo aún no
+ * ha elegido y luego te saca su peor matchup.
+ *
+ * Idea tomada de las herramientas de draft de LoL, y especialmente pertinente en
+ * roam porque sueles elegir pronto, a ciegas. En ese momento no quieres el mejor
+ * pick sobre el papel, quieres el que menos te pueden castigar después.
+ *
+ * Devuelve 0..1, donde 1 es muy castigable. Se mide con el percentil 10 de sus
+ * matchups (el mal día típico), no con el mínimo absoluto, que sería un dato
+ * suelto con poca muestra.
+ */
+export function riesgoContrapick(roamHero, counterMatrix, candidatos) {
+  const fila = lookup(counterMatrix, roamHero.name);
+  if (!fila) return null;
+
+  const valores = candidatos
+    .map((h) => fila[normName(h.name)])
+    .filter((v) => v != null)
+    .sort((a, b) => a - b);
+
+  if (valores.length < 10) return null;
+
+  const p10 = valores[Math.floor(valores.length * 0.1)];
+  // 0.42 sería un matchup desastroso; 0.50, ninguno malo.
+  return clamp01((0.50 - p10) / 0.08);
 }
 
 /** Cuántos roamers tienen datos reales. Si baja, algo se ha roto en silencio. */

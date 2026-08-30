@@ -101,9 +101,13 @@ export default function App() {
 
   const ranked = useMemo(
     () => (catalog
-      ? rankRoamers(roamPool, { enemies, allies, bans, mastery, meta: metaCtx, enemyRoam })
+      ? rankRoamers(roamPool, {
+        enemies, allies, bans, mastery, meta: metaCtx, enemyRoam,
+        // Héroes que el enemigo aún podría elegir: base del riesgo de contrapick.
+        candidatos: allHeroes.filter((h) => !taken.has(h.name)),
+      })
       : []),
-    [catalog, roamPool, metaCtx, enemies, allies, bans, mastery, enemyRoam],
+    [catalog, roamPool, allHeroes, taken, metaCtx, enemies, allies, bans, mastery, enemyRoam],
   );
 
   const empate = useMemo(() => empatados(ranked), [ranked]);

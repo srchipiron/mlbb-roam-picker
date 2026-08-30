@@ -227,6 +227,29 @@ test('un héroe nuevo de la API entra con los tags de su rol', () => {
   ok(nuevo?.roam && nuevo.tags.length, 'no hereda tags de tanque ni entra al pool de roam');
 });
 
+test('un pick volátil se penaliza a ciegas pero no con el draft completo', () => {
+  // Idea tomada de las herramientas de draft de LoL: como roam eliges pronto, y
+  // el mejor pick sobre el papel no es el mejor si te lo pueden castigar luego.
+  const counters = {};
+  for (const rh of pool) {
+    counters[rh.name] = {};
+    const volatil = rh.name === 'Chou';
+    for (const e of all) counters[rh.name][e.name] = volatil
+      ? (all.indexOf(e) % 5 === 0 ? 0.40 : 0.56)   // muchos matchups pésimos
+      : 0.50;
+  }
+  const meta = { counters: indexByName(counters, 2), patchAvgWinRate: 0.5 };
+  const puesto = (r) => r.findIndex((x) => x.hero.name === 'Chou');
+
+  const ciego = puesto(rankRoamers(pool, { meta, candidatos: all }));
+  const completo = puesto(rankRoamers(pool, {
+    enemies: ['Fanny', 'Ling', 'Melissa', 'Xavier', 'Esmeralda'].map(h),
+    meta,
+    candidatos: all,
+  }));
+  ok(completo < ciego, `volátil: puesto ${ciego} a ciegas y ${completo} con todo visto`);
+});
+
 test('el autodiagnóstico detecta datos rotos y aprueba los buenos', async () => {
   const { runSelfTest } = await import('../src/engine/selftest.js');
   const env = { version: 'test', rango: 'mythic', width: 412, height: 915, storage: true };
