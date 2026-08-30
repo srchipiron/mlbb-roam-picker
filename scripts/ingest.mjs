@@ -32,7 +32,9 @@ const args = Object.fromEntries(
   }, []),
 );
 
-const RANK = args.rank ?? 'mythic';
+// Gloria Mitica por defecto: es el rango del usuario y donde el draft se juega
+// en serio, asi que sus counters son los mas informativos.
+const RANK = args.rank ?? 'glory';
 const DAYS = Number(args.days ?? 7);
 const RANKS = (args.ranks ?? 'epic,legend,mythic,glory').split(',').map((r) => r.trim());
 
@@ -261,6 +263,9 @@ function firstArray(node, depth = 0) {
   }
   return null;
 }
+
+/** Rutas descubiertas en el esquema OpenAPI. La rellena discoverRoutes(). */
+let ROUTES = null;
 
 async function fetchHeroList() {
   const values = { size: 300, index: 1, page_size: 300, page_index: 1, lang: 'en' };

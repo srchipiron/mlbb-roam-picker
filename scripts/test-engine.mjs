@@ -250,6 +250,20 @@ test('un pick volátil se penaliza a ciegas pero no con el draft completo', () =
   ok(completo < ciego, `volátil: puesto ${ciego} a ciegas y ${completo} con todo visto`);
 });
 
+test('la ingesta arranca sin errores de programación', async () => {
+  // Comprobar solo la sintaxis no basta: un `ROUTES is not defined` pasaba
+  // node --check y reventaba en la primera línea, dejando los datos congelados
+  // en silencio porque el workflow lleva continue-on-error.
+  const { execFileSync } = await import('node:child_process');
+  const salida = execFileSync('node', [
+    resolve(ROOT, 'scripts/ingest.mjs'), '--base', 'http://127.0.0.1:1/api', '--ranks', 'mythic',
+  ], { encoding: 'utf8', timeout: 60000, stdio: ['ignore', 'pipe', 'pipe'] });
+
+  ok(!/is not defined|is not a function|Cannot read/.test(salida),
+    `error de programación en la ingesta: ${salida.split('\n').find((l) => /is not/.test(l))}`);
+  ok(salida.includes('Escrito'), 'no llega a escribir el fichero cuando la red falla');
+});
+
 test('se leen los counters con la forma real que devuelve la API', async () => {
   const { recogerPares, relationMap, pick } = await import('./parse-relations.mjs');
 

@@ -18,7 +18,7 @@ jobs:
           node-version: '20'
 
       - name: Ingesta
-        run: node scripts/ingest.mjs --rank mythic --days 7
+        run: node scripts/ingest.mjs --rank glory --days 7
 
       - name: Avisar de héroes nuevos sin tags
         run: |
