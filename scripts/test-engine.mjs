@@ -361,13 +361,33 @@ test('la ingesta arranca sin errores de programación', async () => {
   // node --check y reventaba en la primera línea, dejando los datos congelados
   // en silencio porque el workflow lleva continue-on-error.
   const { execFileSync } = await import('node:child_process');
-  const salida = execFileSync('node', [
-    resolve(ROOT, 'scripts/ingest.mjs'), '--base', 'http://127.0.0.1:1/api', '--ranks', 'mythic',
-  ], { encoding: 'utf8', timeout: 60000, stdio: ['ignore', 'pipe', 'pipe'] });
+  const { mkdtempSync, copyFileSync, existsSync, rmSync } = await import('node:fs');
+  const { tmpdir } = await import('node:os');
 
-  ok(!/is not defined|is not a function|Cannot read/.test(salida),
-    `error de programación en la ingesta: ${salida.split('\n').find((l) => /is not/.test(l))}`);
-  ok(salida.includes('Escrito'), 'no llega a escribir el fichero cuando la red falla');
+  // A un temporal, nunca a public/data. Esta corrida falla a proposito y su
+  // salida es peor que los datos buenos: mismos numeros, pero un diagnostico
+  // que dice que solo se resolvio un rango. Escribiendo en su sitio ensuciaba
+  // el repo en cada npm test y, como en el workflow las pruebas van antes de
+  // compilar, ese diagnostico degradado era el que acababa publicado.
+  // Se copia el fichero real para que la ingesta encuentre su "previous" y la
+  // prueba recorra el mismo camino que una corrida de verdad.
+  const dir = mkdtempSync(resolve(tmpdir(), 'ingesta-'));
+  const out = resolve(dir, 'roam-meta.json');
+  const real = resolve(ROOT, 'public/data/roam-meta.json');
+  if (existsSync(real)) copyFileSync(real, out);
+
+  try {
+    const salida = execFileSync('node', [
+      resolve(ROOT, 'scripts/ingest.mjs'), '--base', 'http://127.0.0.1:1/api',
+      '--ranks', 'mythic', '--out', out,
+    ], { encoding: 'utf8', timeout: 60000, stdio: ['ignore', 'pipe', 'pipe'] });
+
+    ok(!/is not defined|is not a function|Cannot read/.test(salida),
+      `error de programación en la ingesta: ${salida.split('\n').find((l) => /is not/.test(l))}`);
+    ok(salida.includes('Escrito'), 'no llega a escribir el fichero cuando la red falla');
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
 });
 
 test('se leen los counters con la forma real que devuelve la API', async () => {

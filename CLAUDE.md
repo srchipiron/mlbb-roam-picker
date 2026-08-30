@@ -69,11 +69,16 @@ descubre rutas, método y parámetros. Si algo falla, el diagnóstico lo enseña
 el móvil. No vuelvas a poner rutas a mano.
 
 La ingesta se degrada en silencio y de forma legítima: si un endpoint falla,
-conserva los datos anteriores y solo cambia `diagnostics`. Antes de commitear un
-`roam-meta.json` que se haya regenerado en local, mira el diff: si los datos son
-idénticos y lo único que cambia es `generatedAt` más un `diagnostics` peor
-(menos rangos resueltos), esa corrida fue peor que la que ya está subida y toca
-descartarla, no commitearla.
+conserva los datos anteriores y solo cambia `diagnostics`. Eso hace que una
+corrida mala se parezca mucho a una buena en el diff: mismos números, solo
+`generatedAt` nuevo y menos rangos resueltos. Si ves ese diff, la corrida fue
+peor que la que ya está subida y toca descartarla, no commitearla.
+
+Por eso la prueba que ejecuta la ingesta de verdad escribe en un temporal
+(`--out`) y nunca en `public/data`. En 0.3.1 esto era un fallo real: escribía en
+su sitio, así que cada `npm test` ensuciaba el repo y, como en el workflow las
+pruebas van antes de compilar, el diagnóstico degradado era el que se publicaba
+y el botón Diagnóstico mentía sobre los rangos. No le quites el `--out`.
 
 ## Lo que queda pendiente
 

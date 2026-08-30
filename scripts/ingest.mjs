@@ -22,15 +22,19 @@ import {
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const ROOT = resolve(__dirname, '..');
-const OUT = resolve(ROOT, 'public/data/roam-meta.json');
-const HEROES = resolve(ROOT, 'public/data/heroes.json');
-
 const args = Object.fromEntries(
   process.argv.slice(2).reduce((acc, cur, i, arr) => {
     if (cur.startsWith('--')) acc.push([cur.slice(2), arr[i + 1]]);
     return acc;
   }, []),
 );
+
+// --out escribe en otro sitio. Lo usa la prueba que ejecuta esta ingesta de
+// verdad: sin ello sobrescribia public/data con una corrida contra una base
+// inalcanzable, y como las pruebas corren antes de compilar, ese diagnostico
+// degradado era el que se publicaba.
+const OUT = resolve(ROOT, args.out ?? 'public/data/roam-meta.json');
+const HEROES = resolve(ROOT, 'public/data/heroes.json');
 
 // Gloria Mitica por defecto: es el rango del usuario y donde el draft se juega
 // en serio, asi que sus counters son los mas informativos.
