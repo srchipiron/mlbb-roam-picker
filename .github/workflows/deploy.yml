@@ -26,7 +26,10 @@ jobs:
         with:
           node-version: '20'
 
-      - run: npm install
+      # npm ci, no npm install: instala EXACTAMENTE lo que dice el lockfile.
+      # Con npm install, una version menor mala de una dependencia entraba sola
+      # en el despliegue, y eso es indepurable desde el movil.
+      - run: npm ci
 
       - name: Ingesta
         # Sin continue-on-error: si la ingesta revienta, el despliegue debe
