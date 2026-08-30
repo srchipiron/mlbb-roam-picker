@@ -147,9 +147,11 @@ export const MASTERY_CONFIDENCE_GAMES = 20;
  * No son intuición: cambiarlos a ojo suele empeorar alguna de las tres.
  */
 export const DEFAULT_WEIGHTS = {
-  meta: 0.22,      // winrate global ajustado por muestra
-  counter: 0.36,   // matchup contra los picks enemigos
-  synergy: 0.10,   // sinergia con tus aliados
-  comp: 0.15,      // huecos de composición que rellena
-  mastery: 0.17,   // tu propio historial con el héroe
+  // Los tres primeros salen de datos reales; comp es lo único escrito a mano,
+  // y por eso pesa poco: es la parte que envejece cuando cambia el juego.
+  meta: 0.22,      // winrate global ajustado por muestra   [dato]
+  counter: 0.40,   // matchup contra los picks enemigos      [dato]
+  synergy: 0.15,   // sinergia con tus aliados               [dato]
+  comp: 0.08,      // huecos de composición que rellena      [mis reglas]
+  mastery: 0.15,   // tu propio historial con el héroe       [tus partidas]
 };

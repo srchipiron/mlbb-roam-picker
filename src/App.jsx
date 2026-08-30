@@ -180,7 +180,7 @@ export default function App() {
         <details className="more">
           <summary>Baneos y ajustes</summary>
 
-          <Side title="Baneados" kind="bans" picks={bans} max={6}
+          <Side title="Baneados" kind="bans" picks={bans} max={10}
                 onAdd={() => setSheet('ban')} onRemove={remove(setBanNames)} />
 
           <div className="side" >

@@ -250,6 +250,25 @@ test('un pick volátil se penaliza a ciegas pero no con el draft completo', () =
   ok(completo < ciego, `volátil: puesto ${ciego} a ciegas y ${completo} con todo visto`);
 });
 
+test('los motivos que le salen a todo el pool no se muestran', () => {
+  // "no hay primera línea" es cierto para los 34 roamers: la primera línea la
+  // pone el propio roamer. Ocupaba las tres etiquetas de cada tarjeta.
+  const res = rankRoamers(pool, {
+    enemies: ['Melissa', 'Argus', 'Saber'].map(h),
+    allies: ['Cecilion', 'Granger'].map(h),
+    meta: { patchAvgWinRate: 0.5 },
+  });
+
+  const cuenta = new Map();
+  for (const r of res) {
+    for (const t of new Set(r.reasons.map((x) => x.text))) {
+      cuenta.set(t, (cuenta.get(t) ?? 0) + 1);
+    }
+  }
+  const ubicuos = [...cuenta.entries()].filter(([, n]) => n > res.length * 0.6);
+  ok(!ubicuos.length, `motivos que le salen a casi todos: ${ubicuos.map(([t]) => t).join(', ')}`);
+});
+
 test('el id del héroe no se confunde con el id del canal', async () => {
   const { idPrincipal, esIdDeHeroe } = await import('./parse-relations.mjs');
 

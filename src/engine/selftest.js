@@ -155,6 +155,37 @@ export function runSelfTest({ catalog, meta, metaCtx, allHeroes, roamPool, maste
     }
   }
 
+  // ---------- autonomía ----------
+  seccion('AUTONOMÍA');
+  // Cuánto de la recomendación sale de partidas reales y cuánto de reglas
+  // escritas a mano. Las reglas envejecen cuando cambia el juego; los datos no.
+  const muestra = rankRoamers(roamPool, {
+    enemies: ['Fanny', 'Esmeralda', 'Melissa'].map(H).filter(Boolean),
+    allies: ['Cecilion', 'Granger'].map(H).filter(Boolean),
+    meta: metaCtx,
+    mastery,
+  });
+
+  if (muestra.length) {
+    const infl = {};
+    for (const k of ['meta', 'counter', 'synergy', 'comp', 'mastery']) {
+      const v = muestra.map((x) => x.contributions[k] ?? 0);
+      infl[k] = Math.max(...v) - Math.min(...v);
+    }
+    const total = Object.values(infl).reduce((a, b) => a + b, 0) || 1;
+    const datos = ((infl.meta + infl.counter + infl.synergy) / total) * 100;
+    const reglas = (infl.comp / total) * 100;
+    const tuyo = (infl.mastery / total) * 100;
+
+    lineas.push(`Partidas reales: ${datos.toFixed(0)}% · reglas escritas a mano: ${reglas.toFixed(0)}% · tus partidas: ${tuyo.toFixed(0)}%`);
+    check(datos >= 60,
+      'La recomendación se apoya sobre todo en datos',
+      `Solo el ${datos.toFixed(0)}% viene de datos: el resto son reglas que envejecen`);
+
+    const primeros = new Set(muestra.slice(0, 3).map((x) => x.hero.name));
+    lineas.push(`Ejemplo (vs Fanny/Esmeralda/Melissa): ${[...primeros].join(', ')}`);
+  }
+
   // ---------- pesos ----------
   seccion('PESOS');
   const suma = Object.values(DEFAULT_WEIGHTS).reduce((a, b) => a + b, 0);

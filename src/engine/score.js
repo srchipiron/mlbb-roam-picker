@@ -77,13 +77,21 @@ export function metaScore(stat, patchAvgWinRate = 0.5) {
  * Si no existe para ese par, cae a las reglas por tags.
  */
 /**
- * Cuánto del counter sale del winrate real de la pareja frente a mis reglas.
- * Con datos que reflejan la táctica más ruido de muestra, 0.65 aguanta bien;
- * con ruido puro haría falta bajar a 0.4, pero eso sería renunciar al dato real
- * por un caso que no se da. Si tus counters salieran ruidosos, el diagnóstico
- * lo cantaría en la sección MOTOR.
+ * Pickrate a partir del cual el matchup de una pareja se considera fiable.
+ *
+ * Sustituye a la mezcla fija que había antes (65% dato, 35% mis reglas). Ese
+ * 35% era criterio mío escrito a mano, y envejece: cuando Moonton reequilibra
+ * un héroe o saca uno nuevo, mis etiquetas siguen diciendo lo de siempre.
+ *
+ * Ahora la confianza en el dato la decide el propio dato: contra un héroe muy
+ * jugado hay muestra de sobra y se usa tal cual; contra uno raro el matchup se
+ * encoge hacia el empate, que es lo honesto. Mis reglas solo entran cuando NO
+ * hay dato de la pareja, como red de seguridad para héroes recién salidos.
  */
-const PESO_DATO = 0.65;
+const PICKRATE_FIABLE = 0.004;
+
+/** Confianza en el matchup cuando no se sabe cuánto se juega al rival. */
+const CONFIANZA_SIN_MUESTRA = 0.7;
 
 /**
  * Ventaja de un roamer contra un enemigo según las reglas por tags, en 0..1.
@@ -121,7 +129,7 @@ function ventajaPorTags(roamHero, enemy, reasons) {
  * ruidoso: dejándole todo el peso, contra tres asesinos de dash podía dejar de
  * recomendarse un anti-dash, que es justo lo que la app debe acertar.
  */
-export function counterScore(roamHero, enemies, counterMatrix, enemyRoamName = null) {
+export function counterScore(roamHero, enemies, counterMatrix, enemyRoamName = null, stats = null) {
   if (!enemies.length) return { value: 0.5, reasons: [] };
 
   const reasons = [];
@@ -142,8 +150,16 @@ export function counterScore(roamHero, enemies, counterMatrix, enemyRoamName = n
     }
 
     // pair = winrate de roamHero contra enemy (0..1). 0.50 es neutro.
-    const porDato = clamp01((pair - 0.44) / 0.12);
-    total += (porDato * PESO_DATO + porTags * (1 - PESO_DATO)) * peso;
+    // Se encoge hacia el empate según lo jugado que esté el rival: con poca
+    // muestra, un 57% de matchup es ruido y no una ventaja.
+    // Sin pickrate no se puede medir la muestra, pero descartar el dato por eso
+    // sería peor: se confía de forma moderada en vez de tirarlo.
+    const pr = lookup(stats, enemy.name)?.pickRate;
+    const confianza = pr > 0 ? pr / (pr + PICKRATE_FIABLE) : CONFIANZA_SIN_MUESTRA;
+    const encogido = 0.5 + (pair - 0.5) * confianza;
+
+    const porDato = clamp01((encogido - 0.44) / 0.12);
+    total += porDato * peso;
 
     if (pair >= 0.53) reasons.push({ text: `gana el matchup contra ${enemy.name}`, good: true, w: 1.2 });
     if (pair <= 0.47) reasons.push({ text: `pierde contra ${enemy.name}`, good: false, w: 1.3 });
@@ -265,7 +281,7 @@ export function scoreHero(roamHero, ctx) {
 
   const parts = {
     meta: metaScore(lookup(meta.stats, roamHero.name), meta.patchAvgWinRate ?? 0.5),
-    counter: counterScore(roamHero, enemies, meta.counters, ctx.enemyRoam),
+    counter: counterScore(roamHero, enemies, meta.counters, ctx.enemyRoam, meta.stats),
     synergy: synergyScore(roamHero, allies, meta.synergies),
     comp: compScore(roamHero, allies),
     mastery: masteryScore(roamHero, mastery),
@@ -355,7 +371,26 @@ export function rankRoamers(pool, ctx) {
   const porVer = Math.max(0, 5 - (ctx.enemies?.length ?? 0));
   const cegera = porVer / 5;
 
+  // Un motivo que le sale a casi todo el pool no informa de nada: "no hay
+  // primera línea" es cierto para los 34 roamers a la vez, porque la primera
+  // línea la pones TÚ. Ocupaba las tres etiquetas de cada tarjeta y tapaba lo
+  // que de verdad distingue a un pick de otro.
+  const frecuencia = new Map();
+  for (const r of resultados) {
+    for (const razon of new Set(r.reasons.map((x) => x.text))) {
+      frecuencia.set(razon, (frecuencia.get(razon) ?? 0) + 1);
+    }
+  }
+  const comunes = new Set(
+    [...frecuencia.entries()]
+      .filter(([, n]) => n > resultados.length * 0.6)
+      .map(([texto]) => texto),
+  );
+
   resultados.forEach((r, i) => {
+    const propios = r.reasons.filter((x) => !comunes.has(x.text));
+    // Si al quitar los comunes no queda nada, mejor decir eso que mentir.
+    r.reasons = propios.length ? propios : [];
     r.contributions = Object.fromEntries(claves.map((k) => [k, normalizados[k][i] * weights[k]]));
     r.score = claves.reduce((acc, k) => acc + r.contributions[k], 0);
 

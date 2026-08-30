@@ -58,6 +58,30 @@ Se añade la nueva base a `BASES` en `scripts/ingest.mjs`, o se pasa con `--base
 Para cruzar con una segunda fuente, añade un módulo en `scripts/sources/` que devuelva el mismo formato
 `{ nombre: { winRate, pickRate, banRate, matches } }` y promedia en `main()`.
 
+## De dónde sale cada decisión
+
+El objetivo es que la app siga siendo correcta dentro de un año, cuando haya
+héroes nuevos y reequilibrados. Para eso, cuanto menos criterio humano fijo
+lleve dentro, mejor: las reglas escritas a mano envejecen, los datos no.
+
+| Componente | Peso | Origen |
+|---|---|---|
+| Counter | 40% | winrate real de cada pareja, de partidas ranked |
+| Meta | 22% | winrate global del héroe en tu rango |
+| Sinergia | 15% | winrate real junto a cada aliado |
+| Tu maestría | 15% | tus propias partidas |
+| Composición | 8% | reglas escritas a mano (lo único que envejece) |
+
+Alrededor del 90% de lo que decide la recomendación sale de partidas reales.
+El botón **Diagnóstico** lo mide y lo enseña, para no tener que fiarse de esta
+tabla: si algún día ese porcentaje baja, es que los datos han dejado de llegar
+y las reglas están tapando el hueco.
+
+La confianza en cada matchup **también la decide el dato**: se encoge hacia el
+empate según lo jugado que esté el rival, porque contra un héroe raro un 57% es
+ruido y no una ventaja. Antes había una mezcla fija de 65/35 entre dato y reglas
+que era criterio mío y no se ajustaba a nada.
+
 ## Cómo puntúa
 
 Cinco componentes, con pesos en `src/engine/rules.js`:
