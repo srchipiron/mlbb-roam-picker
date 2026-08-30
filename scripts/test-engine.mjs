@@ -138,6 +138,49 @@ test('se deduce el rival de TU línea, y se calla si hay duda', async () => {
     'sin datos de líneas se inventa un mid');
 });
 
+test('el análisis dice lo que no se ve, y se calla cuando no sabe', async () => {
+  const { analizarDraft } = await import('../src/engine/analisis.js');
+
+  const yo = { name: 'Khufra', tags: ['engage', 'cc_hard', 'tanky', 'peel'], roam: true };
+  const rival = { name: 'Estes', tags: ['heal', 'sustain'], roam: true };
+  const ranked = [
+    { hero: yo, score: 0.70, riesgo: 0.2 },
+    { hero: { name: 'Atlas', tags: [] }, score: 0.55 },
+  ];
+
+  // 1. Con dato de la pareja, lo dice con el matchup, que es el dato bueno.
+  const conPar = analizarDraft({
+    ranked, enemies: [rival], allies: [], empate: [],
+    rivalLinea: 'Estes',
+    meta: { counters: indexByName({ Khufra: { Estes: 0.57 } }, 2) },
+  });
+  ok(conPar.some((f) => /Ganas el cruce/.test(f.texto) && /57/.test(f.texto)),
+    `no usa el matchup real: ${JSON.stringify(conPar)}`);
+
+  // 2. La matriz solo cubre el 11% de los cruces, asi que casi nunca lo hay.
+  //    Sin el, se comparan los winrates sueltos, que es peor informacion y por
+  //    eso se dice con otras palabras: 'este parche', no 'le ganas'.
+  const sinPar = analizarDraft({
+    ranked, enemies: [rival], allies: [], empate: [],
+    rivalLinea: 'Estes',
+    meta: { counters: {}, stats: indexByName({ Khufra: { winRate: 0.54 }, Estes: { winRate: 0.49 } }) },
+  });
+  ok(sinPar.some((f) => /parche/.test(f.texto)), `no cae al winrate: ${JSON.stringify(sinPar)}`);
+  ok(!sinPar.some((f) => /Ganas el cruce/.test(f.texto)),
+    'vende una comparación de winrates como si fuera el matchup de la pareja');
+
+  // 3. Sin nada de nada, se calla. Una frase inventada en 30 segundos de draft
+  //    es peor que ninguna.
+  const aCiegas = analizarDraft({
+    ranked: [{ hero: yo, score: 0.6 }, { hero: { name: 'Atlas', tags: [] }, score: 0.59 }],
+    enemies: [], allies: [], empate: [], rivalLinea: null, meta: {},
+  });
+  ok(!aCiegas.length, `se inventa algo sin datos: ${JSON.stringify(aCiegas)}`);
+
+  // 4. Nunca more de tres frases: en un draft se leen dos.
+  ok(conPar.length <= 3, 'suelta demasiadas frases');
+});
+
 test('el pool sale de la línea que juegas, no de una lista escrita a mano', async () => {
   const { poolDeLinea, LINEAS } = await import('../src/engine/score.js');
   const { indiceDeLineas } = await import('../src/engine/rival-de-linea.js');

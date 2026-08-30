@@ -2,8 +2,9 @@ import { useEffect, useMemo, useState } from 'react';
 import { rankRoamers, mergeCatalog, suggestBans, indexByName, coverage, empatados, normName, poolDeLinea, LINEAS } from './engine/score.js';
 import { runSelfTest, leerEntorno } from './engine/selftest.js';
 import { apuntar } from './engine/registro.js';
+import { analizarDraft } from './engine/analisis.js';
 import { detectarRivalDeLinea, indiceDeLineas, frecuenciaDeRoles } from './engine/rival-de-linea.js';
-import { Side, HeroSheet, Pick, Legend, MasteryEditor, RankPicker, BanSuggestions, Footer, SelfTest, RegistroPartida, SelectorDeLinea, NOMBRE_LINEA } from './components/ui.jsx';
+import { Side, HeroSheet, Pick, Legend, MasteryEditor, RankPicker, BanSuggestions, Footer, SelfTest, RegistroPartida, SelectorDeLinea, NOMBRE_LINEA, Analisis } from './components/ui.jsx';
 
 // OJO: estas claves siguen diciendo 'roam-picker' aunque la app se llame ya
 // Mobile Legends Pick Assist. NO se renombran: el almacenamiento del navegador
@@ -147,6 +148,16 @@ export default function App() {
   );
 
   const empate = useMemo(() => empatados(ranked), [ranked]);
+
+  // Dos o tres frases sobre lo que NO se ve en las tarjetas: si ganas tu cruce,
+  // quién te va a doler y si estás eligiendo a ciegas.
+  const analisis = useMemo(
+    () => analizarDraft({
+      ranked, enemies, allies, meta: metaCtx,
+      rivalLinea: enemyRoamEfectivo, linea, empate,
+    }),
+    [ranked, enemies, allies, metaCtx, enemyRoamEfectivo, linea, empate],
+  );
 
   const banIdeas = useMemo(
     () => (catalog && metaCtx.stats
@@ -309,6 +320,8 @@ export default function App() {
             Se descargan con el meta: vuelve a abrir la app en un rato.
           </div>
         )}
+
+        <Analisis frases={analisis} />
 
         {empate.length > 1 && (
           <p className="tie">

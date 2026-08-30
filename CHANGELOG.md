@@ -8,6 +8,21 @@ que esto no se olvida.
 Criterio: `0.X.0` cuando cambia cómo decide la app o qué hace; `0.0.X` para
 correcciones.
 
+## 1.1.0
+
+- **Dos o tres frases sobre tu draft**, arriba del todo: si ganas tu cruce,
+  quién te va a doler de verdad, si estás eligiendo a ciegas y si al equipo le
+  falta algo. Habla de la línea que juegues.
+- Cuando hay matchup de la pareja lo usa, que es el dato bueno. Cuando no lo
+  hay —y no lo hay casi nunca: la API cubre el 11% de los cruces— compara los
+  winrates sueltos, y lo dice con otras palabras para no vender una cosa por
+  otra.
+- **Un 47% más de matchups reales.** La API da los cruces en un sentido o en
+  otro, y cuando da los dos suman exactamente 1. Usar la vuelta cuando falta la
+  ida sube la cobertura del 7,6% al 11,2%, sin inventar nada. Ahora el riesgo
+  de contrapick se puede calcular para el 100% de los héroes de las cinco
+  líneas.
+
 ## 1.0.0
 
 La app deja de ser solo para roam. Ahora se llama **Mobile Legends Pick Assist**

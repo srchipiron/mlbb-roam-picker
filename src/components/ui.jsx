@@ -500,3 +500,18 @@ export function SelectorDeLinea({ lineas, valor, onElegir, onClose }) {
     </div>
   );
 }
+
+/**
+ * Las dos o tres frases sobre el draft. Va ARRIBA del todo, antes de las
+ * tarjetas: es lo que se lee en los tres segundos que hay de verdad.
+ */
+export function Analisis({ frases }) {
+  if (!frases?.length) return null;
+  return (
+    <section className="analisis">
+      {frases.map((f) => (
+        <p key={f.texto} className={`frase ${f.tono}`}>{f.texto}</p>
+      ))}
+    </section>
+  );
+}

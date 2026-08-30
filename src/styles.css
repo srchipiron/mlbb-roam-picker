@@ -408,3 +408,15 @@ button:focus-visible, [tabindex]:focus-visible { outline: 2px solid var(--gold);
 }
 .linea.elegida .linea-nombre { color: var(--gold); }
 .linea-pista { font-size: 12px; color: var(--muted); }
+
+/* ---------- análisis del draft ---------- */
+
+.analisis { display: flex; flex-direction: column; gap: 5px; margin-bottom: 10px; }
+.frase {
+  margin: 0; padding: 8px 10px; font-size: 13px; line-height: 1.35;
+  border-left: 3px solid var(--line); border-radius: 0 var(--r) var(--r) 0;
+  background: var(--panel);
+}
+.frase.bien { border-left-color: var(--c-comp); }
+.frase.ojo  { border-left-color: var(--enemy); }
+.frase.duda { border-left-color: var(--muted); }
