@@ -11,6 +11,11 @@ on:
     workflows: ["Publicar la app"]
     types: [completed]
   workflow_dispatch:
+    inputs:
+      probar_alarma:
+        description: 'Fallar a propósito para comprobar que la alarma suena'
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -36,6 +41,13 @@ jobs:
       - name: Diagnóstico de lo publicado
         id: diag
         run: |
+          # Un vigilante que nunca se ha visto saltar no es un vigilante. Con
+          # esta entrada se puede provocar el fallo y comprobar que abre la
+          # incidencia de verdad, sin esperar a que la app se rompa sola.
+          if [ "${{ inputs.probar_alarma }}" = "true" ]; then
+            echo "PRUEBA DE ALARMA: fallo provocado a proposito, la app esta bien" | tee /tmp/diagnostico.txt
+            exit 1
+          fi
           for intento in 1 2 3; do
             if node scripts/diagnostico.mjs > /tmp/diagnostico.txt 2>&1; then
               echo "estado=bien" >> "$GITHUB_OUTPUT"
