@@ -39,6 +39,18 @@ export const CRUCE_DESTACABLE = 0.5154;
 export const CRUCE_MALO = 0.4846;
 
 /**
+ * Lo mismo para las PAREJAS, que tienen su propia distribución y no valen los
+ * números de los cruces: medida sobre las 8.778 parejas reales, p90 = 0.5100
+ * (los cruces daban 0.5154). Es más estrecha por arriba y más ancha por abajo.
+ *
+ * También estuvo en 0.53, que aquí es el percentil 99: "combina bien con X"
+ * salía en el 1,3% de las parejas, o sea casi nunca. Tercera vez que aparece
+ * ese mismo 0.53 escrito a mano en un sitio distinto; si vuelves a calibrar
+ * algo contra una distribución, busca sus gemelas antes de darlo por hecho.
+ */
+export const PAREJA_DESTACABLE = 0.51;
+
+/**
  * Lo que vale tapar el lado de daño que le falta al equipo, en la misma escala
  * que TEAM_NEEDS (engage 1.0, cc_hard 0.9, peel 0.8).
  *
@@ -312,7 +324,7 @@ export function synergyScore(roamHero, allies, synergyMatrix) {
       // de uno popular (en los counters, 1.16), así que aquí no hay ni ese poco
       // ruido que corregir.
       total += clamp01((pair - 0.42) / 0.16);
-      if (pair >= 0.53) reasons.push({ clave: 'regla.combinaCon', params: { a: ally.name }, good: true, w: 0.7 });
+      if (pair >= PAREJA_DESTACABLE) reasons.push({ clave: 'regla.combinaCon', params: { a: ally.name }, good: true, w: 0.7 });
       continue;
     }
     let sub = 0;
@@ -519,11 +531,22 @@ export function masteryScore(roamHero, mastery, nivel, prior) {
   const shrunk = (m.winRate * m.games + base * k) / (m.games + k);
   // Mismo ancho de siempre (±10 puntos), pero alrededor de tu nivel.
   const value = clamp01((shrunk - (base - 0.10)) / 0.20);
+  // El motivo se mide contra TU nivel, igual que la nota, y no contra un 55%
+  // fijo. Con el umbral absoluto, a un jugador que gana el 53,4% de sus
+  // partidas un héroe al 55% le salía como "lo llevas bien" siendo casi su
+  // media exacta, y a uno que gana el 45% no le reconocía nunca su mejor
+  // héroe. Es el mismo fallo que ya se arregló en la NOTA de maestría y que
+  // se habia quedado vivo aqui.
+  //
+  // El margen es la dispersión que la app ya mide de tus propios datos
+  // (`priorDeMaestria` la saca de ahí): destacar es salirse una desviación de
+  // lo tuyo, no cruzar un número redondo.
+  const sigma = Math.sqrt(0.25 / k);
   const reasons = [];
-  if (m.games >= MASTERY_CONFIDENCE_GAMES && m.winRate >= 0.55) {
+  if (m.games >= MASTERY_CONFIDENCE_GAMES && m.winRate >= base + sigma) {
     reasons.push({ clave: 'regla.maestriaBuena', params: { pct: Math.round(m.winRate * 100), n: m.games }, good: true, w: 1.4 });
   }
-  if (m.games >= MASTERY_CONFIDENCE_GAMES && m.winRate <= 0.45) {
+  if (m.games >= MASTERY_CONFIDENCE_GAMES && m.winRate <= base - sigma) {
     reasons.push({ clave: 'regla.maestriaMala', params: { pct: Math.round(m.winRate * 100), n: m.games }, good: false, w: 1.4 });
   }
   return { value, reasons };

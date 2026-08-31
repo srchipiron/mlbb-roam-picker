@@ -8,6 +8,28 @@ que esto no se olvida.
 Criterio: `0.X.0` cuando cambia cómo decide la app o qué hace; `0.0.X` para
 correcciones.
 
+## 1.20.0
+
+**Barrido de todas las constantes del motor, buscando las gemelas del fallo
+anterior.** Aparecieron dos más, y ninguna cambia la recomendación —comprobado
+en 400 drafts: mismo número 1, mismo top 8— pero las dos cambian lo que lees.
+
+- **«Combina bien con X» casi nunca salía.** Mismo 0,53 escrito a mano, tercera
+  vez, y en las parejas es el **percentil 99**: salía en el 1,3% de ellas. Las
+  parejas tienen su propia distribución (p90 = 0,5100, no 0,5154 como los
+  cruces), así que ahora tiene su propio número medido. Los motivos de sinergia
+  pasan de 63 a 320 en 2.000 tarjetas.
+- **«Lo llevas al X%» se medía contra un 55% fijo.** A ti, que ganas el 53,4%,
+  un héroe al 55% te salía como si destacara siendo tu media exacta. Y a un
+  jugador del 45% no se le reconocía **nunca** su mejor héroe, porque nunca
+  llega al 55%. Ahora se mide contra tu nivel y con la dispersión que la app ya
+  saca de tus propios datos. Es el mismo arreglo que ya se hizo en la *nota* de
+  maestría y que se había quedado a medias en el *motivo*.
+
+Y para que no vuelva a pasar: hay una prueba que **falla si aparece cualquier
+umbral de cruce escrito a mano** en el motor. Los tres fallos de esta tanda eran
+el mismo número copiado a tres sitios sin volver a medirlo.
+
 ## 1.19.0
 
 **El análisis del draft estaba casi mudo, y era el mismo fallo de calibración.**

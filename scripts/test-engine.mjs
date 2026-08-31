@@ -1881,6 +1881,82 @@ test('el umbral de "ganas el cruce" sale de la distribucion, no de una intuicion
     `"pierdes el cruce" sale en el ${(porDebajo * 100).toFixed(1)}% de los cruces: no esta en la cola`);
   // Y simetricos: no hay razon para avisar mas de lo malo que de lo bueno.
   ok(Math.abs(porEncima - porDebajo) < 0.03, 'los dos umbrales no cubren la misma cola');
+
+  // Las PAREJAS tienen su propia distribucion y no valen los numeros de los
+  // cruces: p90 = 0.5100 frente a 0.5154. Tambien estuvo en 0.53, que aqui es
+  // el percentil 99: "combina bien con X" salia en el 1,3% de las parejas.
+  const { PAREJA_DESTACABLE, sinergia } = await import('../src/engine/score.js');
+  const S = indexByName(meta.synergies, 2);
+  const par = [];
+  for (let i = 0; i < nombres.length; i++) {
+    for (let j = i + 1; j < nombres.length; j++) {
+      const x = sinergia(S, nombres[i], nombres[j]);
+      if (x != null) par.push(x);
+    }
+  }
+  const buenas = par.filter((x) => x >= PAREJA_DESTACABLE).length / par.length;
+  ok(buenas > 0.04 && buenas < 0.20,
+    `"combina bien" sale en el ${(buenas * 100).toFixed(1)}% de las parejas: no esta en la cola`);
+  ok(PAREJA_DESTACABLE !== CRUCE_DESTACABLE,
+    'las parejas usan el umbral de los cruces: son distribuciones distintas');
+});
+
+test('el motivo de maestria se mide contra TU nivel, no contra un 55% fijo', async () => {
+  const { masteryScore, tuNivel, priorDeMaestria } = await import('../src/engine/score.js');
+
+  // Es el mismo fallo que ya se arreglo en la NOTA de maestria y que se habia
+  // quedado vivo en el MOTIVO: un umbral absoluto (>=0.55) no significa lo
+  // mismo para un jugador del 53% que para uno del 45%.
+  const motivos = (mast, hero) => {
+    const nivel = tuNivel(mast);
+    return masteryScore({ name: hero }, mast, nivel, priorDeMaestria(mast, nivel))
+      .reasons.map((r) => r.clave);
+  };
+  const g = 300;
+
+  // Jugador del 53%: seis heroes repartidos alrededor de lo suyo.
+  const bueno = {
+    flojo: { games: g, winRate: 0.46 }, medio: { games: g, winRate: 0.53 },
+    justo: { games: g, winRate: 0.55 }, crack: { games: g, winRate: 0.62 },
+    x: { games: g, winRate: 0.50 }, y: { games: g, winRate: 0.57 },
+  };
+  // 55% es practicamente su media: antes salia "lo llevas al 55%" como si
+  // destacara, y no destaca nada.
+  ok(!motivos(bueno, 'justo').includes('regla.maestriaBuena'),
+    'a un jugador del 53% le dice que lleva bien un heroe que esta en su media');
+  ok(motivos(bueno, 'crack').includes('regla.maestriaBuena'), 'no le reconoce su mejor heroe');
+  ok(motivos(bueno, 'flojo').includes('regla.maestriaMala'), 'no le avisa de su peor heroe');
+
+  // Jugador del 45%: su mejor heroe merece salir aunque no llegue al 55%.
+  // Antes NUNCA se le reconocia ninguno.
+  const flojo = {
+    peor: { games: g, winRate: 0.38 }, medio: { games: g, winRate: 0.45 },
+    bueno: { games: g, winRate: 0.53 }, x: { games: g, winRate: 0.42 },
+    y: { games: g, winRate: 0.48 }, z: { games: g, winRate: 0.44 },
+  };
+  ok(motivos(flojo, 'bueno').includes('regla.maestriaBuena'),
+    'a un jugador del 45% no le reconoce nunca su mejor heroe, porque no llega al 55%');
+  ok(motivos(flojo, 'peor').includes('regla.maestriaMala'), 'no le avisa de su peor heroe');
+  eq(motivos(flojo, 'medio').length, 0, 'saca motivo de un heroe que esta en su media');
+});
+
+test('ningun 0.53 escrito a mano suelto en el motor', async () => {
+  // Tres veces ha aparecido el mismo 0.53 en sitios distintos -counters,
+  // analisis del draft y sinergias- y las tres es el percentil 99 de su
+  // distribucion, o sea "casi nunca". Es la clase de constante que se copia de
+  // un sitio a otro sin volver a medirla.
+  const motor = ['src/engine/score.js', 'src/engine/analisis.js']
+    .map((f) => readFileSync(resolve(ROOT, f), 'utf8'))
+    .join('\n')
+    .replace(/\/\*[\s\S]*?\*\//g, '')          // sin comentarios de bloque
+    .split('\n').filter((l) => !/^\s*\/\//.test(l)).join('\n');
+
+  const sueltos = [...motor.matchAll(/(?:>=|<=|>|<)\s*(0\.4[0-9]+|0\.5[0-9]+)\b/g)]
+    .map((m) => m[1])
+    .filter((v) => Number(v) !== 0.5); // 0.5 es el empate, no un umbral calibrado
+  ok(!sueltos.length,
+    `umbrales de cruce escritos a mano: ${[...new Set(sueltos)].join(', ')}. `
+    + 'Van como constante medida contra la distribucion, no a ojo.');
 });
 
 test('el veredicto no canta victoria antes de tiempo', async () => {

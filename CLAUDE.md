@@ -180,6 +180,17 @@ Todos estos llegaron a producción y costaron rondas enteras de ida y vuelta:
   premiaba TENER DATOS, no ser bueno con el héroe. Hoy `tuNivel` saca su media
   ponderada y todo va centrado ahí. Si añades algo que compare winrates
   personales, compáralo contra su nivel, nunca contra 0.50.
+- **El mismo 0.53 escrito a mano en TRES sitios** — counters, análisis del draft
+  y sinergias. En los tres es el percentil 99 de su distribución, o sea «casi
+  nunca». Y las parejas ni siquiera comparten distribución con los cruces
+  (p90 0.5100 frente a 0.5154), así que copiar el número de un sitio a otro es
+  doblemente erróneo. Hay una prueba que falla si vuelve a aparecer un umbral de
+  cruce suelto en `score.js` o `analisis.js`.
+- **El umbral del motivo de maestría, absoluto** — la NOTA se arregló para
+  medirse contra tu nivel y el MOTIVO se quedó en `>= 0.55`. A un jugador del
+  53,4% le decía «lo llevas bien» de un héroe en su media exacta, y a uno del
+  45% no le reconocía nunca su mejor héroe. Si arreglas un sesgo, mira si el
+  mismo componente lo tiene en otro sitio.
 - **El mismo umbral mal calibrado, en dos sitios** — al arreglar el de las
   tarjetas (0.53/0.47, percentil 99) se quedó vivo el gemelo de `analisis.js`
   (`MATCHUP_CLARO = 0.03`), y por eso el análisis del draft enmudecía justo con
