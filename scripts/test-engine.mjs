@@ -1777,6 +1777,41 @@ test('los retratos que la app va a pedir existen de verdad', async () => {
   ok(medio < 60 * 1024, `los retratos pesan ${Math.round(medio / 1024)} KB de media: se ha colado la imagen grande`);
 });
 
+test('el titular del diagnostico no se contradice ni escribe mal el plural', async () => {
+  const { titular } = await import('../src/engine/selftest.js');
+
+  // Decia "Todo correcto (1 avisos)": afirma que esta todo bien Y que hay algo
+  // que mirar, y encima en plural. Es la primera linea que se lee con prisa.
+  ok(!/correcto/i.test(titular(0, 1)), `dice que todo esta correcto habiendo avisos: ${titular(0, 1)}`);
+  ok(/1 aviso\b/.test(titular(0, 1)), `plural mal con un aviso: ${titular(0, 1)}`);
+  ok(/3 avisos/.test(titular(0, 3)), `plural mal con tres avisos: ${titular(0, 3)}`);
+  eq(titular(0, 0), 'Todo correcto', 'sin fallos ni avisos deberia decir que todo esta bien');
+  ok(/1 FALLO\b/.test(titular(1, 0)), `plural mal con un fallo: ${titular(1, 0)}`);
+  ok(/2 FALLOS/.test(titular(2, 0)), `plural mal con dos fallos: ${titular(2, 0)}`);
+  // Con las dos cosas, las dos se dicen: un fallo no puede tapar los avisos.
+  ok(/FALLO/.test(titular(1, 2)) && /aviso/.test(titular(1, 2)), `se pierde algo: ${titular(1, 2)}`);
+});
+
+test('la app se actualiza sola cuando sale una version nueva', async () => {
+  // Comprobado tambien en un navegador de verdad, con un service worker real y
+  // una version nueva publicada con la pestaña abierta: se recarga sola. Aqui
+  // se vigila que el mecanismo siga estando, porque `npm test` corre sin
+  // navegador y sin esto el fallo seria invisible: la app se quedaria con la
+  // version de ayer y todo seguiria "correcto".
+  const app = readFileSync(resolve(ROOT, 'src/App.jsx'), 'utf8');
+
+  // Lo imprescindible: recargar cuando el worker nuevo toma el control. Sin
+  // esto no se actualiza (medido: quitandolo, la prueba de navegador falla).
+  ok(/addEventListener\('controllerchange'/.test(app),
+    'nadie recarga cuando el service worker nuevo toma el control: se queda con la version vieja');
+  // Y preguntar al volver a la app, que es cuando el navegador no lo hace solo.
+  ok(/visibilitychange/.test(app) && /\.update\(\)/.test(app),
+    'no se comprueba si hay version nueva al volver a la app');
+  // Con pestillo: sin el, un navegador que reinstale el worker podria dejar la
+  // pagina recargandose en bucle.
+  ok(/yaRecargado/.test(app), 'la recarga no tiene pestillo: podria entrar en bucle');
+});
+
 test('el diagnostico avisa si el movil esta usando una version vieja', async () => {
   const { runSelfTest, leerEntorno } = await import('../src/engine/selftest.js');
 

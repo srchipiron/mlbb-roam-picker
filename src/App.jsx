@@ -89,6 +89,47 @@ export default function App() {
   useEffect(() => { if (linea) save(LINEA_KEY, linea); }, [linea]);
   useEffect(() => { save(IDIOMA_KEY, idioma); }, [idioma]);
 
+  /**
+   * Que la app se actualice sola.
+   *
+   * El service worker guarda la app entera para que funcione sin cobertura, y
+   * el navegador solo comprueba si hay una nueva al navegar. Con la pestaña
+   * abierta desde hace horas te quedas con la de ayer: pasó, y el diagnóstico
+   * tenía que pedirte que cerraras y volvieras a abrir.
+   *
+   * Aquí se pregunta al volver a la app y una vez por hora, y se recarga en
+   * cuanto la nueva toma el control. Recargar no te quita nada: el draft, la
+   * maestría y las partidas viven en el almacenamiento del navegador y se
+   * guardan en cada cambio.
+   */
+  useEffect(() => {
+    if (!('serviceWorker' in navigator)) return undefined;
+
+    // Una sola vez: sin el pestillo, un navegador que reinstale el worker
+    // podría dejar la página recargándose en bucle.
+    let yaRecargado = false;
+    const alCambiar = () => {
+      if (yaRecargado) return;
+      yaRecargado = true;
+      window.location.reload();
+    };
+    navigator.serviceWorker.addEventListener('controllerchange', alCambiar);
+
+    const preguntar = () => {
+      if (document.visibilityState !== 'visible') return;
+      navigator.serviceWorker.getRegistration().then((r) => r?.update()).catch(() => {});
+    };
+    preguntar();
+    document.addEventListener('visibilitychange', preguntar);
+    const cadaHora = setInterval(preguntar, 60 * 60 * 1000);
+
+    return () => {
+      navigator.serviceWorker.removeEventListener('controllerchange', alCambiar);
+      document.removeEventListener('visibilitychange', preguntar);
+      clearInterval(cadaHora);
+    };
+  }, []);
+
   useEffect(() => {
     const fetchJson = async (path) => {
       const res = await fetch(path, { cache: 'no-cache' });

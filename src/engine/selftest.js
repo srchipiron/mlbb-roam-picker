@@ -14,6 +14,19 @@ import { coberturaBuilds } from './builds.js';
  * salido bien ni que el móvil esté mostrando lo que debe.
  */
 
+/**
+ * La primera línea del informe. Es lo único que Javi lee cuando abre el
+ * diagnóstico con prisa, así que tiene que ser cierta de un vistazo: decía
+ * "Todo correcto (1 avisos)", que se contradice y encima está mal escrito.
+ */
+export function titular(fallos, avisos) {
+  const nf = (n, uno, varios) => `${n} ${n === 1 ? uno : varios}`;
+  if (fallos && avisos) return `${nf(fallos, 'FALLO', 'FALLOS')} y ${nf(avisos, 'aviso', 'avisos')}`;
+  if (fallos) return nf(fallos, 'FALLO', 'FALLOS');
+  if (avisos) return `Sin fallos, ${nf(avisos, 'aviso', 'avisos')}`;
+  return 'Todo correcto';
+}
+
 const OK = 'OK  ';
 const MAL = 'FALLO';
 const AVISO = 'AVISO';
@@ -402,7 +415,10 @@ export function runSelfTest({ catalog, meta, metaCtx, allHeroes, roamPool, maste
   const cabecera = [
     `MOBILE LEGENDS PICK ASSIST · DIAGNÓSTICO`,
     new Date().toLocaleString('es-ES'),
-    fallos ? `${fallos} FALLOS, ${avisos} avisos` : `Todo correcto (${avisos} avisos)`,
+    // "Todo correcto (1 avisos)" se contradecía a sí mismo: si hay algo que
+    // mirar, la cabecera no puede decir que está todo bien. Y el plural, que se
+    // lee cada vez que abres esto.
+    titular(fallos, avisos),
   ];
 
   return { texto: [...cabecera, ...lineas].join('\n'), fallos, avisos };

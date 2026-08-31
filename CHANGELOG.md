@@ -8,6 +8,22 @@ que esto no se olvida.
 Criterio: `0.X.0` cuando cambia cómo decide la app o qué hace; `0.0.X` para
 correcciones.
 
+## 1.15.0
+
+**La app se actualiza sola.** Antes el diagnóstico te decía «cierra la app y
+vuelve a abrirla», que es pedirte a ti que hagas el trabajo. Ahora comprueba si
+hay versión nueva al volver a la app y se recarga en cuanto está lista. No
+pierdes nada al recargar: el draft, la maestría y las partidas se guardan en el
+móvil en cada cambio.
+
+El aviso de «estás usando una versión vieja» sigue ahí, porque si un día el
+mecanismo falla hay que poder verlo — pero ya no debería salirte.
+
+**Y el titular del diagnóstico ya no se contradice.** Decía «Todo correcto (1
+avisos)»: afirmaba que estaba todo bien y a la vez que había algo que mirar, y
+encima en plural. Ahora dice «Sin fallos, 1 aviso», o «2 FALLOS y 3 avisos», o
+«Todo correcto» cuando de verdad lo está.
+
 ## 1.14.0
 
 **Repaso a la pantalla. Y por el camino apareció por qué se había ido al garete:
