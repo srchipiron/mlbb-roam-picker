@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { filtrarPorNombre } from '../engine/alias.js';
 import { recogerPerfil, exportarPerfil, leerPerfil, fundirPerfil } from '../engine/perfil.js';
-import { esPrevia, siguioConsejo } from '../engine/registro.js';
+import { esPrevia, siguioConsejo, resumen } from '../engine/registro.js';
 import { buildsDe, objetosDe, ajustesDeBuild } from '../engine/builds.js';
 import { crearT } from '../i18n.js';
 import { titular } from '../engine/selftest.js';
@@ -493,7 +493,69 @@ export function SelfTest({ resultado, onClose }) {
  *    llenaría la rama "por libre" con tu winrate de siempre y la comparación
  *    no diría nada.
  */
-export function HistorialPartidas({ partidas, pool, onOlvidar, onCorregir, onAnadir, onClose, t = tPorDefecto }) {
+/**
+ * ¿Te está funcionando la app?
+ *
+ * Es la única prueba que significa algo, y por eso mismo hay que enseñarla con
+ * cuidado. Tres reglas, y ninguna es negociable:
+ *
+ *  1. El margen va SIEMPRE al lado del número. Un 73% en once partidas es
+ *     exactamente lo que parecería una racha normal.
+ *  2. No se afirma nada hasta que la diferencia no cabe en ese margen. Antes de
+ *     eso la respuesta es "todavía no se sabe", no "parece que sí".
+ *  3. Se dice la trampa: tú eliges cuándo hacer caso, así que esto no está
+ *     aleatorizado. Es la mejor señal que se puede sacar sin pedirte que
+ *     ignores la app a propósito, y no es lo mismo que una prueba.
+ *
+ * Si algún día esto se enseña fuera de la app, se enseña entero: el número sin
+ * el margen es publicidad.
+ */
+export function Veredicto({ partidas, maestria, t = tPorDefecto }) {
+  const r = useMemo(() => resumen(partidas, maestria), [partidas, maestria]);
+  const pct = (n) => (n * 100).toFixed(1);
+  const c = r.contraReferencia;
+
+  return (
+    <section className="veredicto">
+      <p className="build-nucleo">{t('veredicto.titulo')}</p>
+
+      {r.wrSiguiendo == null || r.siguiendo < 5 ? (
+        <p className="frase duda">{t('veredicto.pocas', { n: r.siguiendo })}</p>
+      ) : !r.referencia ? (
+        <p className="frase duda">{t('veredicto.sinReferencia')}</p>
+      ) : (
+        <>
+          <p className="veredicto-cifra">
+            {t('veredicto.conApp', { pct: pct(r.wrSiguiendo), n: r.siguiendo })}
+          </p>
+          <p className="veredicto-cifra">
+            {t('veredicto.tuyo', { pct: pct(r.referencia.winRate), n: r.referencia.partidas })}
+          </p>
+          {c && (
+            <>
+              <p className="veredicto-dif">
+                {t('veredicto.dif', {
+                  signo: c.dif >= 0 ? '+' : '−',
+                  dif: Math.abs(c.dif * 100).toFixed(1),
+                  margen: (c.margen * 100).toFixed(1),
+                })}
+              </p>
+              <p className={`frase ${c.seVe ? (c.dif > 0 ? 'bien' : 'ojo') : 'duda'}`}>
+                {c.seVe
+                  ? t(c.dif > 0 ? 'veredicto.mejor' : 'veredicto.peor')
+                  : t('veredicto.noSeVe', { faltan: c.faltan })}
+              </p>
+            </>
+          )}
+        </>
+      )}
+
+      <p className="build-nota">{t('veredicto.trampa')}</p>
+    </section>
+  );
+}
+
+export function HistorialPartidas({ partidas, pool, maestria = {}, onOlvidar, onCorregir, onAnadir, onClose, t = tPorDefecto }) {
   const [anadiendo, setAnadiendo] = useState(false);
   const [heroe, setHeroe] = useState(null);
   const [aviso, setAviso] = useState(null);
@@ -513,6 +575,9 @@ export function HistorialPartidas({ partidas, pool, onOlvidar, onCorregir, onAna
         <strong style={{ flex: 1, alignSelf: 'center' }}>{t('hist.titulo')}</strong>
         <button className="close" onClick={onClose}>{t('app.cerrar')}</button>
       </div>
+
+      {/* Lo primero al abrir tus partidas: para qué las estás apuntando. */}
+      <Veredicto partidas={partidas} maestria={maestria} t={t} />
 
       <div className="sheet-body">
         <p className="nota">{t('hist.resumenLineas', {

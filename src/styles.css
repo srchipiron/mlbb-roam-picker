@@ -424,6 +424,21 @@ button:focus-visible, [tabindex]:focus-visible { outline: 2px solid var(--gold);
 .frase.ojo  { border-left-color: var(--enemy); }
 .frase.duda { border-left-color: var(--muted); }
 
+/* ---------- ¿te está funcionando? ---------- */
+
+.veredicto {
+  display: flex; flex-direction: column; gap: 5px;
+  padding: 10px 12px; margin-bottom: 10px;
+  border: 1px solid var(--line); border-radius: var(--r); background: var(--panel);
+}
+.veredicto-cifra { margin: 0; font-size: 13px; font-variant-numeric: tabular-nums; }
+/* El margen va pegado al número, no en una nota al pie: la diferencia sin su
+   margen es publicidad, y ese es justo el error que esta pantalla evita. */
+.veredicto-dif {
+  margin: 0; font-family: var(--font-num); font-size: 15px; color: var(--gold);
+  font-variant-numeric: tabular-nums;
+}
+
 /* ---------- objetos ---------- */
 
 /* El botón vive en la esquina de la tarjeta, debajo del winrate. Tiene que ser

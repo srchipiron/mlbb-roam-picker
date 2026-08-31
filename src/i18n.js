@@ -85,6 +85,21 @@ const ES = {
   'hist.anadida': 'Añadida: {hero}, {resultado}.',
   'hist.resumenLineas': '{total} apuntadas · {conApp} con la app · {previas} de tu historial',
 
+  // --- ¿te está funcionando? ---
+  // Nunca se afirma nada antes de tiempo: el margen va SIEMPRE al lado del
+  // número, y hasta que la diferencia no lo supera, la respuesta es "todavía no
+  // se sabe". Un 73% en once partidas es lo que parecería una racha normal.
+  'veredicto.titulo': '¿Te está funcionando?',
+  'veredicto.conApp': 'Siguiendo la app: {pct}% en {n} partidas',
+  'veredicto.tuyo': 'Tu winrate de siempre: {pct}% en {n} partidas',
+  'veredicto.dif': '{signo}{dif} puntos, con un margen de ±{margen}',
+  'veredicto.noSeVe': 'El margen se come la diferencia: todavía no se distingue de una racha. Faltan unas {faltan} partidas más siguiendo la app.',
+  'veredicto.mejor': 'La diferencia ya no cabe en el azar: con este héroe y este criterio, te va mejor siguiendo la app.',
+  'veredicto.peor': 'La diferencia ya no cabe en el azar, y va en tu contra: te está yendo peor siguiendo la app que por tu cuenta.',
+  'veredicto.pocas': 'Con {n} partidas apuntadas todavía no hay nada que comparar. Apunta unas cuantas más siguiendo la app.',
+  'veredicto.sinReferencia': 'Rellena «Tu maestría» con tus partidas del juego: sin eso no hay winrate tuyo con el que comparar.',
+  'veredicto.trampa': 'Ojo con lo que significa: tú eliges cuándo hacer caso, así que esto no es un experimento controlado. Es la mejor señal que se puede sacar sin pedirte que ignores la app a propósito, pero no es una prueba.',
+
   // --- líneas ---
   'linea.roam': 'Roam',
   'linea.jungle': 'Jungla',
@@ -274,6 +289,18 @@ const EN = {
   'hist.elegirHeroe': 'Which hero',
   'hist.anadida': 'Added: {hero}, {resultado}.',
   'hist.resumenLineas': '{total} logged · {conApp} with the app · {previas} from your history',
+
+  // --- is it working for you? ---
+  'veredicto.titulo': 'Is it working for you?',
+  'veredicto.conApp': 'Following the app: {pct}% over {n} matches',
+  'veredicto.tuyo': 'Your usual win rate: {pct}% over {n} matches',
+  'veredicto.dif': '{signo}{dif} points, with a margin of ±{margen}',
+  'veredicto.noSeVe': 'The margin swallows the difference: still not distinguishable from a streak. About {faltan} more matches following the app are needed.',
+  'veredicto.mejor': 'The difference no longer fits in chance: on this evidence, you do better following the app.',
+  'veredicto.peor': 'The difference no longer fits in chance, and it goes against you: you are doing worse following the app than on your own.',
+  'veredicto.pocas': 'With {n} logged matches there is nothing to compare yet. Log a few more following the app.',
+  'veredicto.sinReferencia': 'Fill in “Your mastery” with your in-game matches: without it there is no win rate of yours to compare against.',
+  'veredicto.trampa': 'Mind what this means: you choose when to follow the app, so this is not a controlled experiment. It is the best signal available without asking you to ignore the app on purpose, but it is not proof.',
 
   'linea.roam': 'Roam',
   'linea.jungle': 'Jungle',

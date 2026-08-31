@@ -476,6 +476,7 @@ export default function App() {
       {verHistorial && (
         <HistorialPartidas
           partidas={partidas}
+          maestria={maestriaUsada}
           pool={roamPool}
           onOlvidar={(t2) => guardarPartidas(olvidar(partidas, t2))}
           onCorregir={(t2, gane) => guardarPartidas(corregir(partidas, t2, gane))}

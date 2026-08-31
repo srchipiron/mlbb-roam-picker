@@ -66,6 +66,14 @@ Lo que dice hoy, y conviene leerlo entero antes de tocar `rules.js`:
 
 Cada regla nueva es deuda, y ahora además está medido.
 
+Desde 1.16.0 esto tiene consecuencia en pantalla: un motivo por etiqueta solo se
+enseña **si el cruce real va en el mismo sentido**. La regla explica el porqué;
+el dato dice si es verdad. Sin dato del cruce (héroe recién salido) la regla se
+enseña igual, que es justo para lo que está. Y el umbral de «ganas el cruce»
+salió de medir la distribución (p90/p10 = 0.5154/0.4846), no de suponer que un
+53% es ventaja: 0.53 era el percentil 99 y por eso el motivo bien fundado casi
+nunca salía. Medido en 2.000 tarjetas: motivos con dato del 14,5% al 50,4%.
+
 ## Qué son los datos, de verdad
 
 Medido, no supuesto. Si cambias de fuente, vuelve a medir esto ANTES de tocar
@@ -476,6 +484,12 @@ y el botón Diagnóstico mentía sobre los rangos. No le quites el `--out`.
   y se deduplica al fundir perfiles. `apuntar` desempata los instantes repetidos
   porque dos toques rápidos caían en el mismo milisegundo y borrar una se
   llevaba las dos.
+- Desde 1.17.0 la comparación tiene pantalla propia (`Veredicto`, dentro de
+  «Partidas»). Tres reglas que NO son negociables y tienen prueba: el margen va
+  en la misma frase que la diferencia, no se afirma nada mientras la diferencia
+  quepa en el margen, y se dice que no está aleatorizado. Si alguna vez se saca
+  de la app para enseñársela a alguien, se saca entera: el número sin el margen
+  es publicidad, y con 11 partidas el margen es ±29 puntos.
 - El registro de partidas existe desde 0.8.0 (botón "Apuntar partida"). La
   comparación "siguiendo la app contra por libre" es la limpia en teoría y la
   inalcanzable en la práctica: la segunda rama solo crece si Javi ignora la app

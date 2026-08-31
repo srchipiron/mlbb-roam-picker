@@ -8,6 +8,47 @@ que esto no se olvida.
 Criterio: `0.X.0` cuando cambia cómo decide la app o qué hace; `0.0.X` para
 correcciones.
 
+## 1.17.0
+
+**«¿Te está funcionando?»**, dentro de tus partidas. Es la única prueba que
+significa algo, así que se enseña con las tres cosas que la hacen honesta:
+
+- Tu winrate siguiendo la app, tu winrate de siempre, y **la diferencia con su
+  margen al lado**. Hoy, con tus 11 partidas: +21,4 puntos ± 29,5.
+- **Mientras el margen se coma la diferencia, la respuesta es «todavía no se
+  sabe»**, no «parece que sí». Y te dice cuántas partidas faltan.
+- Y la trampa, escrita: tú eliges cuándo hacer caso, así que esto no es un
+  experimento controlado. Es la mejor señal que se puede sacar sin pedirte que
+  ignores la app a propósito, pero no es una prueba.
+
+Un 73% en once partidas es exactamente lo que parecería una racha normal. Si
+algún día enseñas esto para convencer a alguien, enséñalo entero: el número sin
+el margen es publicidad.
+
+## 1.16.0
+
+**Los motivos de cada tarjeta ahora están respaldados por el dato.** La
+recomendación no cambia —comprobado en 400 drafts: mismo número 1, mismo top 8,
+mismas puntuaciones—; lo que cambia es lo que la app te cuenta para
+justificarla.
+
+Había dos cosas mal:
+
+- **«Ganas el cruce contra X» casi nunca salía.** El umbral estaba en el 53% de
+  victorias, que suena razonable pero es el **percentil 99** de los cruces
+  reales: solo lo alcanzaba el 1,6%. La distribución de verdad es mucho más
+  estrecha (el 90% de los cruces está entre 48,5% y 51,5%). Ahora el umbral es
+  esa cola, así que el motivo sale cuando el cruce destaca de verdad.
+- **Los motivos por etiqueta se decían aunque el cruce los desmintiera.** Salía
+  «bloquea los dashes de Fanny» aunque contra Fanny pierdas. Medido héroe a
+  héroe, esas etiquetas casi nunca predicen lo que afirman: de los nueve héroes
+  con «anti-movilidad» solo Phoveus estorba de verdad a los móviles. Ahora la
+  etiqueta explica el porqué **solo cuando el cruce va en el mismo sentido**.
+
+En 2.000 tarjetas simuladas: los motivos sacados de partidas reales pasan del
+14,5% al 50,4%, los de etiqueta bajan del 46% al 24% —y los que quedan están
+respaldados—, y las tarjetas sin ningún motivo bajan del 27% al 13%.
+
 ## 1.15.0
 
 **La app se actualiza sola.** Antes el diagnóstico te decía «cierra la app y
