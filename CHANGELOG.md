@@ -8,6 +8,12 @@ que esto no se olvida.
 Criterio: `0.X.0` cuando cambia cómo decide la app o qué hace; `0.0.X` para
 correcciones.
 
+## 1.8.1
+
+- La app no declaraba icono de pestaña, así que el navegador pedía
+  `/favicon.ico` en cada carga y se llevaba un 404. Ahora usa el icono que ya
+  existía para la app instalada.
+
 ## 1.8.0
 
 - **Tu perfil, para llevarte tus datos a otro dispositivo.** Botón nuevo: te da
