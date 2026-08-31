@@ -20,7 +20,7 @@ comprobaciones automáticas importan más de lo normal.
 
 ## Reglas de trabajo
 
-**Nunca subas nada sin pasar `npm test`.** Son cuatro comprobaciones y 57
+**Nunca subas nada sin pasar `npm test`.** Son cuatro comprobaciones y 58
 pruebas (orden de declaraciones, CSS, versión documentada y motor). El
 despliegue corre esas cuatro más dos que no están en `npm test`: que la corrida
 nueva no resuelva menos que la guardada (`comparar-ingesta.mjs`), y que los
@@ -306,6 +306,20 @@ y el botón Diagnóstico mentía sobre los rangos. No le quites el `--out`.
 - La deducción se apoya en `SPECIALITY_TAGS` y `ROLE_VETO`, que NO se editan a
   mano: las regenera `node scripts/derivar-tags.mjs` del propio catálogo.
   Reejecútalo cuando crezca `heroes.json` o Moonton cambie sus etiquetas.
+- Desde 1.9.0 el registro SÍ personaliza: `maestriaEfectiva` junta la maestría
+  escrita a mano con la que sale de las partidas apuntadas, quedándose con la
+  fuente que tenga más partidas de cada héroe (no se suman: la escrita a mano ya
+  las incluye). Antes eran dos cosas que no se hablaban y apuntar partidas no
+  movía la recomendación.
+- Las partidas metidas del historial del juego llevan `previa: true` y quedan
+  FUERA de las dos ramas de la comparación (`esPrevia`). Sin eso irían todas a
+  "por libre" -no tienen `recomendados`- y meter cien partidas viejas llenaría
+  esa rama con el winrate de siempre. Cuentan para la maestría, que es para lo
+  que se meten.
+- El instante (`t`) ES la identidad de una partida: por ahí se quita, se corrige
+  y se deduplica al fundir perfiles. `apuntar` desempata los instantes repetidos
+  porque dos toques rápidos caían en el mismo milisegundo y borrar una se
+  llevaba las dos.
 - El registro de partidas existe desde 0.8.0 (botón "Apuntar partida"). La
   comparación "siguiendo la app contra por libre" es la limpia en teoría y la
   inalcanzable en la práctica: la segunda rama solo crece si Javi ignora la app

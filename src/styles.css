@@ -471,3 +471,22 @@ button:focus-visible, [tabindex]:focus-visible { outline: 2px solid var(--gold);
 /* Los mismos colores que ya usa la app para bien y mal, no dos nuevos. */
 .nota.bien { color: var(--c-comp); }
 .nota.mal { color: var(--enemy); }
+
+/* --- Historial de partidas --- */
+
+.partida {
+  display: grid; grid-template-columns: 58px 1fr auto auto 30px 30px;
+  gap: 8px; align-items: center;
+  padding: 8px 0; border-bottom: 1px solid var(--line); font-size: 13px;
+}
+.partida-fecha { color: var(--muted); font-family: var(--font-num); font-size: 11px; }
+.partida-hero { font-weight: 600; }
+.partida-bien { color: var(--c-comp); }
+.partida-mal { color: var(--enemy); }
+/* El tipo de partida en pequeño: es lo que menos se mira y lo que mas ocupa. */
+.partida-tipo { color: var(--muted); font-size: 11px; text-align: right; }
+.partida .x { color: var(--muted); font-size: 16px; padding: 0 4px; }
+
+/* Al añadir partidas viejas la rejilla no puede comerse la pantalla: si no, el
+   boton de Gané/Perdí queda debajo del teclado y no se alcanza. */
+.hero-grid.corto { max-height: 42vh; flex: none; }

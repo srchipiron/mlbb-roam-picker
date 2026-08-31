@@ -8,6 +8,28 @@ que esto no se olvida.
 Criterio: `0.X.0` cuando cambia cómo decide la app o qué hace; `0.0.X` para
 correcciones.
 
+## 1.9.0
+
+- **Botón "Partidas": ves todas las que llevas apuntadas.** Con su fecha, el
+  héroe, si ganaste y si seguiste la recomendación. Si te equivocaste al
+  apuntar, puedes **cambiar el resultado** (⇄) o **quitarla** (×).
+- **Puedes meter partidas de tu historial del juego.** Es lo que hace que la app
+  te conozca antes: cada partida que metas cuenta para tu maestría, y la
+  maestría es el 15% de la recomendación.
+- **Y esto es lo importante: apuntar partidas ahora personaliza de verdad.**
+  Hasta ahora el registro y "Tu maestría" eran dos cosas que no se hablaban —
+  podías llevar cincuenta partidas apuntadas y la recomendación no se enteraba.
+  Ahora el motor usa las dos: de cada héroe, la que tenga más partidas. No se
+  suman, se elige: si escribiste 3.821 partidas de Diggie a mano, esas ya
+  incluyen las que apuntes ahora.
+- Las partidas de tu historial **no** cuentan para comprobar si la app acierta,
+  y es a propósito: cuando las jugaste no había ningún consejo que seguir ni que
+  ignorar. Si contaran, meter cien partidas viejas llenaría la comparación con
+  tu winrate de siempre y dejaría de decir nada.
+- Dos partidas apuntadas en el mismo segundo compartían identificador, así que
+  borrar una se llevaba las dos. Pasaba justo al meter varias del historial
+  seguidas, que es a toques rápidos.
+
 ## 1.8.1
 
 - La app no declaraba icono de pestaña, así que el navegador pedía

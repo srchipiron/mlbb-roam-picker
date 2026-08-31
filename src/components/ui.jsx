@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { filtrarPorNombre } from '../engine/alias.js';
 import { recogerPerfil, exportarPerfil, leerPerfil, fundirPerfil } from '../engine/perfil.js';
+import { esPrevia, siguioConsejo } from '../engine/registro.js';
 import { crearT } from '../i18n.js';
 
 // Traductor por defecto para los componentes que no reciben uno. La app le pasa
@@ -411,6 +412,95 @@ export function SelfTest({ resultado, onClose }) {
         <button className="close" onClick={onClose}>Cerrar</button>
       </div>
       <pre id="selftest-texto" className="selftest">{resultado.texto}</pre>
+    </div>
+  );
+}
+
+/**
+ * Tus partidas: verlas, corregirlas y añadir las de antes.
+ *
+ * Dos cosas distintas viven aquí, y la diferencia importa:
+ *
+ *  - Las apuntadas CON la app, que llevan lo que te recomendó. Son las que
+ *    dicen si la app acierta.
+ *  - Las de tu historial del juego, metidas a mano. Cuentan para tu maestría
+ *    -o sea, personalizan la recomendación- pero NO para comprobar si la app
+ *    acierta: cuando las jugaste no había consejo que seguir. Mezclarlas
+ *    llenaría la rama "por libre" con tu winrate de siempre y la comparación
+ *    no diría nada.
+ */
+export function HistorialPartidas({ partidas, pool, onOlvidar, onCorregir, onAnadir, onClose, t = tPorDefecto }) {
+  const [anadiendo, setAnadiendo] = useState(false);
+  const [heroe, setHeroe] = useState(null);
+  const [aviso, setAviso] = useState(null);
+
+  const conApp = partidas.filter((p) => !esPrevia(p)).length;
+
+  const guardar = (gane) => {
+    if (!heroe) return;
+    onAnadir(heroe, gane);
+    setAviso(t('hist.anadida', { hero: heroe, resultado: gane ? t('hist.gane') : t('hist.perdi') }));
+    setHeroe(null);
+  };
+
+  return (
+    <div className="sheet" role="dialog" aria-label={t('hist.titulo')}>
+      <div className="sheet-head">
+        <strong style={{ flex: 1, alignSelf: 'center' }}>{t('hist.titulo')}</strong>
+        <button className="close" onClick={onClose}>{t('app.cerrar')}</button>
+      </div>
+
+      <div className="sheet-body">
+        <p className="nota">{t('hist.resumenLineas', {
+          total: partidas.length, conApp, previas: partidas.length - conApp,
+        })}</p>
+
+        <button className="ancho" onClick={() => setAnadiendo((v) => !v)}>{t('hist.anadir')}</button>
+        {anadiendo && (
+          <>
+            <p className="nota">{t('hist.anadirPista')}</p>
+            <strong>{t('hist.elegirHeroe')}</strong>
+            <div className="hero-grid corto">
+              {pool.map((h) => (
+                <button
+                  key={h.name}
+                  className={heroe === h.name ? 'elegido' : ''}
+                  onClick={() => setHeroe(h.name)}
+                >
+                  {h.name}
+                </button>
+              ))}
+            </div>
+            <div className="resultado">
+              <button className="reset" disabled={!heroe} onClick={() => guardar(false)}>{t('hist.perdi')}</button>
+              <button className="reset" disabled={!heroe} onClick={() => guardar(true)}>{t('hist.gane')}</button>
+            </div>
+            {aviso && <p className="nota bien">{aviso}</p>}
+          </>
+        )}
+
+        <hr />
+
+        {!partidas.length && <p className="nota">{t('hist.vacio')}</p>}
+        {partidas.map((p) => (
+          <div key={p.t} className="partida">
+            <span className="partida-fecha">
+              {new Date(p.t).toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: '2-digit' })}
+            </span>
+            <span className="partida-hero">{p.pick}</span>
+            <span className={p.gane ? 'partida-bien' : 'partida-mal'}>
+              {p.gane ? t('hist.gane') : t('hist.perdi')}
+            </span>
+            <span className="partida-tipo">
+              {esPrevia(p) ? t('hist.previa') : (siguioConsejo(p) ? t('hist.seguida') : t('hist.libre'))}
+            </span>
+            <button className="x" title={t('hist.cambiar')} aria-label={t('hist.cambiar')}
+              onClick={() => onCorregir(p.t, !p.gane)}>⇄</button>
+            <button className="x" title={t('hist.quitar')} aria-label={t('hist.quitar')}
+              onClick={() => onOlvidar(p.t)}>×</button>
+          </div>
+        ))}
+      </div>
     </div>
   );
 }

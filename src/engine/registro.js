@@ -17,16 +17,49 @@ export const MINIMO_PARA_CONCLUIR = 30;
 
 /** Una partida nueva al principio de la lista. Se recorta para no crecer sin fin. */
 export function apuntar(partidas, entrada, tope = 500) {
+  // El instante ES la identidad de la partida: por ahí la quita y la corrige la
+  // pantalla del historial, y por ahí se quitan las repetidas al fundir dos
+  // perfiles. Dos partidas apuntadas en el mismo milisegundo compartirían
+  // identidad, y borrar una se llevaría las dos. Pasa de verdad al meter varias
+  // seguidas del historial del juego, que es a toques rápidos.
+  const ocupados = new Set((partidas ?? []).map((p) => p.t));
+  let t = entrada.t ?? Date.now();
+  while (ocupados.has(t)) t += 1;
+
   const limpia = {
-    t: entrada.t ?? Date.now(),
+    t,
     pick: String(entrada.pick ?? '').trim(),
     recomendados: (entrada.recomendados ?? []).slice(0, 3),
     gane: !!entrada.gane,
     rango: entrada.rango ?? null,
+    // Partida vieja, metida a mano del historial del juego. Cuenta para la
+    // maestría y NO cuenta para comprobar si la app acierta: ver `esPrevia`.
+    ...(entrada.previa ? { previa: true } : {}),
   };
   if (!limpia.pick) return partidas;
-  return [limpia, ...partidas].slice(0, tope);
+  return [limpia, ...partidas].sort((a, b) => (b.t ?? 0) - (a.t ?? 0)).slice(0, tope);
 }
+
+/** Quitar una partida apuntada por error. */
+export function olvidar(partidas = [], t) {
+  return partidas.filter((p) => p.t !== t);
+}
+
+/** Cambiar el resultado de una partida mal apuntada. */
+export function corregir(partidas = [], t, gane) {
+  return partidas.map((p) => (p.t === t ? { ...p, gane: !!gane } : p));
+}
+
+/**
+ * ¿Es una partida de antes de usar la app?
+ *
+ * Importa mucho separarlas. Una partida vieja no tiene `recomendados`, así que
+ * `siguioConsejo` diría que no y acabaría contada como "por libre". Pero jugar
+ * sin la app abierta NO es ignorar su consejo: es que no había consejo. Si se
+ * mezclan, meter cien partidas del historial del juego llenaría la rama "por
+ * libre" con el winrate de siempre y la comparación diría exactamente nada.
+ */
+export const esPrevia = (p) => !!p?.previa;
 
 /**
  * ¿El pick estaba entre lo que la app recomendaba?
@@ -95,8 +128,11 @@ function partidasNecesarias(p, base) {
  *    pero es una referencia de miles de partidas en vez de dos.
  */
 export function resumen(partidas = [], maestria = {}) {
-  const con = partidas.filter(siguioConsejo);
-  const sin = partidas.filter((p) => !siguioConsejo(p));
+  // Las partidas metidas del historial del juego no entran en ninguna de las
+  // dos ramas: no hubo consejo que seguir ni que ignorar.
+  const conApp = partidas.filter((p) => !esPrevia(p));
+  const con = conApp.filter(siguioConsejo);
+  const sin = conApp.filter((p) => !siguioConsejo(p));
   const wr = (lista) => (lista.length ? lista.filter((p) => p.gane).length / lista.length : null);
 
   const wrSiguiendo = wr(con);
@@ -120,6 +156,7 @@ export function resumen(partidas = [], maestria = {}) {
 
   return {
     total: partidas.length,
+    previas: partidas.length - conApp.length,
     siguiendo: con.length,
     porLibre: sin.length,
     wrSiguiendo,
@@ -133,7 +170,13 @@ export function resumen(partidas = [], maestria = {}) {
   };
 }
 
-/** Tus partidas por héroe, en el formato de "Tu maestría". */
+/**
+ * Tus partidas por héroe, en el formato de "Tu maestría".
+ *
+ * Aquí SÍ entran las previas: es justo para lo que sirven. Una partida vieja no
+ * dice nada sobre si la app acierta, pero dice mucho sobre lo bien que llevas
+ * a ese héroe, que es el 15% de la recomendación.
+ */
 export function maestriaDesdeRegistro(partidas = []) {
   const cuenta = new Map();
   for (const p of partidas) {
@@ -145,4 +188,26 @@ export function maestriaDesdeRegistro(partidas = []) {
   return Object.fromEntries(
     [...cuenta.entries()].map(([name, c]) => [name, { games: c.games, winRate: c.wins / c.games }]),
   );
+}
+
+/**
+ * La maestría que usa el motor: la escrita a mano MÁS la que sale de tus
+ * partidas apuntadas.
+ *
+ * De cada héroe gana la fuente con más partidas, igual que al fundir perfiles.
+ * No se suman: si escribiste "Diggie 3821" a mano, esas 3821 ya incluyen las
+ * que estás apuntando ahora, y sumarlas sería contarlas dos veces.
+ *
+ * Lo que esto cambia de verdad: apuntar partidas deja de ser solo llevar la
+ * cuenta y pasa a personalizar el motor. Antes el registro y la maestría eran
+ * dos cosas que no se hablaban.
+ */
+export function maestriaEfectiva(maestria = {}, partidas = []) {
+  const delRegistro = maestriaDesdeRegistro(partidas);
+  const salida = { ...maestria };
+  for (const [nombre, m] of Object.entries(delRegistro)) {
+    const mano = salida[nombre];
+    if (!mano || (m.games ?? 0) > (mano.games ?? 0)) salida[nombre] = m;
+  }
+  return salida;
 }

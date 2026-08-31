@@ -1362,6 +1362,52 @@ test('el perfil viaja entero y no puede borrar nada al llegar', async () => {
   eq(Object.keys(otraVez.mastery).length, Object.keys(f.mastery).length, 'importar dos veces duplica maestria');
 });
 
+test('las partidas viejas personalizan pero NO ensucian la comparacion', async () => {
+  const { apuntar, olvidar, corregir, resumen, maestriaEfectiva, esPrevia } = await import('../src/engine/registro.js');
+
+  let ps = [];
+  for (let i = 0; i < 11; i++) ps = apuntar(ps, { pick: 'Diggie', recomendados: ['Diggie'], gane: i < 8 });
+  ps = apuntar(ps, { pick: 'Franco', recomendados: ['Diggie'], gane: true });
+  ps = apuntar(ps, { pick: 'Franco', recomendados: ['Diggie'], gane: false });
+
+  const antes = resumen(ps);
+  eq(antes.siguiendo, 11, 'no cuenta bien las seguidas');
+  eq(antes.porLibre, 2, 'no cuenta bien las de por libre');
+
+  // Cuarenta partidas del historial del juego. La trampa: no llevan
+  // `recomendados`, asi que sin marcarlas irian todas a "por libre" y la
+  // comparacion pasaria a medir el winrate de siempre en vez de la app.
+  for (let i = 0; i < 40; i++) {
+    ps = apuntar(ps, { pick: 'Atlas', gane: i < 21, previa: true, t: 1600000000000 + i });
+  }
+  const despues = resumen(ps);
+  eq(despues.total, 53, 'pierde partidas al meter las viejas');
+  eq(despues.previas, 40, 'no distingue las viejas');
+  eq(despues.siguiendo, antes.siguiendo, 'las viejas se han colado en las seguidas');
+  eq(despues.porLibre, antes.porLibre, 'las viejas se han colado en "por libre"');
+  ok(ps.filter(esPrevia).length === 40, 'no marca las viejas como previas');
+
+  // Y SI tienen que personalizar: para eso se meten.
+  const m = maestriaEfectiva({ Diggie: { games: 3821, winRate: 0.54 } }, ps);
+  eq(m.Atlas.games, 40, 'las partidas viejas no llegan a la maestria');
+  ok(Math.abs(m.Atlas.winRate - 21 / 40) < 1e-9, 'calcula mal el winrate de las viejas');
+  // La escrita a mano gana si tiene mas partidas: no se suman, se elige.
+  eq(m.Diggie.games, 3821, 'el registro pisa la maestria escrita a mano, que tiene mucho mas');
+  eq(m.Franco.games, 2, 'un heroe que solo esta en el registro no llega a la maestria');
+
+  // Corregir y quitar, que es para lo que existe la pantalla.
+  const unaSeguida = ps.find((p) => !esPrevia(p) && p.pick === 'Diggie');
+  const corregidas = corregir(ps, unaSeguida.t, !unaSeguida.gane);
+  eq(corregidas.length, ps.length, 'corregir cambia el numero de partidas');
+  eq(corregidas.find((p) => p.t === unaSeguida.t).gane, !unaSeguida.gane, 'no cambia el resultado');
+  eq(resumen(corregidas).siguiendo, 11, 'corregir mueve una partida de rama');
+
+  const quitadas = olvidar(ps, unaSeguida.t);
+  eq(quitadas.length, ps.length - 1, 'no quita la partida');
+  ok(!quitadas.some((p) => p.t === unaSeguida.t), 'la partida quitada sigue ahi');
+  eq(olvidar(ps, 'no-existe').length, ps.length, 'quita algo cuando no deberia');
+});
+
 await Promise.all(pendientes); // se esperan de verdad, sin plazos inventados
 
 console.log(`\n${pasadas} pruebas correctas, ${fallos} fallos.`);

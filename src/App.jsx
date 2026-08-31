@@ -1,11 +1,11 @@
 import { useEffect, useMemo, useState } from 'react';
 import { rankRoamers, mergeCatalog, suggestBans, indexByName, coverage, empatados, normName, poolDeLinea, LINEAS } from './engine/score.js';
 import { runSelfTest, leerEntorno } from './engine/selftest.js';
-import { apuntar } from './engine/registro.js';
+import { apuntar, olvidar, corregir, maestriaEfectiva } from './engine/registro.js';
 import { analizarDraft } from './engine/analisis.js';
 import { crearT, idiomaPorDefecto, IDIOMAS } from './i18n.js';
 import { detectarRivalDeLinea, indiceDeLineas, frecuenciaDeRoles } from './engine/rival-de-linea.js';
-import { Side, HeroSheet, Pick, Legend, MasteryEditor, RankPicker, BanSuggestions, Footer, SelfTest, RegistroPartida, SelectorDeLinea, Analisis, AvisoLegal, Perfil } from './components/ui.jsx';
+import { Side, HeroSheet, Pick, Legend, MasteryEditor, RankPicker, BanSuggestions, Footer, SelfTest, RegistroPartida, SelectorDeLinea, Analisis, AvisoLegal, Perfil, HistorialPartidas } from './components/ui.jsx';
 
 // OJO: estas claves siguen diciendo 'roam-picker' aunque la app se llame ya
 // Mobile Legends Pick Assist. NO se renombran: el almacenamiento del navegador
@@ -54,9 +54,19 @@ export default function App() {
   const [mastery, setMastery] = useState(() => load(MASTERY_KEY, {}));
   const [editingMastery, setEditingMastery] = useState(false);
   const [verPerfil, setVerPerfil] = useState(false);
+  const [verHistorial, setVerHistorial] = useState(false);
   const [test, setTest] = useState(null);
 
   const saveMastery = (next) => { setMastery(next); save(MASTERY_KEY, next); };
+
+  /**
+   * La maestría que ve el motor. Antes solo era la escrita a mano y el registro
+   * de partidas no personalizaba NADA: dos cosas que no se hablaban. Ahora
+   * apuntar partidas -y meter las de tu historial- mueve la recomendación.
+   */
+  const maestriaUsada = useMemo(() => maestriaEfectiva(mastery, partidas), [mastery, partidas]);
+
+  const guardarPartidas = (siguiente) => { setPartidas(siguiente); save(PARTIDAS_KEY, siguiente); };
 
   /**
    * Trae los datos de otro dispositivo. Vienen ya FUNDIDOS con los de aquí
@@ -160,12 +170,12 @@ export default function App() {
   const ranked = useMemo(
     () => (catalog
       ? rankRoamers(roamPool, {
-        enemies, allies, bans, mastery, meta: metaCtx, enemyRoam: enemyRoamEfectivo,
+        enemies, allies, bans, mastery: maestriaUsada, meta: metaCtx, enemyRoam: enemyRoamEfectivo,
         // Héroes que el enemigo aún podría elegir: base del riesgo de contrapick.
         candidatos: allHeroes.filter((h) => !taken.has(h.name)),
       })
       : []),
-    [catalog, roamPool, allHeroes, taken, metaCtx, enemies, allies, bans, mastery, enemyRoamEfectivo],
+    [catalog, roamPool, allHeroes, taken, metaCtx, enemies, allies, bans, maestriaUsada, enemyRoamEfectivo],
   );
 
   const empate = useMemo(() => empatados(ranked), [ranked]);
@@ -190,7 +200,7 @@ export default function App() {
   const lanzarTest = () => {
     try {
       setTest(runSelfTest({
-        catalog, meta, metaCtx, allHeroes, roamPool, mastery, partidas,
+        catalog, meta, metaCtx, allHeroes, roamPool, mastery: maestriaUsada, partidas,
         linea,
         env: leerEntorno({ version: __APP_VERSION__, buildTime: __BUILD_TIME__, rango: activeRank }),
       }));
@@ -301,6 +311,7 @@ export default function App() {
           <button className="reset" disabled={!ranked.length} onClick={() => setApuntando(true)}>
             {t('app.apuntar')}
           </button>
+          <button className="reset" onClick={() => setVerHistorial(true)}>{t('hist.boton')}</button>
           <button className="reset" onClick={() => setVerPerfil(true)}>{t('perfil.boton')}</button>
         </div>
       </aside>
@@ -377,6 +388,22 @@ export default function App() {
           recomendados={ranked.slice(0, 3).map((r) => r.hero.name)}
           onGuardar={guardarPartida}
           onClose={() => setApuntando(false)}
+          t={t}
+        />
+      )}
+
+      {verHistorial && (
+        <HistorialPartidas
+          partidas={partidas}
+          pool={roamPool}
+          onOlvidar={(t2) => guardarPartidas(olvidar(partidas, t2))}
+          onCorregir={(t2, gane) => guardarPartidas(corregir(partidas, t2, gane))}
+          onAnadir={(hero, gane) => guardarPartidas(apuntar(partidas, {
+            pick: hero, gane, previa: true, rango: activeRank,
+            // Fecha propia para que dos seguidas no colisionen en la clave.
+            t: Date.now(),
+          }))}
+          onClose={() => setVerHistorial(false)}
           t={t}
         />
       )}

@@ -22,8 +22,22 @@ if ((css.match(/{/g)||[]).length !== (css.match(/}/g)||[]).length) fallos.push('
 // 4) clases usadas en los JSX que no existen en el CSS
 const jsx = ['src/App.jsx','src/components/ui.jsx','src/main.jsx']
   .map(f=>readFileSync(resolve(ROOT, f),'utf8')).join('\n');
-const clases = new Set([...jsx.matchAll(/className=[{"`]([^"`}]*)/g)]
-  .flatMap(m=>m[1].split(/[\s${]+/)).filter(c=>/^[a-z][\w-]*$/.test(c)));
+// Se miran los TEXTOS, no los identificadores. Con className={x === y ? 'a' : ''}
+// la version anterior se quedaba con `x` y lo daba por una clase: funcionaba
+// solo porque las variables se llamaban como clases que existian (`pick`,
+// `mastery`). En cuanto una se llamo `heroe`, falso positivo.
+const clases = new Set();
+for (const m of jsx.matchAll(/className=(?:"([^"]*)"|\{([^}]*)\})/g)) {
+  const literal = m[1];
+  if (literal != null) {
+    for (const c of literal.split(/\s+/)) if (c) clases.add(c);
+    continue;
+  }
+  // Dentro de una expresion, solo lo que va entre comillas es un nombre de clase.
+  for (const t of m[2].matchAll(/['"`]([^'"`]*)['"`]/g)) {
+    for (const c of t[1].split(/\s+/)) if (/^[a-z][\w-]*$/.test(c)) clases.add(c);
+  }
+}
 const sinEstilo = [...clases].filter(c=>!css.includes('.'+c));
 if (sinEstilo.length) fallos.push('clases sin estilo: '+sinEstilo.join(', '));
 
