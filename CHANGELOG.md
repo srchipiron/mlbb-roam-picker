@@ -8,6 +8,27 @@ que esto no se olvida.
 Criterio: `0.X.0` cuando cambia cómo decide la app o qué hace; `0.0.X` para
 correcciones.
 
+## 1.18.0
+
+**Arreglado un acantilado en «tu nivel».** Buscando por qué la app te había
+recomendado Estes con Kadita enfrente salió esto: tu nivel se calculaba con un
+corte en 100 partidas —por debajo, 50%; por encima, tu winrate entero—. Medido:
+apuntar **una sola partida más** (de la 99 a la 100) cambiaba el héroe
+recomendado en **54 de 200 drafts**. Nadie cambia de nivel entre la partida 99 y
+la 100.
+
+Ahora tu nivel se encoge hacia el 50% de forma continua, como todo lo demás en
+la app. El salto máximo entre dos pasos baja de 54 a 7 de 200, y ya no está
+concentrado en un punto.
+
+Sobre Estes contra Kadita: **el dato no dice que sea mal pick**. Kadita es el
+cruce número 31 de 132 más malos para Estes (49,0%); sus peores de verdad son
+Ixia, Nolan y Beatrix. Y medí si los héroes inmóviles sufren de verdad contra
+los que hacen dive: la diferencia media es de **menos de dos décimas de punto**,
+y para Estes en concreto no se distingue del ruido. La app no lo pone arriba
+contra Kadita sola —queda el 30 de 37—; si te salió, fue por el resto del draft
+o por tu maestría.
+
 ## 1.17.0
 
 **«¿Te está funcionando?»**, dentro de tus partidas. Es la única prueba que

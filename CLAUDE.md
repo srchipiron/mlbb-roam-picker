@@ -180,6 +180,12 @@ Todos estos llegaron a producción y costaron rondas enteras de ida y vuelta:
   premiaba TENER DATOS, no ser bueno con el héroe. Hoy `tuNivel` saca su media
   ponderada y todo va centrado ahí. Si añades algo que compare winrates
   personales, compáralo contra su nivel, nunca contra 0.50.
+- **Un corte donde debía haber un encogimiento** — `tuNivel` usaba el 50% por
+  debajo de 100 partidas y tu winrate entero por encima. Apuntar UNA partida más
+  (de la 99 a la 100) cambiaba el nº1 en 54 de 200 drafts. Hoy encoge de forma
+  continua con `PRIOR_DE_TU_NIVEL`, y hay una prueba de que ningún par de
+  valores consecutivos salta. Si añades otro umbral duro sobre una cantidad que
+  crece sola, pregúntate primero qué pasa justo al cruzarlo.
 - **Un prior de encogimiento puesto a ojo** — `MASTERY_CONFIDENCE_GAMES = 20`
   equivalía a suponer que su winrate varía ±11 puntos entre héroes (del 42% al
   64%). En un encogimiento bayesiano el prior NO es libre: `k = 0.25/σ²`, con σ

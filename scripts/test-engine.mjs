@@ -1454,11 +1454,26 @@ test('la maestria se mide contra TU nivel, no contra el 50%', async () => {
   ok(conNivel(0.90, 5) < 0.62, `cinco partidas al 90% no pueden disparar la nota: ${conNivel(0.90, 5)}`);
   ok(conNivel(0.90, 400) > 0.9, 'con muchisimas partidas al 90% la nota SI tiene que subir');
 
-  // Sin apenas partidas apuntadas no se puede deducir tu nivel: se usa 0.50,
-  // que es lo que hacia la app antes. Si no, con dos partidas tu "nivel" seria
-  // 0% o 100% y arrastraria todo lo demas.
-  eq(tuNivel({ A: { games: 2, winRate: 1 } }), 0.5, 'se cree un nivel sacado de dos partidas');
+  // Con pocas partidas tu nivel se encoge hacia el 50%, y SIN acantilado. Antes
+  // habia un corte en 100 partidas: por debajo, 0.50; por encima, tu winrate
+  // entero. Medido, apuntar UNA partida mas (de 99 a 100) reordenaba el numero
+  // 1 en 54 de 200 drafts. Un jugador no cambia de nivel entre la 99 y la 100.
+  ok(Math.abs(tuNivel({ A: { games: 2, winRate: 1 } }) - 0.5) < 0.02,
+    `se cree un nivel sacado de dos partidas: ${tuNivel({ A: { games: 2, winRate: 1 } })}`);
   eq(tuNivel({}), 0.5, 'se inventa un nivel sin datos');
+  ok(tuNivel({ A: { games: 4000, winRate: 0.60 } }) > 0.58,
+    'con miles de partidas deberia creerse tu nivel casi entero');
+
+  // Y que crezca de forma continua: ningun par de valores consecutivos puede
+  // dar un salto grande. Es lo que distingue un encogimiento de un corte.
+  let anterior = tuNivel({ A: { games: 1, winRate: 0.60 } });
+  let mayorSalto = 0;
+  for (let n = 2; n <= 400; n++) {
+    const ahora = tuNivel({ A: { games: n, winRate: 0.60 } });
+    mayorSalto = Math.max(mayorSalto, Math.abs(ahora - anterior));
+    anterior = ahora;
+  }
+  ok(mayorSalto < 0.002, `tu nivel da un salto de ${mayorSalto.toFixed(4)} entre dos partidas seguidas: sigue habiendo un corte`);
 });
 
 test('el encogimiento de la maestria sale de la dispersion medida', async () => {

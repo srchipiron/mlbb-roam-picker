@@ -424,13 +424,25 @@ export function compScore(roamHero, allies) {
 }
 
 /**
- * Tu winrate de siempre, ponderado por partidas.
+ * Cuánto pesa el 50% mientras no tengas partidas suficientes, en partidas
+ * equivalentes.
  *
- * Hace falta un mínimo para creérselo: con dos partidas, tu "nivel" sería 0% o
- * 100% y arrastraría todo lo demás. Por debajo de ese mínimo se usa el 50%,
- * que es lo mismo que hacía la app antes de tener esto.
+ * Antes esto era un CORTE: por debajo de 100 partidas tu nivel era 0.50 y a
+ * partir de 100 era tu winrate real. Medido, ese salto reordenaba el 27% de
+ * las recomendaciones (54 de 200 drafts cambiaban de número 1) al apuntar UNA
+ * partida más. Un jugador no cambia de nivel entre la partida 99 y la 100.
+ *
+ * Ahora se encoge hacia el 50% como todo lo demás en esta app. El valor
+ * conserva la intención del umbral que había —con 100 partidas te crees la
+ * mitad de lo que dicen, con 400 el 80%— pero sin acantilado.
+ *
+ * Aviso honesto: los encogimientos de `metaScore` y `masteryScore` salen de una
+ * dispersión MEDIDA; este no. Haría falta saber cuánto varía el winrate global
+ * entre jugadores del mismo rango, y ese dato no lo tenemos. Es una elección
+ * conservadora, no una medición: si algún día se puede medir, se cambia por
+ * `k = 0.25/σ²` como los otros.
  */
-const PARTIDAS_PARA_TU_NIVEL = 100;
+const PRIOR_DE_TU_NIVEL = 100;
 
 export function tuNivel(mastery = {}) {
   let partidas = 0;
@@ -440,7 +452,8 @@ export function tuNivel(mastery = {}) {
     partidas += m.games;
     ganadas += m.winRate * m.games;
   }
-  return partidas >= PARTIDAS_PARA_TU_NIVEL ? ganadas / partidas : 0.5;
+  if (!partidas) return 0.5;
+  return (0.5 * PRIOR_DE_TU_NIVEL + ganadas) / (PRIOR_DE_TU_NIVEL + partidas);
 }
 
 /**
