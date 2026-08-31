@@ -41,6 +41,16 @@ export function runSelfTest({ catalog, meta, metaCtx, allHeroes, roamPool, maste
   check(env.storage, 'Almacenamiento local disponible',
     'Sin almacenamiento local: no se guardan maestría ni draft');
   lineas.push(`Service worker: ${env.sw ?? 'desconocido'}`);
+  // La app que estás usando puede no ser la última: el service worker la guarda
+  // entera y los datos se refrescan por su cuenta, así que se ven datos de hoy
+  // con la app de ayer. Sin esto no había forma de enterarse desde el móvil, y
+  // el diagnóstico decía "todo correcto" enseñando una versión vieja.
+  if (env.versionPublicada) {
+    check(env.versionPublicada === env.version,
+      `Es la última publicada (${env.versionPublicada})`,
+      `Estás usando la ${env.version} y la publicada es la ${env.versionPublicada}: cierra la app y vuelve a abrirla`,
+      true);
+  }
 
   // ---------- datos ----------
   seccion('DATOS');
@@ -399,7 +409,7 @@ export function runSelfTest({ catalog, meta, metaCtx, allHeroes, roamPool, maste
 }
 
 /** Datos del entorno que solo existen en el navegador. */
-export function leerEntorno({ version, buildTime, rango }) {
+export function leerEntorno({ version, buildTime, rango, publicada = null }) {
   let storage = false;
   try {
     localStorage.setItem('__t', '1');
@@ -409,6 +419,7 @@ export function leerEntorno({ version, buildTime, rango }) {
 
   return {
     version,
+    versionPublicada: publicada?.version ?? null,
     buildTime: buildTime ? new Date(buildTime).toLocaleString('es-ES') : null,
     rango,
     width: window.innerWidth,

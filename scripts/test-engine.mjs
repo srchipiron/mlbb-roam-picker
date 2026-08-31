@@ -1777,6 +1777,52 @@ test('los retratos que la app va a pedir existen de verdad', async () => {
   ok(medio < 60 * 1024, `los retratos pesan ${Math.round(medio / 1024)} KB de media: se ha colado la imagen grande`);
 });
 
+test('el diagnostico avisa si el movil esta usando una version vieja', async () => {
+  const { runSelfTest, leerEntorno } = await import('../src/engine/selftest.js');
+
+  // Paso de verdad: el service worker guarda la app entera, asi que Javi vio un
+  // diagnostico con los DATOS de hoy y la APP de dos versiones antes, diciendo
+  // "todo correcto". Desde el movil no habia forma de enterarse.
+  const base = {
+    catalog: { heroes: cat.heroes }, meta: { heroes: [] },
+    metaCtx: { stats: {}, counters: {}, synergies: {} },
+    allHeroes: all, roamPool: pool, mastery: {}, partidas: [], linea: 'roam',
+  };
+  const env = (version, publicada) => ({
+    version, versionPublicada: publicada, buildTime: null, rango: 'glory',
+    width: 412, height: 915, standalone: false, storage: true, sw: 'activo',
+    sinDatosPersonales: true,
+  });
+
+  // Se mira LA LINEA de la version, no el total de avisos: el fixture minimo ya
+  // genera otros por su cuenta y contarlos todos mediria otra cosa.
+  const avisoVersion = (r) => r.texto.split('\n').filter((l) => /^\[AVISO\].*versión|^\[AVISO\].*publicada/i.test(l));
+
+  const vieja = runSelfTest({ ...base, env: env('1.11.0', '1.12.0') });
+  ok(/1\.11\.0.*1\.12\.0/.test(vieja.texto), 'no dice que version tiene y cual hay publicada');
+  eq(avisoVersion(vieja).length, 1, 'usar una version vieja no saca aviso');
+  ok(vieja.avisos > runSelfTest({ ...base, env: env('1.12.0', '1.12.0') }).avisos,
+    'la version vieja no suma un aviso respecto a estar al dia');
+
+  const aldia = runSelfTest({ ...base, env: env('1.12.0', '1.12.0') });
+  eq(avisoVersion(aldia).length, 0, 'avisa aunque la version sea la ultima');
+  ok(/última publicada/.test(aldia.texto), 'no confirma que esta al dia');
+
+  // Sin red no se puede preguntar: eso NO es un aviso, es no saberlo. Un
+  // diagnostico que chilla cuando no hay cobertura deja de leerse.
+  const sinRed = runSelfTest({ ...base, env: env('1.12.0', null) });
+  eq(avisoVersion(sinRed).length, 0, 'avisa cuando simplemente no ha podido preguntar');
+  ok(!/publicada/.test(sinRed.texto), 'habla de la version publicada sin haberla podido leer');
+
+  // Y que exista de verdad el fichero que se consulta: sin el, la comprobacion
+  // enmudece para siempre sin que nada falle.
+  const vite = readFileSync(resolve(ROOT, 'vite.config.js'), 'utf8');
+  ok(/version\.json/.test(vite), 'nadie genera version.json: la comprobacion no puede funcionar');
+  const app = readFileSync(resolve(ROOT, 'src/App.jsx'), 'utf8');
+  ok(/version\.json/.test(app) && /no-store/.test(app),
+    'la app no pide version.json sin cache: leeria la version vieja de la propia cache');
+});
+
 test('las imagenes no entran en la precarga del instalador', async () => {
   // Son ~4,6 MB entre iconos y caras. En la precarga, instalar la app pasaria
   // de 1 MB a 5,6 MB de golpe, y de todas ellas un draft usa once. Van fuera y

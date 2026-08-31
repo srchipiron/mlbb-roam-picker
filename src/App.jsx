@@ -198,12 +198,24 @@ export default function App() {
     [catalog, allHeroes, allies, enemies, bans, metaCtx],
   );
 
-  const lanzarTest = () => {
+  const lanzarTest = async () => {
     try {
+      // Qué versión hay PUBLICADA, sin pasar por la caché. El service worker
+      // guarda la app entera, así que se puede estar usando la de ayer con los
+      // datos de hoy y el diagnóstico decía "todo correcto" sin poder saberlo.
+      // Si no se puede preguntar (sin cobertura), se sigue igual: es un extra.
+      let publicada = null;
+      try {
+        const res = await fetch(`./version.json?t=${Date.now()}`, { cache: 'no-store' });
+        if (res.ok) publicada = await res.json();
+      } catch { /* sin red: el resto del diagnóstico sigue valiendo */ }
+
       setTest(runSelfTest({
         catalog, meta, metaCtx, allHeroes, roamPool, mastery: maestriaUsada, partidas,
         linea,
-        env: leerEntorno({ version: __APP_VERSION__, buildTime: __BUILD_TIME__, rango: activeRank }),
+        env: leerEntorno({
+          version: __APP_VERSION__, buildTime: __BUILD_TIME__, rango: activeRank, publicada,
+        }),
       }));
     } catch (err) {
       // Que el diagnóstico falle no debe dejar la app en blanco: el propio error

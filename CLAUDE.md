@@ -373,6 +373,20 @@ automáticas contra lo publicado.
 `mantenimiento.yml` (lunes) regenera las tablas de deducción y propone el cambio
 en un pull request, y avisa de héroes nuevos SIN inventarles tags.
 
+## Saber qué versión estás usando
+
+Desde 1.13.0. El service worker guarda la app ENTERA y los datos se refrescan
+por su cuenta (`StaleWhileRevalidate`), así que se puede acabar con los datos de
+hoy y la app de hace dos versiones. Pasó, y el diagnóstico decía «todo correcto»
+porque todo lo que comprobaba estaba bien: solo que comprobaba una app que ya no
+era la publicada.
+
+`vite.config.js` emite un `version.json` diminuto en cada compilación, la app lo
+pide con `cache: 'no-store'` antes del diagnóstico y `selftest.js` compara. Si no
+hay red no avisa: no poder preguntarlo no es un problema. NO lo metas en la
+precarga ni bajo `/data/`, o se serviría de caché y diría siempre que estás al
+día, que es peor que no comprobarlo.
+
 ## Llevarse los datos a otro dispositivo
 
 `src/engine/perfil.js`. El almacenamiento del navegador va por dispositivo, así
