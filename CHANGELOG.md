@@ -8,6 +8,24 @@ que esto no se olvida.
 Criterio: `0.X.0` cuando cambia cómo decide la app o qué hace; `0.0.X` para
 correcciones.
 
+## 1.13.0
+
+**El diagnóstico ahora te dice si estás usando una versión vieja.**
+
+Pasó de verdad: el diagnóstico decía «todo correcto» con los datos de hoy y la
+app de dos versiones antes. Y era cierto —todo lo que comprobaba estaba bien—,
+solo que estaba comprobando una app que ya no era la publicada. Desde el móvil
+no había forma de enterarse.
+
+Es porque la app se guarda entera en el móvil para funcionar sin cobertura, y
+los datos se refrescan por su cuenta: puedes acabar con los datos de hoy y la
+app de ayer. Ahora el diagnóstico pregunta qué versión hay publicada y, si no
+coincide con la que estás usando, lo dice como aviso y te pide que cierres y
+vuelvas a abrir.
+
+Si estás sin cobertura no puede preguntarlo, y entonces **no** avisa: no saberlo
+no es un problema, y un diagnóstico que chilla sin motivo deja de leerse.
+
 ## 1.12.0
 
 **Los objetos ahora se ven, y la build reacciona al draft entero.**

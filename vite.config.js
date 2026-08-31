@@ -17,6 +17,23 @@ export default defineConfig({
   base: process.env.BASE_PATH ?? './',
   plugins: [
     react(),
+    // Un fichero diminuto con la version compilada, SIN cachear.
+    //
+    // Existe porque Javi no puede mirar nada desde el movil: el service worker
+    // guarda la app entera, asi que puede estar usando la de ayer mientras los
+    // datos si se han refrescado -pasa, y el diagnostico decia "todo correcto"
+    // enseñando una version vieja sin poder saberlo-. Con esto el diagnostico
+    // compara lo que esta ejecutando contra lo que hay publicado y lo dice.
+    {
+      name: 'version-publicada',
+      generateBundle() {
+        this.emitFile({
+          type: 'asset',
+          fileName: 'version.json',
+          source: JSON.stringify({ version: pkg.version, buildTime: new Date().toISOString() }),
+        });
+      },
+    },
     VitePWA({
       registerType: 'autoUpdate',
       includeAssets: ['icon-192.png', 'icon-512.png'],
