@@ -8,6 +8,43 @@ que esto no se olvida.
 Criterio: `0.X.0` cuando cambia cómo decide la app o qué hace; `0.0.X` para
 correcciones.
 
+## 1.14.0
+
+**Repaso a la pantalla. Y por el camino apareció por qué se había ido al garete:
+todo el diseño de móvil llevaba tiempo sin aplicarse.**
+
+Las reglas de móvil estaban escritas al principio de la hoja de estilos, y una
+regla normal escrita después las pisa entera. Resultado: en el móvil estabas
+viendo el diseño de escritorio —nombres a 24px, huecos de 84px— y nada fallaba.
+Medido antes de moverlas: el hueco del draft pedía 0 de ancho mínimo y salía 84.
+Ya están al final, donde tienen efecto, y hay una comprobación que impide que
+vuelvan a colocarse mal.
+
+Lo que se nota, medido en una pantalla de 844px de alto:
+
+- **La primera recomendación pasa de empezar en el píxel 602 a empezar en el
+  391**, y se ven **cuatro** en vez de dos. La tira del draft baja de 390px a
+  289: los cinco huecos de enemigos caben ahora en una fila, porque desde que
+  llevan la cara ya no necesitan sitio para el nombre.
+- **Los ajustes se han ido dentro de «Baneos y ajustes»** (tu maestría, tus
+  partidas, tu perfil). Fuera se quedan los dos que usas con una partida
+  delante: nuevo draft y apuntar partida. Antes eran cinco botones en dos filas
+  comiéndose la pantalla.
+- **El botón «Tu perfil» ya no se sale de la pantalla.** La fila de botones no
+  se envolvía y, en un móvil, ese botón quedaba fuera sin forma de llegar a él.
+- **El empate se decía dos veces** seguidas, con otras palabras. Ahora una.
+- **La barra de colores de cada tarjeta ya no ocupa toda la fila.** En pantalla
+  ancha era lo más grande de la tarjeta y lo único que no se podía leer; ahora
+  va acotada y al tocarla te dice de dónde sale la nota.
+- **Los motivos de equipo se distinguen de los del héroe.** «No hay primera
+  línea» le vale igual a media lista y salía repetido en cuatro tarjetas
+  compitiendo con «bloquea los dashes de Kagura», que es el que decide.
+- **En pantalla ancha, las recomendaciones van en dos columnas**: se ven las ocho
+  de un vistazo en vez de cuatro.
+- **Los paneles ya no se transparentan.** Se veía el draft por detrás del texto.
+- «37/37 con datos · 37 con counters» estaba escrito a mano en español y salía
+  así con la app en inglés.
+
 ## 1.13.0
 
 **El diagnóstico ahora te dice si estás usando una versión vieja.**

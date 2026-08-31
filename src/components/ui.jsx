@@ -166,7 +166,15 @@ export function Pick({ result, index, stat, onBuild, t = tPorDefecto }) {
             </span>
           )}
         </h3>
-        <div className="why-bar" aria-hidden>
+        {/* De dónde sale la nota. El `title` la hace legible sin leyenda: en
+            pantalla ancha ocupaba mil píxeles siendo lo único que no se podía
+            leer. */}
+        <div
+          className="why-bar"
+          title={Object.entries(result.contributions)
+            .map(([k, v]) => `${t(`parte.${k}`)} ${Math.round((v / total) * 100)}%`)
+            .join(' · ')}
+        >
           {Object.entries(result.contributions).map(([key, v]) => (
             <span key={key} style={{ width: `${(v / total) * 100}%`, background: PART_COLORS[key] }} />
           ))}
@@ -174,7 +182,13 @@ export function Pick({ result, index, stat, onBuild, t = tPorDefecto }) {
         <ul className="reasons">
           {result.reasons.length ? (
             result.reasons.map((r) => (
-              <li key={`${r.clave}|${r.params?.e ?? r.params?.a ?? ''}`} className={r.good ? '' : 'bad'}>
+              <li
+                key={`${r.clave}|${r.params?.e ?? r.params?.a ?? ''}`}
+                /* Un motivo de EQUIPO ("no hay primera línea") le vale igual a
+                   media lista: se apaga para que no compita con los que sí
+                   hablan de ESTE héroe contra ESTE draft. */
+                className={`${r.good ? '' : 'bad'} ${r.clave.startsWith('necesidad.') ? 'de-equipo' : ''}`.trim()}
+              >
                 {t(r.clave, r.params)}
               </li>
             ))
@@ -758,7 +772,7 @@ export function Build({ hero, linea, builds, equipment, enemies, onClose, t = tP
   const pct = (n) => (n * 100).toFixed(1);
 
   return (
-    <div className="sheet sheet-opaca" role="dialog" aria-label={t('build.titulo')}>
+    <div className="sheet" role="dialog" aria-label={t('build.titulo')}>
       <div className="sheet-head">
         <strong style={{ flex: 1, alignSelf: 'center' }}>
           {hero?.name} · {t('build.deLinea', { linea: t(`linea.${linea}`) })}

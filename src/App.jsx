@@ -313,6 +313,16 @@ export default function App() {
 
           <BanSuggestions t={t} items={banIdeas} onBan={(h) => setBanNames((p) => [...p, h.name])} />
 
+          {/* Lo que se toca UNA VEZ vive aquí dentro. Fuera se quedan los dos
+              botones que se usan con una partida delante. Antes estaban los
+              cinco fuera, en dos filas, y en un móvil de 844px de alto empujaban
+              la primera recomendación hasta y=602: se veían dos. */}
+          <div className="tools">
+            <button className="reset" onClick={() => setEditingMastery(true)}>{t('app.maestria')}</button>
+            <button className="reset" onClick={() => setVerHistorial(true)}>{t('hist.boton')}</button>
+            <button className="reset" onClick={() => setVerPerfil(true)}>{t('perfil.boton')}</button>
+          </div>
+
           <button className="reset" style={{ marginTop: '14px' }} onClick={lanzarTest}>
             {t('app.diagnostico')}
           </button>
@@ -320,12 +330,9 @@ export default function App() {
 
         <div className="tools">
           <button className="reset" onClick={reset}>{t('app.nuevoDraft')}</button>
-          <button className="reset" onClick={() => setEditingMastery(true)}>{t('app.maestria')}</button>
           <button className="reset" disabled={!ranked.length} onClick={() => setApuntando(true)}>
             {t('app.apuntar')}
           </button>
-          <button className="reset" onClick={() => setVerHistorial(true)}>{t('hist.boton')}</button>
-          <button className="reset" onClick={() => setVerPerfil(true)}>{t('perfil.boton')}</button>
         </div>
       </aside>
 
@@ -333,9 +340,12 @@ export default function App() {
         <div className="results-head">
           <h2>{t('app.pick', { linea: t(`linea.${linea}`) })}</h2>
           <span className={`freshness ${cov.withData && cov.withData < cov.total ? 'stale' : ''}`}>
+            {/* Estaba escrito a mano en español: salía tal cual dentro de la
+                interfaz en inglés. Y decía "roamers" aunque la app sirve para
+                las cinco líneas desde 1.0.0. */}
             {cov.withData
-              ? `${cov.withData}/${cov.total} con datos · ${cov.conCounters} con counters`
-              : `${roamPool.length} roamers`}
+              ? t('app.cobertura', { con: cov.withData, total: cov.total, counters: cov.conCounters })
+              : t('app.enPool', { n: roamPool.length })}
           </span>
         </div>
 
@@ -367,13 +377,11 @@ export default function App() {
           </div>
         )}
 
+        {/* El empate lo dice el analisis (`analisis.empatadoCon`), asi que aqui
+            ya no se repite: salian las dos frases seguidas diciendo lo mismo
+            con otras palabras, y el bloque empujaba la recomendacion fuera de
+            la primera pantalla. */}
         <Analisis frases={analisis} t={t} />
-
-        {empate.length > 1 && (
-          <p className="tie">
-            {t('app.empate', { nombres: empate.map((e) => e.hero.name).join(', ') })}
-          </p>
-        )}
 
         {ranked.slice(0, 8).map((r, i) => (
           <Pick
