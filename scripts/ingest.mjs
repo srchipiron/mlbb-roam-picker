@@ -13,7 +13,7 @@
  *   node scripts/ingest.mjs --base https://otra.api/api
  */
 
-import { writeFile, readFile, mkdir } from 'node:fs/promises';
+import { writeFile, readFile, mkdir, readdir } from 'node:fs/promises';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import {
@@ -40,6 +40,12 @@ const args = Object.fromEntries(
 // degradado era el que se publicaba.
 const OUT = resolve(ROOT, args.out ?? 'public/data/roam-meta.json');
 const HEROES = resolve(ROOT, 'public/data/heroes.json');
+
+// Donde se guardan los iconos de los objetos. Mismo motivo que --out: la prueba
+// que ejecuta la ingesta de verdad le pasa un temporal, para no ensuciar el
+// repositorio ni dejarlo a medias si la corrida sale mal.
+const ICONOS = resolve(ROOT, args.iconos ?? 'public/objetos');
+const RETRATOS = resolve(ROOT, args.retratos ?? 'public/heroes');
 
 // Gloria Mitica por defecto: es el rango del usuario y donde el draft se juega
 // en serio, asi que sus counters son los mas informativos.
@@ -461,6 +467,34 @@ function extraerDano(node, out = { fisico: 0, magico: 0, verdadero: 0 }, depth =
 }
 
 /**
+ * El retrato de un heroe, de la ficha que ya se descarga.
+ *
+ * Se busca por FORMA, no por una ruta fija -la API ya ha movido sus campos de
+ * sitio mas de una vez-: la imagen mas pequena que parezca un retrato. Y se
+ * descarta `smallmap`, que es el dibujo de cuerpo entero: 240x390 y 165 KB por
+ * heroe, veintidos megas para los 133.
+ *
+ * Cero peticiones extra: `fetchFichas` ya pide los 133 para el tipo de dano.
+ */
+function extraerRetrato(node) {
+  const urls = [];
+  const rec = (n, clave = '', depth = 0) => {
+    if (depth > HONDURA || n == null) return;
+    if (typeof n === 'string') {
+      if (/^https?:\/\/\S+\.(png|jpe?g|webp)(\?|$)/i.test(n)) urls.push({ clave, url: n });
+      return;
+    }
+    if (typeof n !== 'object') return;
+    for (const [k, v] of Object.entries(n)) rec(v, Array.isArray(n) ? clave : k, depth + 1);
+  };
+  rec(node);
+  // `head` es el retrato cuadrado. Se prefiere el pequeno, que es el que cabe
+  // en una lista: el grande pesa el doble y se ve igual a 34 pixeles.
+  const cabezas = urls.filter((u) => /^head$/i.test(u.clave));
+  return (cabezas[0] ?? urls.find((u) => /head/i.test(u.clave) && !/big/i.test(u.clave)))?.url ?? null;
+}
+
+/**
  * La ficha de cada heroe: speciality y tipo de dano, de UNA sola peticion.
  *
  * Antes se pedia solo para los 7 heroes sin tags a mano. Ahora se pide para
@@ -483,6 +517,8 @@ async function fetchFichas(heroes) {
       const ficha = {};
       if (esp.length) ficha.speciality = esp;
       if (dano.fisico || dano.magico || dano.verdadero) ficha.damage = dano;
+      const retrato = extraerRetrato(data);
+      if (retrato) ficha.retrato = retrato;
       if (Object.keys(ficha).length) out[h.name] = ficha;
     } catch (err) {
       if (diagnostics.speciality.errores.length < 4) {
@@ -510,6 +546,102 @@ function extraerDefensa(tips) {
   const magica = suma(/\+\s*(\d+(?:\.\d+)?)\s*(?:Extra\s+)?Magic(?:al)?\s+Defen[cs]e/gi);
   const fisica = suma(/\+\s*(\d+(?:\.\d+)?)\s*(?:Extra\s+)?Physical\s+Defen[cs]e/gi);
   return { magica, fisica };
+}
+
+/**
+ * Que hace un objeto, leido del texto que el propio juego escribe en sus
+ * habilidades. NO es una lista escrita a mano de "objetos anti-curacion": es
+ * lo que pone el objeto.
+ *
+ * Mismo criterio que `extraerDano` con los heroes y que `extraerDefensa` con
+ * las estadisticas. Y sirve para lo mismo: que la app pueda decir "el equipo
+ * enemigo cura, esta build no corta curacion" sin que nadie mantenga a mano
+ * una tabla que envejece con cada parche. Ya paso: "Necklace of Durance" era
+ * EL objeto anti-curacion y hoy no existe en la API.
+ *
+ * Solo se apuntan efectos que el texto dice explicitamente:
+ *
+ * - `antiCuracion`: "reduce the Shield and HP Regen effects" (Sea Halberd,
+ *   Dominance Ice, Glowing Wand...).
+ * - `cortaControl`: "CC and Slow Duration reduced" o inmunidad (Tough Boots,
+ *   Winter Crown, Wind of Nature...).
+ *
+ * NO se apunta "castiga al que pega con ataque basico" (Blade Armor, Antique
+ * Cuirass) aunque el texto tambien lo diga: para usarlo haria falta saber
+ * quien pega con ataque basico, y eso NO lo sabemos. Nuestro `damage` se
+ * cuenta de las HABILIDADES, asi que a un tirador le falta justo su ataque
+ * basico -Melissa sale "mixto" siendo fisica-, y el rol se equivoca con
+ * Gusion, Hylos, Natan y Kimmy. Un dato que no se puede usar es dato muerto.
+ */
+const EFECTOS = {
+  antiCuracion: /reduc\w*[^.]{0,60}(HP Regen|Regen|healing|Heal)\b/i,
+  cortaControl: /(CC and Slow Duration reduced|immune to all damage and effects|reduc\w*[^.]{0,30}\b(CC|Crowd Control)\b)/i,
+};
+
+function extraerEfectos(d) {
+  const texto = Object.keys(d)
+    .filter((k) => /^equipskill/.test(k))
+    .map((k) => d[k])
+    .join(' ')
+    .replace(/<br\s*\/?>/gi, ' ')
+    .replace(/<[^>]*>/g, ' ');
+  return Object.entries(EFECTOS).filter(([, re]) => re.test(texto)).map(([k]) => k);
+}
+
+/**
+ * Los iconos de los objetos, guardados en NUESTRO sitio.
+ *
+ * No se enlazan desde el CDN de Moonton por dos motivos: la app promete que
+ * tus datos no salen de tu movil -y cada imagen enlazada le cuenta tu IP a un
+ * tercero-, y en mitad de un draft una imagen que tarda es una imagen que no
+ * esta. Sirviendolos nosotros funcionan tambien sin cobertura.
+ *
+ * Solo se baja lo que falta: son 100x100 y no cambian salvo que Moonton
+ * rediseñe el objeto, asi que la segunda corrida no descarga nada.
+ */
+async function bajarImagenes(urlPorClave, dir, ext, clave) {
+  let bajados = 0;
+  let fallos = 0;
+  let existentes = new Set();
+  try {
+    existentes = new Set((await readdir(dir)).filter((f) => f.endsWith(ext)));
+  } catch {
+    await mkdir(dir, { recursive: true });
+  }
+
+  for (const [id, url] of Object.entries(urlPorClave)) {
+    if (!url || existentes.has(`${id}${ext}`)) continue;
+    try {
+      const res = await fetch(url, { headers: { 'User-Agent': UA } });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const buf = Buffer.from(await res.arrayBuffer());
+      if (!esImagen(buf)) throw new Error('no es una imagen');
+      await writeFile(resolve(dir, `${id}${ext}`), buf);
+      bajados += 1;
+    } catch (err) {
+      fallos += 1;
+      if (fallos <= 3) console.warn(`  · imagen ${id}: ${err.message}`);
+    }
+    await sleep(80);
+  }
+  (diagnostics.imagenes ??= {})[clave] = { bajados, fallos, yaEstaban: existentes.size };
+  return { bajados, fallos };
+}
+
+/**
+ * Que lo bajado sea de verdad una imagen. Guardar una pagina de error con
+ * extension .png dejaria un hueco roto en pantalla sin que nada fallara: es
+ * justo la clase de fallo invisible que mas caro sale aqui.
+ *
+ * Se miran las cabeceras, no la extension del enlace: la API sirve JPEG con
+ * nombre .png, asi que fiarse del nombre habria colado basura.
+ */
+function esImagen(buf) {
+  if (buf.length < 200) return false;
+  const png = buf[0] === 0x89 && buf.toString('latin1', 1, 4) === 'PNG';
+  const jpeg = buf[0] === 0xff && buf[1] === 0xd8;
+  const webp = buf.toString('latin1', 0, 4) === 'RIFF' && buf.toString('latin1', 8, 12) === 'WEBP';
+  return png || jpeg || webp;
 }
 
 /**
@@ -545,8 +677,11 @@ async function fetchEquipo() {
       const obj = out[id] ?? {};
       obj.nombre ??= String(nombre).trim();
       obj.tipo ??= d.equiptypename ?? null;
+      if (d.equipicon && !obj.icono) obj.icono = String(d.equipicon);
       if (magica && !obj.magica) obj.magica = magica;
       if (fisica && !obj.fisica) obj.fisica = fisica;
+      const efectos = extraerEfectos(d);
+      if (efectos.length && !obj.efectos) obj.efectos = efectos;
       out[id] = obj;
     }
     await sleep(200);
@@ -893,7 +1028,13 @@ async function main() {
   const danoPrevio = Object.fromEntries(
     (previous?.heroes ?? []).filter((h) => h?.damage).map((h) => [h.name, h.damage]),
   );
-  for (const h of heroList) if (danoPrevio[h.name]) h.damage = danoPrevio[h.name];
+  const retratoPrevio = Object.fromEntries(
+    (previous?.heroes ?? []).filter((h) => h?.retrato).map((h) => [h.name, h.retrato]),
+  );
+  for (const h of heroList) {
+    if (danoPrevio[h.name]) h.damage = danoPrevio[h.name];
+    if (retratoPrevio[h.name]) h.retrato = retratoPrevio[h.name];
+  }
 
   diagnostics.speciality = { pedidos: heroList.length, ok: 0, errores: [] };
   diagnostics.dano = { ok: 0, conservados: 0, sin: 0 };
@@ -903,6 +1044,7 @@ async function main() {
       const f = fichas[h.name];
       if (f?.speciality && !enCatalogo.has(h.name)) h.speciality = f.speciality;
       if (f?.damage) h.damage = f.damage;
+      if (f?.retrato) h.retrato = f.retrato;
     }
     diagnostics.speciality.ok = Object.values(fichas).filter((f) => f.speciality).length;
     diagnostics.dano.ok = Object.values(fichas).filter((f) => f.damage).length;
@@ -971,6 +1113,35 @@ async function main() {
     console.log(`  · builds: ${Object.keys(builds).length} heroes`);
   } catch (err) {
     console.warn(`  · builds: fallo (${err.message}); conservo las anteriores`);
+  }
+
+  // Los iconos, solo de los objetos que la app puede llegar a ensenar: los que
+  // salen en alguna build y los que puede proponer por su defensa o su efecto.
+  // Son ~70 de 184, y la segunda corrida no baja ninguno.
+  try {
+    const aEnsenar = new Set();
+    for (const porLinea of Object.values(builds)) {
+      for (const lista of Object.values(porLinea)) for (const b of lista) for (const id of b.objetos ?? []) aEnsenar.add(String(id));
+    }
+    for (const [id, o] of Object.entries(equipo)) if (o.magica || o.fisica || o.efectos?.length) aEnsenar.add(id);
+    const subconjunto = Object.fromEntries(Object.entries(equipo).filter(([id]) => aEnsenar.has(id)));
+    const urls = Object.fromEntries(Object.entries(subconjunto).map(([id, o]) => [id, o.icono]));
+    const { bajados, fallos } = await bajarImagenes(urls, ICONOS, '.png', 'objetos');
+    console.log(`  · iconos: ${bajados} nuevos, ${fallos} fallos (de ${Object.keys(subconjunto).length} que se ensenan)`);
+  } catch (err) {
+    console.warn(`  · iconos: fallo (${err.message}); se ensenaran solo los nombres`);
+  }
+
+  // Los retratos, uno por heroe, por su id: es lo que la app pide y no cambia
+  // aunque a Moonton le de por reescribir el nombre.
+  try {
+    const urls = Object.fromEntries(
+      heroList.filter((h) => h.retrato && h.id != null).map((h) => [h.id, h.retrato]),
+    );
+    const { bajados, fallos } = await bajarImagenes(urls, RETRATOS, '.jpg', 'heroes');
+    console.log(`  · retratos: ${bajados} nuevos, ${fallos} fallos (de ${Object.keys(urls).length} heroes)`);
+  } catch (err) {
+    console.warn(`  · retratos: fallo (${err.message}); la lista saldra sin caras`);
   }
 
   let relations = { counters: previous?.counters ?? {}, synergies: previous?.synergies ?? {} };

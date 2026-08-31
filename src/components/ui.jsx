@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { filtrarPorNombre } from '../engine/alias.js';
 import { recogerPerfil, exportarPerfil, leerPerfil, fundirPerfil } from '../engine/perfil.js';
 import { esPrevia, siguioConsejo } from '../engine/registro.js';
-import { buildsDe, objetosDe, ajusteDefensivo } from '../engine/builds.js';
+import { buildsDe, objetosDe, ajustesDeBuild } from '../engine/builds.js';
 import { crearT } from '../i18n.js';
 
 // Traductor por defecto para los componentes que no reciben uno. La app le pasa
@@ -16,6 +16,40 @@ const PART_COLORS = {
   comp: 'var(--c-comp)',
   mastery: 'var(--c-mastery)',
 };
+
+/**
+ * Una imagen servida desde NUESTRO sitio, con hueco reservado.
+ *
+ * No se enlaza al CDN de Moonton por dos motivos: la app promete que tus datos
+ * no salen de tu móvil y una imagen enlazada le cuenta tu IP a un tercero, y en
+ * mitad de un draft una imagen que tarda es una imagen que no está. Sirviéndolas
+ * nosotros funcionan también sin cobertura.
+ *
+ * Si el fichero no está —héroe recién salido, descarga a medias— el hueco se
+ * quita solo y queda el texto. Una imagen rota es peor que ninguna.
+ */
+/* El prop se llama `className` a proposito: `check-css.mjs` busca literalmente
+   className= para saber qué clases usa la interfaz. Con cualquier otro nombre,
+   una clase sin estilo pasaría el control sin que nadie se enterara, que es
+   justo el agujero del que salió esa comprobación. */
+function Imagen({ src, alt, className, tam }) {
+  const [roto, setRoto] = useState(false);
+  if (!src || roto) return null;
+  return (
+    <img
+      className={className}
+      src={src}
+      alt=""
+      aria-hidden
+      title={alt}
+      width={tam}
+      height={tam}
+      loading="lazy"
+      decoding="async"
+      onError={() => setRoto(true)}
+    />
+  );
+}
 
 /** Fila de huecos de un bando. Tocar un hueco abre el selector. */
 export function Side({ title, kind, picks, max, onAdd, onRemove, markedName, onMark, markHint, autoName, t = tPorDefecto }) {
@@ -44,6 +78,9 @@ export function Side({ title, kind, picks, max, onAdd, onRemove, markedName, onM
                   {markedName === hero.name ? '◉' : (!markedName && autoName === hero.name ? '◎' : '○')}
                 </button>
               ) : null}
+              {/* La cara, porque el nombre no cabe: con cuatro picks en una
+                  fila de movil sale "K..." y no se sabe quien es. */}
+              <Imagen src={`./heroes/${hero.id}.jpg`} alt={hero.name} className="slot-cara" tam={22} />
               <span className="slot-name">{hero.name}</span>
               <button className="x" onClick={() => onRemove(hero)} aria-label={t('app.quitar', { nombre: hero.name })}>×</button>
             </div>
@@ -117,6 +154,9 @@ export function Pick({ result, index, stat, onBuild, t = tPorDefecto }) {
       <div className="rank">{index + 1}</div>
       <div>
         <h3 className="pick-name">
+          {/* La cara delante del nombre: los nombres van en inglés y de un
+              vistazo se reconoce antes el dibujo que la palabra. */}
+          <Imagen src={`./heroes/${result.hero.id}.jpg`} alt={result.hero.name} className="hero-cara" tam={34} />
           {result.hero.name}
           {/* Un héroe que no está en el catálogo escrito a mano juega con los tags
               genéricos de su rol. Se recomienda igual, pero conviene saberlo. */}
@@ -690,6 +730,11 @@ export function Analisis({ frases, t = tPorDefecto }) {
   );
 }
 
+/** El icono de un objeto. Ver `Imagen`. */
+function Icono({ id, nombre }) {
+  return <Imagen src={`./objetos/${id}.png`} alt={nombre} className="obj-icono" tam={28} />;
+}
+
 /**
  * Los objetos de un héroe en una línea.
  *
@@ -706,8 +751,8 @@ export function Analisis({ frases, t = tPorDefecto }) {
 export function Build({ hero, linea, builds, equipment, enemies, onClose, t = tPorDefecto }) {
   const lista = useMemo(() => buildsDe(builds, hero, linea), [builds, hero, linea]);
   const principal = lista[0] ?? null;
-  const ajuste = useMemo(
-    () => (principal ? ajusteDefensivo(principal, equipment, enemies) : null),
+  const ajustes = useMemo(
+    () => (principal ? ajustesDeBuild(principal, equipment, enemies) : []),
     [principal, equipment, enemies],
   );
   const pct = (n) => (n * 100).toFixed(1);
@@ -731,6 +776,7 @@ export function Build({ hero, linea, builds, equipment, enemies, onClose, t = tP
               <ol className="build-objetos">
                 {objetosDe(equipment, principal).map((o) => (
                   <li key={o.id}>
+                    <Icono id={o.id} nombre={o.nombre} />
                     <span className="obj-nombre">{o.nombre}</span>
                     {(o.magica || o.fisica) && (
                       <span className="obj-def">
@@ -752,15 +798,24 @@ export function Build({ hero, linea, builds, equipment, enemies, onClose, t = tP
               </p>
             </section>
 
-            {ajuste && (
+            {ajustes.length > 0 && (
               <section className="build-ajuste">
-                <p className="frase bad">
-                  {t(ajuste.lado === 'magica' ? 'build.ajusteMagica' : 'build.ajusteFisica', {
-                    n: ajuste.conDato,
-                    pct: Math.round((ajuste.lado === 'magica' ? ajuste.cuotaMagica : 1 - ajuste.cuotaMagica) * 100),
-                    objetos: ajuste.alternativas.map((o) => o.nombre).join(', '),
-                  })}
-                </p>
+                <p className="build-nucleo">{t('build.ajusteTitulo')}</p>
+                {ajustes.map((a) => (
+                  <div key={a.clave}>
+                    <p className="frase bad">
+                      {t(a.clave, { ...a.params, objetos: a.objetos.map((o) => o.nombre).join(', ') })}
+                    </p>
+                    <ul className="build-propuestos">
+                      {a.objetos.map((o) => (
+                        <li key={o.id}>
+                          <Icono id={o.id} nombre={o.nombre} />
+                          <span>{o.nombre}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                ))}
                 <p className="build-nota">{t('build.ajusteAviso')}</p>
               </section>
             )}
@@ -773,7 +828,11 @@ export function Build({ hero, linea, builds, equipment, enemies, onClose, t = tP
                     sin ensenarlo se ven como la misma repetida dos veces. */}
                 {lista.slice(1).map((b, i) => (
                   <p key={i} className="build-otra">
-                    <span>{objetosDe(equipment, b).map((o) => o.nombre).join(' + ')}</span>
+                    <span className="build-otra-objetos">
+                      {objetosDe(equipment, b).map((o) => (
+                        <span key={o.id}><Icono id={o.id} nombre={o.nombre} />{o.nombre}</span>
+                      ))}
+                    </span>
                     <span className="build-cifras">
                       {b.emblema && <span>{t('build.emblema', { nombre: b.emblema })}</span>}
                       {b.hechizo && <span>{t('build.hechizo', { nombre: b.hechizo })}</span>}

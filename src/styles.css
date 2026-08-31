@@ -70,6 +70,9 @@ button:focus-visible, [tabindex]:focus-visible { outline: 2px solid var(--gold);
   .pick { grid-template-columns: 28px 1fr auto; gap: 8px; padding: 9px 10px; }
   .pick-name { font-size: 16px; }
   .pick.top .pick-name { font-size: 20px; }
+  .slot-cara { width: 22px; height: 22px; flex-basis: 22px; }
+  .hero-cara { width: 30px; height: 30px; flex-basis: 30px; }
+  .pick.top .hero-cara { width: 36px; height: 36px; flex-basis: 36px; }
   .rank { font-size: 15px; }
   .pick.top .rank { font-size: 19px; }
   .mastery-row { grid-template-columns: 1fr 74px 74px; }
@@ -160,6 +163,22 @@ button:focus-visible, [tabindex]:focus-visible { outline: 2px solid var(--gold);
 .slot.empty { color: var(--muted); border-style: dashed; }
 .slot .x { color: var(--muted); font-size: 18px; line-height: 1; padding: 0 2px; }
 .slot .slot-name { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* La cara dentro del hueco del draft.
+   En una fila de cinco huecos no caben cara Y nombre: medido, al nombre le
+   quedaban 0 píxeles en móvil y 19 en escritorio, y antes de la cara se leía
+   "K...", que tampoco dice quién es. Así que manda la cara y el nombre se
+   retira SOLO cuando hay cara (`:has`): si el retrato falta —héroe recién
+   salido, descarga a medias— el nombre recupera su sitio en vez de dejar el
+   hueco mudo. El nombre sigue llegando a los lectores de pantalla por los
+   aria-label de la × y de la marca de rival.
+   OJO: esta regla va FUERA de todo @media. Metida dentro del bloque de móvil
+   -donde acabó por descuido- funcionaba en el móvil y en escritorio no. */
+.slot-cara {
+  width: 24px; height: 24px; flex: 0 0 24px;
+  border-radius: 4px; object-fit: cover; background: var(--ink);
+}
+.slot:has(.slot-cara) .slot-name { display: none; }
 .slot .mark { color: var(--muted); font-size: 13px; line-height: 1; padding: 0 1px; }
 .slot.marked { border-color: var(--gold) !important; }
 /* Deducido por la app, no marcado por ti: se distingue del marcado a mano. */
@@ -209,7 +228,18 @@ button:focus-visible, [tabindex]:focus-visible { outline: 2px solid var(--gold);
   font-family: var(--font-display);
   font-size: 19px; letter-spacing: 0.06em; text-transform: uppercase; font-weight: 600;
   margin: 0 0 6px;
+  display: flex; align-items: center; gap: 8px;
 }
+
+/* La cara del héroe. `object-fit: cover` porque el retrato de la API es
+   210x220: recortarlo centrado da un cuadrado limpio sin deformar a nadie.
+   Tamaño fijo y hueco reservado para que la lista no salte al cargar. */
+.hero-cara {
+  width: 34px; height: 34px; flex: 0 0 34px;
+  border-radius: 5px; object-fit: cover;
+  background: var(--ink); border: 1px solid var(--line);
+}
+.pick.top .hero-cara { width: 40px; height: 40px; flex-basis: 40px; border-color: var(--gold); }
 .pick.top .pick-name { font-size: 24px; }
 
 .pick-score {
@@ -449,11 +479,34 @@ button:focus-visible, [tabindex]:focus-visible { outline: 2px solid var(--gold);
 }
 .build-objetos { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 6px; }
 .build-objetos li {
-  display: flex; justify-content: space-between; align-items: baseline; gap: 10px;
+  display: flex; justify-content: space-between; align-items: center; gap: 10px;
   padding: 9px 10px; border: 1px solid var(--line); border-radius: var(--r);
   background: var(--panel);
 }
-.obj-nombre { font-size: 14px; }
+.obj-nombre { font-size: 14px; flex: 1; }
+
+/* El icono es lo que hace que el objeto se reconozca sin leer: los nombres van
+   en inglés y Javi juega en español. Tamaño fijo para que la fila no baile
+   mientras cargan, y hueco reservado aunque falte el fichero. */
+.obj-icono {
+  width: 28px; height: 28px; border-radius: 4px; flex: 0 0 28px;
+  background: var(--ink);
+}
+
+/* Los objetos que se proponen contra el draft: icono grande y nombre, porque
+   aquí es donde tienes que reconocerlos deprisa. */
+.build-propuestos {
+  margin: 6px 0 0; padding: 0; list-style: none;
+  display: flex; flex-wrap: wrap; gap: 6px;
+}
+.build-propuestos li {
+  display: flex; align-items: center; gap: 6px;
+  padding: 5px 9px 5px 5px; font-size: 12px;
+  border: 1px solid var(--line); border-radius: var(--r); background: var(--panel);
+}
+
+.build-otra-objetos { display: flex; flex-wrap: wrap; gap: 4px 10px; align-items: center; }
+.build-otra-objetos > span { display: flex; align-items: center; gap: 5px; }
 /* La defensa que da cada objeto es lo que conecta la build con el draft: se ve
    siempre, no en un desplegable. */
 .obj-def { font-size: 11px; color: var(--gold); font-variant-numeric: tabular-nums; white-space: nowrap; }
