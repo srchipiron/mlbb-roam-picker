@@ -8,6 +8,17 @@ que esto no se olvida.
 Criterio: `0.X.0` cuando cambia cómo decide la app o qué hace; `0.0.X` para
 correcciones.
 
+## 1.6.1
+
+- **Un fallo de la API ya no impide publicar la app.** El despliegue descargaba
+  los datos y, si la descarga fallaba, se paraba entero — aunque el cambio no
+  tuviera nada que ver con los datos. Pasó de verdad: la 1.6.0 se quedó sin
+  publicar porque la API estaba caída esa noche. Ahora, si la descarga falla o
+  viene peor, se publica con los datos que ya hay guardados, que pasaron ese
+  mismo filtro cuando se guardaron. Lo que sigue sin poder pasar es publicar
+  datos rancios: por encima de 72 horas, o sin matriz de cruces, el despliegue
+  se para igual.
+
 ## 1.6.0
 
 Repaso a fondo de la estadística. Dos constantes del motor estaban puestas

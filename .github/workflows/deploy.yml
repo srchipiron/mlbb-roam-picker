@@ -32,33 +32,50 @@ jobs:
       - run: npm ci
 
       - name: Ingesta
-        # Sin continue-on-error: si la ingesta revienta, el despliegue debe
-        # fallar. Con el, se publicaba la app nueva con los datos congelados del
-        # despliegue anterior y no habia forma de notarlo salvo mirando la hora.
-        #
         # A un temporal: hasta saber que esta corrida no es peor que la
         # guardada, los datos buenos no se tocan.
+        #
+        # Y con continue-on-error, que NO es lo que habia antes: antes el paso
+        # escribia encima de public/data, asi que dejarlo fallar publicaba la
+        # app nueva con datos congelados sin ninguna senal. Ahora escribe a un
+        # temporal y quien decide es el paso de abajo, mirando lo que hay.
+        id: ingesta
+        continue-on-error: true
         run: node scripts/ingest.mjs --rank glory --days 7 --out /tmp/nueva.json
 
-      - name: Descartar la corrida si resuelve menos que la guardada
-        # Reventar es facil de ver; degradarse no. La ingesta conserva los datos
-        # anteriores cuando un endpoint falla, asi que una corrida mala pasaba
-        # la comprobacion de frescura y se publicaba: 133 heroes con linea y rol
-        # a 0, y los counters de 133 a 34. Cuatro de las cinco lineas se quedan
-        # sin pool y la app no tiene con que quejarse.
-        run: node scripts/comparar-ingesta.mjs /tmp/nueva.json public/data/roam-meta.json
+      - name: Elegir con qué datos se publica
+        # Tres casos:
+        #   la corrida nueva es buena     -> se usa
+        #   es peor, o la API esta caida  -> se usan los datos del repositorio,
+        #                                    que pasaron este mismo filtro el dia
+        #                                    que se commitearon
+        #   ademas estan rancios          -> se para el despliegue
+        #
+        # Antes, con la API caida no se podia publicar NINGUN cambio de codigo
+        # aunque el repositorio tuviera datos perfectos. Paso de verdad: el
+        # despliegue de 1.6.0 se quedo sin publicar por un UPSTREAM_REQUEST_FAILED
+        # que no tenia nada que ver con el codigo que se subia.
+        run: |
+          if [ "${{ steps.ingesta.outcome }}" = "success" ] \
+             && node scripts/comparar-ingesta.mjs /tmp/nueva.json public/data/roam-meta.json; then
+            cp /tmp/nueva.json public/data/roam-meta.json
+            echo "Se publica con la corrida nueva."
+          else
+            echo "::warning::La ingesta ha fallado o resuelve menos; se publica con los datos del repositorio."
+          fi
 
-      - name: Guardar la corrida buena
-        run: cp /tmp/nueva.json public/data/roam-meta.json
-
-      - name: Comprobar que los datos son de ahora
+      - name: Comprobar que los datos valen para publicar
+        # El limite de horas es lo que sustituye a "regenerado hace menos de
+        # media hora". Un winrate de una ventana de 7 dias no se mueve en un
+        # dia; a los tres ya es otra cosa, y publicar eso seria mentir.
         run: |
           node -e "const d=require('./public/data/roam-meta.json');
           const h=(Date.now()-new Date(d.generatedAt))/3.6e6;
-          console.log('generado hace', h.toFixed(2), 'h -', d.heroCount ?? 0, 'heroes');
-          if (h > 0.5) { console.error('Los datos no se han regenerado'); process.exit(1); }
-          if (!(d.heroCount ?? 0)) { console.error('Sin estadisticas'); process.exit(1); }"
-
+          const cruces=Object.values(d.counters??{}).reduce((n,f)=>n+Object.keys(f??{}).length,0);
+          console.log('datos generados hace', h.toFixed(1), 'h ·', d.heroCount ?? 0, 'heroes ·', cruces, 'cruces');
+          if (h > 72) { console.error('Los datos tienen mas de 72 horas: no se publica'); process.exit(1); }
+          if (!(d.heroCount ?? 0)) { console.error('Sin estadisticas'); process.exit(1); }
+          if (cruces < 1000) { console.error('Sin matriz de counters'); process.exit(1); }"
 
       - name: Comprobar que la versión está documentada
         run: node scripts/check-version.mjs

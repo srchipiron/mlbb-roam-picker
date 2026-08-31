@@ -22,9 +22,12 @@ comprobaciones automáticas importan más de lo normal.
 
 **Nunca subas nada sin pasar `npm test`.** Son cuatro comprobaciones y 55
 pruebas (orden de declaraciones, CSS, versión documentada y motor). El
-despliegue corre esas cuatro más dos que no están en `npm test`: que
-`roam-meta.json` se haya regenerado hace menos de media hora, y que la corrida
-nueva no resuelva menos que la guardada (`comparar-ingesta.mjs`). Si algo falla, el despliegue se detiene y la app se queda
+despliegue corre esas cuatro más dos que no están en `npm test`: que la corrida
+nueva no resuelva menos que la guardada (`comparar-ingesta.mjs`), y que los
+datos con los que se va a publicar no pasen de 72 horas ni vengan sin matriz de
+cruces. Si la API está caída se publica con los datos del repositorio: el
+despliegue de código NO depende de que la API esté viva, y eso ya costó una
+versión sin publicar. Si algo falla, el despliegue se detiene y la app se queda
 con la versión anterior funcionando, que es lo correcto.
 
 **Sube la versión en `package.json` y documéntala en `CHANGELOG.md`.** Criterio:

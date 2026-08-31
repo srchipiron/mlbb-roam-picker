@@ -957,6 +957,13 @@ test('los workflows que publican datos pasan por el guardarrail', () => {
     }
     ok(yml.includes('scripts/comparar-ingesta.mjs'), `${f}: no compara la corrida con la guardada`);
   }
+
+  // El despliegue puede seguir adelante con los datos del repositorio si la API
+  // esta caida -si no, un UPSTREAM_REQUEST_FAILED impide publicar cualquier
+  // cambio de codigo-, pero NO puede publicar datos rancios sin darse cuenta.
+  const deploy = readFileSync(resolve(ROOT, '.github/workflows/deploy.yml'), 'utf8');
+  ok(/h > \d+\)/.test(deploy), 'deploy.yml ya no comprueba la antiguedad de los datos');
+  ok(/cruces < \d+/.test(deploy), 'deploy.yml ya no comprueba que haya matriz de counters');
 });
 
 test('el tipo de dano sale del texto de Moonton, no del rol', async () => {
