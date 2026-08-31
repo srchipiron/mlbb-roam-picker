@@ -271,6 +271,12 @@ Lo que hay medido y no conviene volver a suponer:
   ataques básicos» aunque el texto lo diga, porque para usarlo haría falta saber
   quién pega con ataque básico y eso no lo sabemos: nuestro `damage` se cuenta
   de las habilidades, así que a un tirador le falta justo su ataque básico.
+- **Solo se proponen objetos que ese jugador puede comprar.** El tipo lo trae la
+  API (`equiptypename`): `Jungle` y `Roam` son de una línea, el resto valen para
+  todos. Sin ese filtro, a un roamer con tres enemigos de control duro se le
+  proponían las tres botas de JUNGLA. Salió probando el sitio PUBLICADO, no en
+  las pruebas del motor. Y el objeto universal va delante del de línea aunque dé
+  menos: dice lo mismo y no ata la build a una bendición.
 - `ajustesDeBuild` da como mucho **dos** avisos, ordenados por peso, y solo si
   la build no lo cubre ya y hay algún objeto que proponer. Un enemigo suelto no
   cuenta como composición, y un enemigo con tags DEDUCIDOS cuenta 0,67: es el
