@@ -36,9 +36,23 @@ export default defineConfig({
         ],
       },
       workbox: {
-        // Los datos meta se sirven de caché al instante y se refrescan por detrás:
-        // en el draft no hay tiempo de esperar a la red.
+        // Las imágenes NO entran en la precarga: 71 iconos de objeto (1,7 MB) y
+        // 133 caras de héroe (~2,9 MB). Meterlas ahí multiplicaría por cinco lo
+        // que la app descarga al instalarse, y de todas ellas un draft usa tres
+        // objetos y ocho caras. Se quedan fuera y se guardan en cuanto se ven,
+        // con la regla de abajo.
+        globPatterns: ['**/*.{js,css,html,svg}', 'icon-*.png'],
         runtimeCaching: [
+          {
+            // Un icono o una cara no cambian salvo que Moonton los rediseñe: se
+            // sirven de caché sin preguntar, y así funcionan sin cobertura.
+            urlPattern: /\/(objetos|heroes)\/\d+\.(png|jpg)$/,
+            handler: 'CacheFirst',
+            options: {
+              cacheName: 'imagenes',
+              expiration: { maxEntries: 400, maxAgeSeconds: 60 * 60 * 24 * 180 },
+            },
+          },
           {
             urlPattern: /\/data\/.*\.json$/,
             handler: 'StaleWhileRevalidate',

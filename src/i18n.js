@@ -180,7 +180,10 @@ const ES = {
   'build.sinBuild': 'Todavía no hay builds de este héroe en esta línea.',
   'build.ajusteMagica': 'De los {n} enemigos con dato, el {pct}% pega mágico y esta build no lleva defensa mágica. Plantéate {objetos}.',
   'build.ajusteFisica': 'De los {n} enemigos con dato, el {pct}% pega físico y esta build no lleva defensa física. Plantéate {objetos}.',
-  'build.ajusteAviso': 'Esto no sale de medir builds contra este draft (ese dato no existe): sale de de qué pega cada enemigo y de cuánta defensa da cada objeto.',
+  'build.ajusteCuracion': '{n} enemigos se curan ({quien}) y esta build no corta la curación. Plantéate {objetos}.',
+  'build.ajusteControl': '{n} enemigos tienen control duro ({quien}) y esta build no lo acorta. Plantéate {objetos}.',
+  'build.ajusteTitulo': 'Contra este draft',
+  'build.ajusteAviso': 'Esto no sale de medir builds contra este draft (ese dato no existe): sale de qué trae el equipo enemigo y de lo que dice cada objeto que hace.',
   'build.objetosEnIngles': 'Los objetos van en inglés, como en los datos del juego.',
 
 
@@ -357,7 +360,10 @@ const EN = {
   'build.sinBuild': 'No builds for this hero in this lane yet.',
   'build.ajusteMagica': 'Of the {n} enemies with data, {pct}% deal magic damage and this build has no magic defence. Consider {objetos}.',
   'build.ajusteFisica': 'Of the {n} enemies with data, {pct}% deal physical damage and this build has no physical defence. Consider {objetos}.',
-  'build.ajusteAviso': 'This does not come from measuring builds against this draft (no such data exists): it comes from what each enemy deals and how much defence each item gives.',
+  'build.ajusteCuracion': '{n} enemies heal ({quien}) and this build does not cut healing. Consider {objetos}.',
+  'build.ajusteControl': '{n} enemies have hard CC ({quien}) and this build does not shorten it. Consider {objetos}.',
+  'build.ajusteTitulo': 'Against this draft',
+  'build.ajusteAviso': 'This does not come from measuring builds against this draft (no such data exists): it comes from what the enemy team brings and what each item says it does.',
   'build.objetosEnIngles': 'Item names stay in English, like the game data.',
 
 

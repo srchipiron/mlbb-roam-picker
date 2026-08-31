@@ -1608,6 +1608,171 @@ test('el ajuste defensivo solo habla cuando el desequilibrio es claro y falta el
   eq(ajusteDefensivo(buildSinDefensa, equipment, [{ name: 'X' }]), null, 'aconseja sin datos de dano enemigo');
 });
 
+test('la build se adapta al draft, y se calla cuando ya lo cubre', async () => {
+  const { ajustesDeBuild, TOPE_AVISOS, ENEMIGOS_PARA_HABLAR } = await import('../src/engine/builds.js');
+
+  const mag = (n) => ({ name: n, damage: { fisico: 0, magico: 6 }, tags: [] });
+  const cura = (n) => ({ name: n, damage: { fisico: 3, magico: 3 }, tags: ['heal'] });
+  const control = (n) => ({ name: n, damage: { fisico: 3, magico: 3 }, tags: ['cc_hard'] });
+  const equipment = {
+    1: { nombre: "Athena's Shield", magica: 48 },
+    2: { nombre: 'Sea Halberd', efectos: ['antiCuracion'] },
+    3: { nombre: 'Tough Boots', magica: 18, efectos: ['cortaControl'] },
+    4: { nombre: 'Hunter Strike' },
+    5: { nombre: 'Dominance Ice', magica: 40, fisica: 40, efectos: ['antiCuracion'] },
+  };
+
+  // 1. Un enemigo que cura no es una composicion que cura: con uno, silencio.
+  eq(ajustesDeBuild({ objetos: [4] }, equipment, [cura('A'), mag('B')])
+    .filter((x) => x.clave === 'build.ajusteCuracion').length, 0,
+  `habla de curacion con menos de ${ENEMIGOS_PARA_HABLAR} enemigos`);
+
+  // 2. Con dos, lo dice y propone objetos que de verdad la cortan.
+  const conCura = ajustesDeBuild({ objetos: [4] }, equipment, [cura('A'), cura('B'), mag('C')]);
+  const aviso = conCura.find((x) => x.clave === 'build.ajusteCuracion');
+  ok(aviso, 'no avisa contra dos enemigos que se curan');
+  ok(aviso.objetos.every((o) => o.efectos.includes('antiCuracion')),
+    'propone objetos que no cortan la curacion');
+  ok(aviso.params.quien.includes('A'), 'no dice quien cura');
+
+  // 3. Si la build YA lleva anti-curacion, se calla. Una app que siempre tiene
+  //    un consejo deja de leerse.
+  eq(ajustesDeBuild({ objetos: [2] }, equipment, [cura('A'), cura('B')])
+    .filter((x) => x.clave === 'build.ajusteCuracion').length, 0,
+  'avisa de curacion a una build que ya lleva Sea Halberd');
+
+  // 4. Y como mucho TOPE_AVISOS, aunque el draft dispare las tres cosas.
+  const todo = ajustesDeBuild({ objetos: [4] }, equipment, [
+    { name: 'A', damage: { fisico: 0, magico: 6 }, tags: ['heal', 'cc_hard'] },
+    { name: 'B', damage: { fisico: 0, magico: 6 }, tags: ['heal', 'cc_hard'] },
+    { name: 'C', damage: { fisico: 0, magico: 6 }, tags: [] },
+  ]);
+  eq(todo.length, TOPE_AVISOS, `salen ${todo.length} avisos y el tope es ${TOPE_AVISOS}`);
+  // Y manda el que mas mueve: la defensa son 40-80 puntos, no un efecto.
+  eq(todo[0].clave, 'build.ajusteMagica', 'el aviso mas importante no va primero');
+
+  // 5. Sin objetos que proponer no se abre la boca: un aviso sin salida es ruido.
+  eq(ajustesDeBuild({ objetos: [4] }, { 4: { nombre: 'Hunter Strike' } }, [cura('A'), cura('B')]).length, 0,
+    'avisa sin tener ningun objeto que proponer');
+  eq(ajustesDeBuild({ objetos: [4] }, equipment, [control('A')]).length, 0, 'habla con un solo enemigo');
+
+  // 6. Un heroe con tags DEDUCIDOS (no esta en el catalogo escrito a mano)
+  //    cuenta menos: dos adivinados no bastan para abrir la boca. Es la misma
+  //    regla que ya costo una version con Marcel, acumulando etiquetas dudosas
+  //    hasta que parecian un hecho.
+  const adivinado = (n) => ({ ...cura(n), inferred: true });
+  eq(ajustesDeBuild({ objetos: [4] }, equipment, [adivinado('A'), adivinado('B')])
+    .filter((x) => x.clave === 'build.ajusteCuracion').length, 0,
+  'dos heroes con tags adivinados disparan el aviso ellos solos');
+  ok(ajustesDeBuild({ objetos: [4] }, equipment, [cura('A'), adivinado('B'), adivinado('C')])
+    .some((x) => x.clave === 'build.ajusteCuracion'),
+  'uno seguro y dos adivinados deberian bastar');
+});
+
+test('lo que hace un objeto se lee de su texto, no de una lista escrita a mano', async () => {
+  const meta = JSON.parse(readFileSync(resolve(ROOT, 'public/data/roam-meta.json'), 'utf8'));
+  const objetos = Object.values(meta.equipment ?? {});
+  if (!objetos.length) return;
+
+  const porNombre = Object.fromEntries(objetos.map((o) => [o.nombre, o]));
+  const tiene = (n, e) => porNombre[n]?.efectos?.includes(e);
+
+  // Objetos de efecto público. Si la API cambia el formato del texto, esto se
+  // entera: sin efectos, los avisos contra el draft enmudecen SIN fallar.
+  ok(tiene('Sea Halberd', 'antiCuracion'), 'Sea Halberd sin efecto anti-curacion');
+  ok(tiene('Dominance Ice', 'antiCuracion'), 'Dominance Ice sin efecto anti-curacion');
+  ok(tiene('Tough Boots', 'cortaControl'), 'Tough Boots sin efecto de acortar control');
+  ok(tiene('Winter Crown', 'cortaControl'), 'Winter Crown sin efecto de acortar control');
+  ok(!tiene('Hunter Strike', 'antiCuracion'), 'Hunter Strike no corta curacion y sale como si');
+
+  const conEfectos = objetos.filter((o) => o.efectos?.length).length;
+  ok(conEfectos >= 5, `solo ${conEfectos} objetos con efecto leido: el texto ha cambiado de forma`);
+});
+
+test('cada heroe lleva su id, tambien los de nombre raro', async () => {
+  const meta = JSON.parse(readFileSync(resolve(ROOT, 'public/data/roam-meta.json'), 'utf8'));
+  if (!(meta.heroes ?? []).length) return;
+  const todos = mergeCatalog(cat.heroes, meta.heroes);
+
+  // El retrato se pide por id (./heroes/{id}.jpg). Sin id no hay cara, y como
+  // la imagen que falta se quita sola, no fallaria nada: solo desaparecerian
+  // las caras de unos cuantos heroes y nadie se enteraria. Justo el fallo que
+  // ya costo una version con los counters de X.Borg.
+  const sinId = todos.filter((h) => h.id == null).map((h) => h.name);
+  ok(!sinId.length, `heroes sin id: ${sinId.slice(0, 8).join(', ')}`);
+
+  // Y los que escriben distinto la API y el catalogo tienen que cuadrar.
+  for (const nombre of ['X.Borg', 'Yi Sun-shin', "Chang'e", 'Popol and Kupa']) {
+    const h = todos.find((x) => x.name === nombre);
+    if (h) ok(h.id != null, `${nombre} se ha quedado sin id: el nombre no cuadra entre API y catalogo`);
+  }
+});
+
+test('los retratos que la app va a pedir existen de verdad', async () => {
+  const { existsSync } = await import('node:fs');
+  const meta = JSON.parse(readFileSync(resolve(ROOT, 'public/data/roam-meta.json'), 'utf8'));
+  const conRetrato = (meta.heroes ?? []).filter((h) => h.retrato);
+  if (!conRetrato.length) return; // todavia sin retratos
+
+  const faltan = conRetrato.filter((h) => !existsSync(resolve(ROOT, `public/heroes/${h.id}.jpg`)));
+  ok(faltan.length <= conRetrato.length * 0.05,
+    `faltan ${faltan.length} retratos de ${conRetrato.length}: ${faltan.slice(0, 6).map((h) => h.name).join(', ')}`);
+
+  // Y que sean el retrato pequeño, no el dibujo de cuerpo entero: ese pesa
+  // 165 KB por heroe, veintidos megas para los 133, y el repositorio se
+  // clona desde un movil.
+  const { statSync } = await import('node:fs');
+  const pesos = conRetrato
+    .filter((h) => existsSync(resolve(ROOT, `public/heroes/${h.id}.jpg`)))
+    .map((h) => statSync(resolve(ROOT, `public/heroes/${h.id}.jpg`)).size);
+  const medio = pesos.reduce((a, b) => a + b, 0) / pesos.length;
+  ok(medio < 60 * 1024, `los retratos pesan ${Math.round(medio / 1024)} KB de media: se ha colado la imagen grande`);
+});
+
+test('las imagenes no entran en la precarga del instalador', async () => {
+  // Son ~4,6 MB entre iconos y caras. En la precarga, instalar la app pasaria
+  // de 1 MB a 5,6 MB de golpe, y de todas ellas un draft usa once. Van fuera y
+  // se guardan en cuanto se ven.
+  const vite = readFileSync(resolve(ROOT, 'vite.config.js'), 'utf8');
+  const glob = vite.match(/globPatterns:\s*\[([^\]]*)\]/)?.[1] ?? '';
+  ok(glob, 'vite.config.js no fija globPatterns: por defecto precarga TODOS los png');
+  ok(!/\bpng\b(?![^,]*icon)/.test(glob.replace(/'icon-\*\.png'/, '')),
+    `la precarga sigue metiendo png: ${glob}`);
+  ok(/runtimeCaching/.test(vite) && /(objetos|heroes)/.test(vite),
+    'las imagenes no tienen regla de cache en tiempo de ejecucion: no funcionarian sin cobertura');
+});
+
+test('los iconos que la app va a pedir existen de verdad', async () => {
+  const { existsSync } = await import('node:fs');
+  const meta = JSON.parse(readFileSync(resolve(ROOT, 'public/data/roam-meta.json'), 'utf8'));
+  if (!Object.keys(meta.builds ?? {}).length) return;
+
+  // El <img> pide ./objetos/{id}.png. Si el fichero no está, el hueco se quita
+  // solo y queda el nombre -no se rompe la pantalla-, pero es un icono menos
+  // sin que nadie se entere. Aqui se entera.
+  const pedidos = new Set();
+  for (const porLinea of Object.values(meta.builds)) {
+    for (const lista of Object.values(porLinea)) {
+      for (const b of lista) for (const id of b.objetos ?? []) pedidos.add(id);
+    }
+  }
+  const faltan = [...pedidos].filter((id) => !existsSync(resolve(ROOT, `public/objetos/${id}.png`)));
+  ok(faltan.length <= pedidos.size * 0.05,
+    `faltan ${faltan.length} iconos de ${pedidos.size}: ${faltan.slice(0, 6).join(', ')}`);
+});
+
+test('la ingesta no escribe las imagenes en el repositorio cuando va a un temporal', async () => {
+  // Mismo fallo que ya costo una version con los datos: la prueba que ejecuta
+  // la ingesta escribia en public/data y ensuciaba el repo en cada npm test.
+  // Las imagenes tienen que ir donde digan --iconos y --retratos, no a su
+  // sitio por defecto.
+  const ing = readFileSync(resolve(ROOT, 'scripts/ingest.mjs'), 'utf8');
+  ok(/args\.iconos/.test(ing), 'la ingesta no acepta --iconos: los escribiria siempre en public/objetos');
+  ok(/args\.retratos/.test(ing), 'la ingesta no acepta --retratos: los escribiria siempre en public/heroes');
+  ok(/bajarImagenes\([^)]*,\s*ICONOS,/.test(ing), 'los iconos no usan la ruta configurable');
+  ok(/bajarImagenes\([^)]*,\s*RETRATOS,/.test(ing), 'los retratos no usan la ruta configurable');
+});
+
 test('la defensa de cada objeto sale del texto del juego, no de su categoria', async () => {
   const meta = JSON.parse(readFileSync(resolve(ROOT, 'public/data/roam-meta.json'), 'utf8'));
   const eq5 = meta.equipment ?? {};

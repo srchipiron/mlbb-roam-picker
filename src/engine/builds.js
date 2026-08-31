@@ -1,6 +1,18 @@
 import { normName, tipoDeDano } from './score.js';
 
 /**
+ * Precision medida de los tags deducidos, la misma que usa el motor. Un heroe
+ * que no esta en el catalogo escrito a mano juega con tags adivinados de su
+ * `speciality`, y acertamos dos de cada tres.
+ *
+ * Aqui no se puntua nada, se CUENTA: un enemigo con tags deducidos cuenta 0,67
+ * en vez de 1. Asi dos heroes adivinados no disparan solos un aviso, y uno
+ * seguro mas uno adivinado tampoco. Es la misma regla que ya costo una version
+ * con Marcel: acumular etiquetas dudosas hasta que parecen un hecho.
+ */
+const PRECISION_DEDUCIDA = 0.67;
+
+/**
  * Builds de objetos: lo que la gente compra de verdad, y como ajustarlo al
  * draft que tienes delante.
  *
@@ -149,12 +161,116 @@ export function amenazaEnemiga(enemies = []) {
 export const DESEQUILIBRIO = 0.7;
 
 /**
+ * Cuantos enemigos con dato hacen falta para hablar de una etiqueta.
+ *
+ * Uno solo no define un draft: contra UN heroe que cura, la build normal
+ * sigue siendo la correcta. Dos ya es una composicion.
+ */
+export const ENEMIGOS_PARA_HABLAR = 2;
+
+/**
+ * Como se adapta la build al draft que tienes delante.
+ *
+ * Cada aviso junta dos hechos MEDIDOS, ninguno escrito a mano:
+ *
+ *  - Que trae el equipo enemigo: de que pega (contado de sus habilidades) y
+ *    sus tags (del catalogo).
+ *  - Que hace cada objeto: cuanta defensa da y que efecto tiene, leidos los
+ *    dos del texto que el juego escribe en el propio objeto.
+ *
+ * Lo que NO es: una medicion de builds contra este draft. Ese dato no existe
+ * en ninguna parte, y la pantalla lo dice.
+ *
+ * Se callan los avisos que no hacen falta: si la build YA cubre eso, no se
+ * dice nada. Y se devuelven como mucho `TOPE` -ordenados por cuanto pesan-,
+ * porque una app que siempre tiene tres consejos deja de leerse. Es el mismo
+ * fallo que ya costo una version: motivos que le salian a todo el pool.
+ */
+export const TOPE_AVISOS = 2;
+
+export function ajustesDeBuild(build, equipment, enemies = []) {
+  const avisos = [];
+  const objetos = objetosDe(equipment, build);
+  const tiene = (efecto) => objetos.some((o) => o.efectos?.includes(efecto));
+
+  // 1. El lado del que te van a pegar. Va primero porque es el que mas
+  //    estadistica mueve: son 40-80 puntos de defensa, no un efecto.
+  const defensa = ajusteDefensivo(build, equipment, enemies);
+  if (defensa) {
+    avisos.push({
+      clave: defensa.lado === 'magica' ? 'build.ajusteMagica' : 'build.ajusteFisica',
+      params: {
+        n: defensa.conDato,
+        pct: Math.round((defensa.lado === 'magica' ? defensa.cuotaMagica : 1 - defensa.cuotaMagica) * 100),
+      },
+      objetos: defensa.alternativas,
+      peso: 3,
+    });
+  }
+
+  // 2. Curacion enemiga. Contra una composicion que se cura, no cortarla es
+  //    perder la pelea larga por mucha defensa que lleves.
+  const curan = enemies.filter((e) => e?.tags?.includes('heal') || e?.tags?.includes('sustain'));
+  if (cuentan(curan) >= ENEMIGOS_PARA_HABLAR && !tiene('antiCuracion')) {
+    avisos.push({
+      clave: 'build.ajusteCuracion',
+      params: { n: curan.length, quien: curan.slice(0, 2).map((e) => e.name).join(', ') },
+      objetos: conEfecto(equipment, 'antiCuracion'),
+      peso: 2,
+    });
+  }
+
+  // 3. Control duro. Va la ultima porque es la que menos cambia una build: casi
+  //    siempre se resuelve con las botas, que no ocupan hueco de objeto.
+  const controlan = enemies.filter((e) => e?.tags?.includes('cc_hard'));
+  if (cuentan(controlan) >= ENEMIGOS_PARA_HABLAR && !tiene('cortaControl')) {
+    avisos.push({
+      clave: 'build.ajusteControl',
+      params: { n: controlan.length, quien: controlan.slice(0, 2).map((e) => e.name).join(', ') },
+      objetos: conEfecto(equipment, 'cortaControl'),
+      peso: 1,
+    });
+  }
+
+  return avisos
+    .filter((a) => a.objetos.length)
+    .sort((a, b) => b.peso - a.peso)
+    .slice(0, TOPE_AVISOS);
+}
+
+/**
+ * Cuantos enemigos cuentan de verdad: los que tienen tags escritos a mano
+ * cuentan uno, los deducidos menos. Ver `PRECISION_DEDUCIDA`.
+ *
+ * El numero que se ENSEÑA sigue siendo el de cabezas -"3 enemigos se curan"-,
+ * porque en pantalla un 2,34 no significa nada. Lo que se encoge es el umbral
+ * para abrir la boca, que es donde importa.
+ */
+function cuentan(heroes) {
+  return heroes.reduce((n, h) => n + (h?.inferred ? PRECISION_DEDUCIDA : 1), 0);
+}
+
+/**
+ * Objetos con un efecto, los que mas se usan primero.
+ *
+ * "Los que mas se usan" no lo decidimos nosotros: se ordena por defensa total
+ * y, a igualdad, por nombre, para que la lista sea estable entre corridas. Sin
+ * un orden fijo, dos recargas de la app propondrian objetos distintos.
+ */
+export function conEfecto(equipment, efecto, cuantos = 3) {
+  return Object.entries(equipment ?? {})
+    .map(([id, o]) => ({ id: Number(id), ...o }))
+    .filter((o) => o.efectos?.includes(efecto))
+    .sort((a, b) => ((b.magica ?? 0) + (b.fisica ?? 0)) - ((a.magica ?? 0) + (a.fisica ?? 0))
+      || String(a.nombre).localeCompare(String(b.nombre)))
+    .slice(0, cuantos);
+}
+
+/**
  * Que lado conviene reforzar y si la build ya lo cubre.
  *
  * Devuelve `null` cuando no hay nada que decir: sin dato suficiente, con el
- * dano enemigo repartido, o cuando la build ya lleva defensa de ese lado. No
- * decir nada es la respuesta correcta la mayoria de las veces, y una app que
- * siempre tiene un consejo deja de leerse.
+ * dano enemigo repartido, o cuando la build ya lleva defensa de ese lado.
  */
 export function ajusteDefensivo(build, equipment, enemies) {
   const amenaza = amenazaEnemiga(enemies);

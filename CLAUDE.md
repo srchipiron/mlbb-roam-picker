@@ -264,6 +264,18 @@ Lo que hay medido y no conviene volver a suponer:
   criterio que el tipo de daño de los héroes.
 - `equipid` trae **tres objetos, el núcleo**, no los seis del inventario. No se
   completa lo que la API no da.
+- **Lo que hace un objeto se lee de su texto**, igual que la defensa: la ingesta
+  guarda `efectos` (`antiCuracion`, `cortaControl`) buscando lo que el juego
+  escribe en el propio objeto. Nada de listas a mano: «Necklace of Durance» era
+  EL objeto anti-curación y hoy ni existe en la API. NO se apunta «castiga los
+  ataques básicos» aunque el texto lo diga, porque para usarlo haría falta saber
+  quién pega con ataque básico y eso no lo sabemos: nuestro `damage` se cuenta
+  de las habilidades, así que a un tirador le falta justo su ataque básico.
+- `ajustesDeBuild` da como mucho **dos** avisos, ordenados por peso, y solo si
+  la build no lo cubre ya y hay algún objeto que proponer. Un enemigo suelto no
+  cuenta como composición, y un enemigo con tags DEDUCIDOS cuenta 0,67: es el
+  mismo descuento que el motor, y evita el sesgo que ya costó una versión con
+  Marcel.
 - Cuidado con los nombres, que se parecen a propósito: el DAÑO va en masculino
   (`fisico`/`magico`) y la DEFENSA de un objeto en femenino (`fisica`/`magica`).
   Leer un campo de defensa en un perfil de daño da `undefined` sin que falle nada.
@@ -271,6 +283,33 @@ Lo que hay medido y no conviene volver a suponer:
 - El despliegue NO se para por quedarse sin builds -es un extra, y el botón
   simplemente no aparece-, pero `comparar-ingesta.mjs` sí rechaza una corrida que
   pierda builds u objetos respecto a la guardada.
+
+## Las imágenes
+
+Iconos de objeto (`public/objetos/{id}.png`, 71) y caras de héroe
+(`public/heroes/{id}.jpg`, 133). Unos 4,6 MB en el repositorio.
+
+- **Se sirven desde la app, no desde el CDN de Moonton.** Enlazar la imagen le
+  cuenta tu IP a un tercero, y la app promete que tus datos no salen del móvil.
+  Además, sin cobertura una imagen enlazada no llega, que es justo cuando estás
+  en un draft.
+- **Pero NO entran en la precarga del instalador** (`globPatterns` en
+  `vite.config.js` excluye los png que no sean los de la app). Instalar seguiría
+  costando 241 KB y no 5 MB; cada imagen se guarda en cuanto se ve, con una
+  regla `CacheFirst`. Hay una prueba que falla si vuelven a colarse.
+- Los retratos salen de la ficha que la ingesta YA pide para los 133 héroes: no
+  cuestan ni una petición más. Se coge `head` (210x220, 22 KB), nunca
+  `smallmap`, que es el dibujo de cuerpo entero: 165 KB por héroe, 22 MB.
+- Los ficheros van **por id**, no por nombre: un id no cambia aunque Moonton
+  reescriba el nombre. Por eso `mergeCatalog` añade ahora el `id` de la API a
+  cada héroe del catálogo, y hay una prueba de que no se queda ninguno sin él.
+- Si la imagen falta, el componente `Imagen` se quita solo y queda el texto. En
+  el hueco del draft es al revés: manda la cara y el nombre se retira con
+  `:has(.slot-cara)`, porque a 390px no caben los dos (medido: 0 píxeles para el
+  nombre). Si no hay cara, el nombre recupera su sitio.
+- **El prop se llama `className`, no `clase`.** `check-css.mjs` busca
+  literalmente `className=` para saber qué clases usa la interfaz; con otro
+  nombre, una clase sin estilo pasa el control sin que nadie se entere.
 
 ## Los idiomas
 
@@ -282,6 +321,14 @@ idioma se queda a medias, y otra que comprueba que toda clave usada existe.
 
 La identidad de un motivo ya no es su texto sino `idRazon()` (clave + a quién
 señala). El filtro de motivos comunes y el dedupe dependen de eso.
+
+**La API dice que acepta 17 idiomas y devuelve inglés en todos.** Comprobado
+sobre los 152 objetos (`lang=es` da 0 nombres distintos de `lang=en`) y sobre
+las habilidades de un héroe. Traducir los nombres de objeto significaría
+escribirlos a mano, y ahí un error no es cosmético: te manda a comprar otra cosa
+en mitad del draft. Por eso los objetos llevan icono, que es lo que se reconoce
+en cualquier idioma. Si algún día se escriben, que sea con nombres confirmados
+por quien juega en español, no adivinados.
 
 Los NOMBRES de héroe no se traducen en pantalla: son la clave de todos los
 datos, y enseñar "Cíclope" mientras el motor busca "Cyclops" es justo el fallo

@@ -38,8 +38,14 @@ for (const m of jsx.matchAll(/className=(?:"([^"]*)"|\{([^}]*)\})/g)) {
     for (const c of t[1].split(/\s+/)) if (/^[a-z][\w-]*$/.test(c)) clases.add(c);
   }
 }
-const sinEstilo = [...clases].filter(c=>!css.includes('.'+c));
-if (sinEstilo.length) fallos.push('clases sin estilo: '+sinEstilo.join(', '));
+// Se comprueba contra el CSS SIN los bloques @media. Una clase que solo tiene
+// estilo dentro de una consulta de medios funciona en un tamano de pantalla y
+// en los demas no, que es peor que no tener estilo porque parece que va bien.
+// Paso de verdad: `.slot-cara` acabo dentro del bloque de movil por descuido y
+// la cara del heroe tapaba el nombre solo en el movil.
+const cssBase = css.replace(/@media[^{]*\{(?:[^{}]|\{[^{}]*\})*\}/g, '');
+const sinEstilo = [...clases].filter(c=>!cssBase.includes('.'+c));
+if (sinEstilo.length) fallos.push('clases sin estilo fuera de un @media: '+sinEstilo.join(', '));
 
 console.log(fallos.length ? 'FALLOS:\n  '+fallos.join('\n  ') : 'CSS correcto: sin ocultaciones, variables declaradas, clases con estilo.');
 

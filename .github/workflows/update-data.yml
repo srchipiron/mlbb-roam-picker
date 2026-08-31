@@ -42,6 +42,10 @@ jobs:
         run: |
           git config user.name  "meta-bot"
           git config user.email "meta-bot@users.noreply.github.com"
-          git add public/data/roam-meta.json
+          # Los iconos van con los datos: un objeto nuevo entra en las builds y
+          # su imagen tiene que entrar en el mismo commit, o la app pide un
+          # fichero que no existe. Se anaden AQUI, despues de la comparacion,
+          # para que una corrida descartada no deje basura.
+          git add public/data/roam-meta.json public/objetos
           git diff --staged --quiet || git commit -m "datos: meta $(date -u +%Y-%m-%d)"
           git push

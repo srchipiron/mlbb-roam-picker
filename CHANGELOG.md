@@ -8,6 +8,32 @@ que esto no se olvida.
 Criterio: `0.X.0` cuando cambia cómo decide la app o qué hace; `0.0.X` para
 correcciones.
 
+## 1.12.0
+
+**Los objetos ahora se ven, y la build reacciona al draft entero.**
+
+- **Cada objeto sale con su icono, y cada héroe recomendado con su cara.** Es la respuesta de verdad al problema del
+  idioma: la API dice que acepta español pero devuelve todo en inglés —los
+  nombres de objeto y hasta los de habilidad—, así que traducirlos habría sido
+  escribirlos a mano, y un nombre mal puesto te manda a comprar otra cosa en
+  mitad del draft. El dibujo lo reconoces juegues en el idioma que juegues. Los
+  imágenes se sirven desde la propia app: no se piden al servidor de Moonton (tu
+  IP no viaja a nadie) y funcionan sin cobertura. No se descargan al instalar
+  —serían 4,6 MB de golpe—, sino cuando se ven, y luego se quedan guardadas.
+- **La build ya no mira solo de qué pegan: mira qué traen.** Antes avisaba si el
+  equipo enemigo era mágico o físico. Ahora también:
+  - si **dos o más enemigos se curan** y tu build no lleva nada que corte la
+    curación, te lo dice y te enseña los objetos que sí la cortan;
+  - si **dos o más tienen control duro** y no llevas nada que lo acorte, igual.
+- **Y sigue callándose.** Como mucho salen dos avisos, el que más pesa primero,
+  y ninguno aparece si la build ya lo cubre o si no hay ningún objeto que
+  proponer. Contra un enemigo suelto no dice nada: uno no es una composición.
+
+Lo que hace cada objeto no está escrito a mano en ningún sitio: se lee del texto
+que el propio juego trae dentro del objeto («CC and Slow Duration reduced by
+25%»). Por eso no envejece con los parches — y buena falta hacía: «Necklace of
+Durance», que era EL objeto anti-curación, ya ni existe.
+
 ## 1.11.0
 
 **Objetos.** Cada héroe de la lista tiene ahora un botón «Objetos» que abre lo

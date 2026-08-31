@@ -677,14 +677,22 @@ export function mergeCatalog(catalogHeroes, apiHeroes = []) {
   // estan en el catalogo escrito a mano: el catalogo lleva rol y tags, no dano.
   const porApi = new Map(apiHeroes.map((h) => [normName(h.name), h]));
   const byName = new Map(catalogHeroes.map((h) => {
-    const dano = porApi.get(normName(h.name))?.damage;
-    return [h.name, dano ? { ...h, damage: dano } : h];
+    const api = porApi.get(normName(h.name));
+    // El id tampoco lo lleva el catalogo, y hace falta para pedir su retrato:
+    // los ficheros van por id porque un id no cambia aunque Moonton reescriba
+    // el nombre, que es justo lo que aqui rompe las cosas en silencio.
+    return [h.name, {
+      ...h,
+      ...(api?.damage ? { damage: api.damage } : {}),
+      ...(api?.id != null ? { id: api.id } : {}),
+    }];
   }));
   for (const api of apiHeroes) {
     if (byName.has(api.name)) continue;
     const role = (api.role ?? '').toLowerCase();
     byName.set(api.name, {
       name: api.name,
+      ...(api.id != null ? { id: api.id } : {}),
       role,
       tags: tagsDeducidos(role, api.speciality),
       roam: role === 'tank' || role === 'support',
