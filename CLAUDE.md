@@ -281,11 +281,15 @@ y el botón Diagnóstico mentía sobre los rangos. No le quites el `--out`.
 - La deducción se apoya en `SPECIALITY_TAGS` y `ROLE_VETO`, que NO se editan a
   mano: las regenera `node scripts/derivar-tags.mjs` del propio catálogo.
   Reejecútalo cuando crezca `heroes.json` o Moonton cambie sus etiquetas.
-- El registro de partidas existe desde 0.8.0 (botón "Apuntar partida"), pero
-  empieza vacío. Necesita 30 partidas siguiendo la recomendación y 30 por libre
-  antes de que comparar los dos winrates signifique algo; el diagnóstico dice
-  cuántas faltan. Hasta entonces NO toques los pesos: es exactamente el error
-  que la regla de arriba prohíbe, solo que con más pasos.
+- El registro de partidas existe desde 0.8.0 (botón "Apuntar partida"). La
+  comparación "siguiendo la app contra por libre" es la limpia en teoría y la
+  inalcanzable en la práctica: la segunda rama solo crece si Javi ignora la app
+  a propósito, y además no está aleatorizada -él elige cuándo hacer caso-. Por
+  eso desde 1.7.0 el diagnóstico da también la comparación contra su winrate
+  histórico (`winrateDeReferencia`, ponderado por partidas), que sí se llena
+  jugando. Las partidas que faltan salen del tamaño del efecto observado, no de
+  un umbral escrito a mano. Hasta que una de las dos se distinga del azar, NO
+  toques los pesos.
 - El tipo de daño de cada héroe (`damage`, en `roam-meta.json`) se cuenta en los
   textos de habilidad de Moonton, no se deduce del rol: el rol se equivoca con
   Gusion, Hylos, Natan y Kimmy. Por eso NO lo encoge `PRECISION_DEDUCIDA`: es un

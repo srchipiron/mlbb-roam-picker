@@ -1272,6 +1272,42 @@ test('si no sale nadie, el buscador prueba con las letras en orden', async () =>
   eq(nombres('').length, heroes.length, 'sin escribir nada deberia salir todo');
 });
 
+test('el registro compara contra tu winrate de siempre, no solo contra la otra rama', async () => {
+  const { resumen, winrateDeReferencia } = await import('../src/engine/registro.js');
+
+  // La rama "por libre" no se llena jugando: para juntar 30 hay que ignorar la
+  // app 30 veces a proposito. La maestria son miles de partidas que ya existen.
+  const maestria = { Diggie: { games: 3821, winRate: 0.54 }, Franco: { games: 900, winRate: 0.51 } };
+  const ref = winrateDeReferencia(maestria);
+  eq(ref.partidas, 4721, 'no suma bien las partidas de la maestria');
+  ok(ref.winRate > 0.53 && ref.winRate < 0.54, `pondera mal por partidas: ${ref.winRate}`);
+  // Ponderado: el heroe de 3821 partidas manda sobre el de 900, no cuentan igual.
+  ok(Math.abs(ref.winRate - 0.54) < Math.abs(ref.winRate - 0.51), 'no pondera por partidas');
+
+  const jugadas = (n, ganadas) => Array.from({ length: n }, (_, i) => ({
+    pick: 'Diggie', recomendados: ['Diggie'], gane: i < ganadas,
+  }));
+
+  // Con poca muestra tiene que decir que NO se ve, por muy grande que parezca.
+  const poco = resumen(jugadas(11, 8), maestria);
+  ok(poco.contraReferencia, 'no compara contra la referencia teniendo maestria');
+  ok(!poco.contraReferencia.seVe, 'da por buena una diferencia de 11 partidas');
+  ok(poco.contraReferencia.faltan > 50, 'se cree que con cuatro partidas mas basta');
+
+  // Con mucha muestra y una diferencia grande, tiene que verse.
+  const mucho = resumen(jugadas(400, 300), maestria);
+  ok(mucho.contraReferencia.seVe, 'no reconoce una diferencia clara con 400 partidas');
+  eq(mucho.contraReferencia.faltan, 0, 'sigue pidiendo partidas cuando ya se ve');
+
+  // Y si el winrate coincide con el de siempre, tampoco puede "verse" nada.
+  const igual = resumen(jugadas(200, 107), maestria);
+  ok(!igual.contraReferencia.seVe, 've una diferencia donde no la hay');
+
+  // Sin maestria no hay contra que comparar: mejor callarse que inventar base.
+  eq(resumen(jugadas(20, 15), {}).contraReferencia, null, 'se inventa una referencia sin maestria');
+  eq(winrateDeReferencia({}), null, 'devuelve una referencia de la nada');
+});
+
 await Promise.all(pendientes); // se esperan de verdad, sin plazos inventados
 
 console.log(`\n${pasadas} pruebas correctas, ${fallos} fallos.`);

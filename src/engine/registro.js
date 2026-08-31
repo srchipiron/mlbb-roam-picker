@@ -44,20 +44,88 @@ export function siguioConsejo(partida) {
 }
 
 /**
- * Resumen para el diagnóstico. Devuelve winrate cuando sigues la recomendación
- * y cuando no, con el aviso de si hay muestra suficiente para creérselo.
+ * Tu winrate de referencia, sacado de la maestría.
+ *
+ * Es el número contra el que de verdad se puede comparar. La rama "por libre"
+ * del registro nunca va a llenarse: para juntar 30 partidas ignorando a la app
+ * habría que ignorarla 30 veces a propósito, o sea jugar peor durante meses
+ * para satisfacer un umbral. La maestría, en cambio, ya son miles de partidas
+ * tuyas de antes de que la app existiera.
+ *
+ * Ponderado por partidas: un héroe con 3.800 pesa lo que debe frente a uno con
+ * 20.
  */
-export function resumen(partidas = []) {
+export function winrateDeReferencia(maestria = {}) {
+  let partidas = 0;
+  let ganadas = 0;
+  for (const m of Object.values(maestria ?? {})) {
+    if (!(m?.games > 0) || m.winRate == null) continue;
+    partidas += m.games;
+    ganadas += m.winRate * m.games;
+  }
+  return partidas ? { winRate: ganadas / partidas, partidas } : null;
+}
+
+/**
+ * Cuántas partidas más harían falta para distinguir del azar una diferencia
+ * como la que se está viendo. No es un umbral inventado: sale del tamaño del
+ * efecto observado.
+ */
+function partidasNecesarias(p, base) {
+  const dif = Math.abs(p - base);
+  if (!(dif > 0)) return Infinity;
+  // n por grupo para 80% de potencia al 5%, aproximación normal habitual.
+  return Math.ceil(15.7 * (p * (1 - p) + base * (1 - base)) / (dif * dif));
+}
+
+/**
+ * Resumen para el diagnóstico.
+ *
+ * Da las dos comparaciones, y son distintas:
+ *
+ *  - Siguiendo la app contra por libre. Es la comparación limpia en teoría y la
+ *    inalcanzable en la práctica, porque la segunda rama no se llena. Además
+ *    NO está aleatorizada: tú eliges cuándo hacer caso, y si haces caso cuando
+ *    el draft está claro y vas por libre cuando está feo, la diferencia mide
+ *    eso y no la app. Se sigue enseñando, pero sabiendo lo que es.
+ *
+ *  - Siguiendo la app contra tu winrate de siempre. Esta sí se puede llenar:
+ *    solo hace falta jugar, sin ignorar a la app a propósito. Tiene su propio
+ *    pero -tu winrate histórico es de otros parches y quizá de otro rango-,
+ *    pero es una referencia de miles de partidas en vez de dos.
+ */
+export function resumen(partidas = [], maestria = {}) {
   const con = partidas.filter(siguioConsejo);
   const sin = partidas.filter((p) => !siguioConsejo(p));
   const wr = (lista) => (lista.length ? lista.filter((p) => p.gane).length / lista.length : null);
+
+  const wrSiguiendo = wr(con);
+  const referencia = winrateDeReferencia(maestria);
+
+  let contraReferencia = null;
+  if (wrSiguiendo != null && referencia && con.length >= 5) {
+    const se = Math.sqrt(wrSiguiendo * (1 - wrSiguiendo) / con.length);
+    const dif = wrSiguiendo - referencia.winRate;
+    contraReferencia = {
+      base: referencia.winRate,
+      partidasBase: referencia.partidas,
+      dif,
+      // Intervalo del 95% sobre TU winrate siguiendo la app. La referencia sale
+      // de miles de partidas, así que su error propio es despreciable al lado.
+      margen: 1.96 * se,
+      seVe: se > 0 && Math.abs(dif) > 1.96 * se,
+      faltan: Math.max(0, partidasNecesarias(wrSiguiendo, referencia.winRate) - con.length),
+    };
+  }
 
   return {
     total: partidas.length,
     siguiendo: con.length,
     porLibre: sin.length,
-    wrSiguiendo: wr(con),
+    wrSiguiendo,
     wrPorLibre: wr(sin),
+    referencia,
+    contraReferencia,
     // Hace falta muestra en LAS DOS ramas: comparar 40 partidas contra 3 no
     // dice nada, y es justo el error que invita a tocar los pesos de más.
     concluyente: con.length >= MINIMO_PARA_CONCLUIR && sin.length >= MINIMO_PARA_CONCLUIR,

@@ -8,6 +8,25 @@ que esto no se olvida.
 Criterio: `0.X.0` cuando cambia cómo decide la app o qué hace; `0.0.X` para
 correcciones.
 
+## 1.7.0
+
+- **El Diagnóstico compara tus partidas contra algo alcanzable.** Hasta ahora
+  decía "faltan 47 para poder comparar", y esa cuenta no se iba a completar
+  nunca: la rama "por libre" solo crece si ignoras a la app **a propósito**, y
+  nadie va a jugar peor 28 veces para rellenar una muestra. Ahora compara
+  también tu winrate siguiendo la app contra **tu winrate de siempre**, que sale
+  de la maestría — miles de partidas tuyas que ya existen. Esa sí se llena
+  jugando normal.
+  Te dice la diferencia con su margen ("+19,3 puntos ± 26,3") y cuántas partidas
+  más harían falta para que deje de poder ser casualidad. El número no es un
+  umbral inventado: sale del tamaño de la diferencia que estás viendo.
+  La comparación siguiendo/por libre sigue ahí, pero ahora dice claramente para
+  qué sirve y para qué no: tú eliges cuándo hacer caso, así que no es un
+  experimento limpio.
+- La cobertura de la matriz decía 99,2% teniéndola completa. Contaba a cada
+  héroe contra sí mismo como un cruce que faltaba. Ahora dice 100%.
+- Datos frescos: la API volvió esta mañana tras la caída de anoche.
+
 ## 1.6.1
 
 - **Un fallo de la API ya no impide publicar la app.** El despliegue descargaba

@@ -808,8 +808,11 @@ export function densidadCounters(pool, counters, candidatos) {
   let conDato = 0;
   let total = 0;
   for (const h of pool) {
-    const fila = lookup(counters, h.name) ?? {};
     for (const e of candidatos ?? []) {
+      // Un héroe contra sí mismo no es un cruce que falte: no existe. Contarlo
+      // dejaba la cobertura en el 99.2% con la matriz COMPLETA, y eso, leído en
+      // el móvil, parece que falta algo cuando no falta nada.
+      if (normName(h.name) === normName(e.name)) continue;
       total++;
       if (matchup(counters, h.name, e.name) != null) conDato++;
     }

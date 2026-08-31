@@ -286,7 +286,7 @@ export function runSelfTest({ catalog, meta, metaCtx, allHeroes, roamPool, maste
 
   // ---------- partidas apuntadas ----------
   seccion('TUS PARTIDAS');
-  const reg = resumen(partidas);
+  const reg = resumen(partidas, mastery);
   lineas.push(env.sinDatosPersonales
     ? 'Sin acceso: las partidas viven en el móvil'
     : `Apuntadas: ${reg.total}`);
@@ -295,13 +295,28 @@ export function runSelfTest({ catalog, meta, metaCtx, allHeroes, roamPool, maste
     lineas.push(`Siguiendo la recomendación: ${reg.siguiendo} · ganadas ${pct(reg.wrSiguiendo)}`);
     lineas.push(`Por libre: ${reg.porLibre} · ganadas ${pct(reg.wrPorLibre)}`);
   }
-  // Una línea, NO un aviso. No hay nada que arreglar: es que aún no has jugado
-  // bastante. Un aviso encendido de forma permanente deja de avisar, que es el
-  // error que ya tenía el umbral de cobertura de counters.
+  // Todo esto son LÍNEAS, no avisos. No hay nada que arreglar: es que aún no
+  // has jugado bastante. Un aviso encendido de forma permanente deja de avisar,
+  // que es el error que ya tenía el umbral de cobertura de counters.
   if (!env.sinDatosPersonales) {
     lineas.push(reg.concluyente
-      ? `Hay muestra para comparar los dos winrates (${MINIMO_PARA_CONCLUIR}+ de cada tipo)`
-      : `Faltan ${reg.faltan} para poder comparar: hasta entonces, no toques los pesos`);
+      ? `Siguiendo/por libre: hay muestra en las dos ramas (${MINIMO_PARA_CONCLUIR}+ de cada)`
+      : `Siguiendo/por libre: faltan ${reg.faltan}, y la rama "por libre" solo crece si ignoras la app a propósito`);
+
+    // La comparación que SÍ se puede llenar jugando: contra tu winrate de
+    // siempre, que ya son miles de partidas. La otra pide que juegues peor 28
+    // veces para completar la muestra, y eso no va a pasar.
+    if (reg.contraReferencia) {
+      const c = reg.contraReferencia;
+      const signo = c.dif >= 0 ? '+' : '';
+      lineas.push(`Contra tu winrate de siempre (${(c.base * 100).toFixed(1)}% en ${c.partidasBase} partidas): `
+        + `${signo}${(c.dif * 100).toFixed(1)} puntos ± ${(c.margen * 100).toFixed(1)}`);
+      lineas.push(c.seVe
+        ? 'Esa diferencia ya se distingue del azar'
+        : `Aún no se distingue del azar: harían falta ~${c.faltan} partidas más siguiendo la app`);
+    } else if (reg.siguiendo < 5 && !reg.referencia) {
+      lineas.push('Sin maestría apuntada no hay contra qué comparar: rellena "Tu maestría"');
+    }
   }
 
   // ---------- autonomía ----------
