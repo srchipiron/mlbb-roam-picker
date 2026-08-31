@@ -1818,6 +1818,43 @@ test('los motivos que se ensenan estan respaldados por el dato', async () => {
   ok(sinDato.reasons.some((r) => r.good), 'un heroe recien salido se queda sin ningun motivo');
 });
 
+test('el analisis avisa del peor cruce del draft cuando el dato lo dice', async () => {
+  const { analizarDraft } = await import('../src/engine/analisis.js');
+  const { CRUCE_MALO } = await import('../src/engine/score.js');
+
+  // Lo destapo una partida perdida: la app tenia el dato de que ese pick perdia
+  // un cruce importante y NO lo decia en el analisis, solo como etiqueta
+  // pequena en la tarjeta. El umbral exigia bajar de 0.47, que es el percentil
+  // 1,6% de los cruces reales: con un draft completo el analisis sacaba UNA
+  // frase.
+  const yo = { name: 'Minotaur', tags: ['tanky', 'engage', 'cc_hard'], roam: true };
+  const malo = { name: 'Ixia', tags: ['poke'] };
+  const neutro = { name: 'Vale', tags: ['burst'] };
+  const ranked = [{ hero: yo, score: 0.7 }, { hero: { name: 'Atlas', tags: [] }, score: 0.6 }];
+
+  // Un cruce en la cola mala (p10) tiene que avisar.
+  const avisa = analizarDraft({
+    ranked, enemies: [malo, neutro], allies: [], empate: [], linea: 'roam',
+    meta: { counters: indexByName({ Minotaur: { Ixia: CRUCE_MALO - 0.002, Vale: 0.505 } }, 2) },
+  });
+  ok(avisa.some((f) => f.clave === 'analisis.cuidadoCon' && f.params?.e === 'Ixia'),
+    `no avisa de un cruce en el 10% peor: ${JSON.stringify(avisa)}`);
+
+  // Y uno normal, no: si avisara de todo, dejaria de leerse.
+  const calla = analizarDraft({
+    ranked, enemies: [neutro], allies: [], empate: [], linea: 'roam',
+    meta: { counters: indexByName({ Minotaur: { Vale: 0.497 } }, 2) },
+  });
+  ok(!calla.some((f) => f.clave === 'analisis.cuidadoCon'),
+    'avisa de un cruce que esta dentro de lo normal');
+
+  // El umbral es el MISMO que usa el motor para las tarjetas: si se separan,
+  // la etiqueta y el analisis dicen cosas distintas del mismo cruce.
+  const analisis = readFileSync(resolve(ROOT, 'src/engine/analisis.js'), 'utf8');
+  ok(/CRUCE_MALO/.test(analisis),
+    'el analisis tiene su propio umbral: acabara diciendo algo distinto que la tarjeta');
+});
+
 test('el umbral de "ganas el cruce" sale de la distribucion, no de una intuicion', async () => {
   const { CRUCE_DESTACABLE, CRUCE_MALO, indexByName, matchup } = await import('../src/engine/score.js');
   const meta = JSON.parse(readFileSync(resolve(ROOT, 'public/data/roam-meta.json'), 'utf8'));

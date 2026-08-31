@@ -8,6 +8,26 @@ que esto no se olvida.
 Criterio: `0.X.0` cuando cambia cómo decide la app o qué hace; `0.0.X` para
 correcciones.
 
+## 1.19.0
+
+**El análisis del draft estaba casi mudo, y era el mismo fallo de calibración.**
+Lo destapó una partida perdida con Minotauro: la app sabía que ese pick perdía el
+cruce contra Ixia —lo ponía en rojo en la tarjeta— pero el análisis de arriba,
+que es lo primero que lees, no decía nada. Con un draft completo, cinco enemigos
+y cuatro aliados, salía **una sola frase**.
+
+La causa: para avisar de «cuidado con X» exigía un cruce por debajo del 47%, que
+es el **percentil 1,6%** de los cruces reales. Prácticamente nunca se cumplía.
+Ahora usa el mismo umbral calibrado que las tarjetas (el 10% de cruces más
+marcados), así que el análisis y la tarjeta dicen lo mismo del mismo cruce.
+
+Medido en 400 drafts con rival marcado:
+
+- «Cuidado con X, es tu peor cruce» pasa de salir **5 veces a 35**.
+- «Ganas el cruce contra tu rival» pasa de **68 a 205** — y desplaza a la frase
+  que solo comparaba winrates globales, porque el cruce es mejor dato.
+- Drafts sin ninguna frase: del **13% al 7%**.
+
 ## 1.18.0
 
 **Arreglado un acantilado en «tu nivel».** Buscando por qué la app te había

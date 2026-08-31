@@ -1,4 +1,4 @@
-import { normName, matchup, perfilDeDano, tapaElHueco } from './score.js';
+import { normName, matchup, perfilDeDano, tapaElHueco, CRUCE_MALO } from './score.js';
 import { TEAM_NEEDS } from './rules.js';
 
 /**
@@ -13,8 +13,19 @@ import { TEAM_NEEDS } from './rules.js';
  * calla: una frase inventada en 30 segundos de draft es peor que ninguna.
  */
 
-/** Umbral a partir del cual un matchup deja de ser ruido y merece mencionarse. */
-const MATCHUP_CLARO = 0.03;
+/**
+ * Umbral a partir del cual un cruce deja de ser ruido y merece mencionarse.
+ *
+ * Sale de la distribución REAL de los 17.556 cruces, no de una intuición: es la
+ * misma cola (p90/p10) que usa el motor para decir "ganas el cruce". Estuvo en
+ * 0.03 —o sea, exigir bajar de 0.47— que es el percentil 1,6%: con eso el
+ * análisis enmudecía justo cuando más información había. Un draft completo, con
+ * cinco enemigos y cuatro aliados, producía UNA frase.
+ *
+ * Lo destapó una partida perdida: la app tenía el dato de que ese pick perdía un
+ * cruce importante y no lo dijo en el análisis, solo como etiqueta pequeña.
+ */
+const MATCHUP_CLARO = 0.5 - CRUCE_MALO;
 
 const lookup = (map, name) => (map ? map[normName(name)] ?? map[name] : undefined);
 
