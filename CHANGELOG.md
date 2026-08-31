@@ -8,6 +8,35 @@ que esto no se olvida.
 Criterio: `0.X.0` cuando cambia cómo decide la app o qué hace; `0.0.X` para
 correcciones.
 
+## 1.10.0
+
+Repaso estadístico a "Tu maestría", que desde 1.9.0 pesa más porque las
+partidas apuntadas también la alimentan. Dos cosas estaban mal.
+
+- **Tu maestría se mide contra TU nivel, no contra el 50%.** Ganas el 53,4% de
+  tus partidas. Un héroe jugado a esa media exacta no es mejor que uno que no
+  has tocado nunca: es exactamente lo tuyo. Pues puntuaba 0,64 contra 0,50, o
+  sea que la app **premiaba tener datos apuntados** en vez de ser bueno con el
+  héroe. Y un héroe al 50%, que para ti es de los peores, salía neutro. Ahora
+  por encima de lo tuyo sube, por debajo baja, y a tu media empata con un héroe
+  desconocido.
+- **Cuánto se fía de pocas partidas ya no es un número inventado.** Cinco
+  partidas al 90% puntuaban 0,87, casi el tope: cualquier racha de dos tardes
+  te reordenaba las recomendaciones. El valor que había equivalía a suponer que
+  tu winrate varía ±11 puntos entre héroes — o sea, del 42% al 64%. Ahora se
+  **mide de tus propios datos**: cuánto varía de verdad tu winrate de un héroe a
+  otro, descontando lo que explica el azar. Con una maestría como la tuya sale
+  ±4 puntos. Cinco partidas al 90% ahora puntúan 0,56, y cuatrocientas siguen
+  puntuando alto.
+- **La cuenta de "partidas que faltan" pedía casi cuatro veces de más.** Usaba
+  la fórmula de comparar dos muestras, cuando lo que se compara es una muestra
+  contra tu winrate de siempre — que sale de miles de partidas y no hay que
+  pagarlo dos veces. Decía 178 donde son **39**.
+
+En 2.500 drafts simulados esto cambia el héroe recomendado en el 21,8% de los
+casos, y hace la app **menos** repetitiva: el héroe más frecuente baja del 15,8%
+al 12,3%.
+
 ## 1.9.0
 
 - **Botón "Partidas": ves todas las que llevas apuntadas.** Con su fecha, el

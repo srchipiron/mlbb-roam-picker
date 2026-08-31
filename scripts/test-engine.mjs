@@ -1292,7 +1292,25 @@ test('el registro compara contra tu winrate de siempre, no solo contra la otra r
   const poco = resumen(jugadas(11, 8), maestria);
   ok(poco.contraReferencia, 'no compara contra la referencia teniendo maestria');
   ok(!poco.contraReferencia.seVe, 'da por buena una diferencia de 11 partidas');
-  ok(poco.contraReferencia.faltan > 50, 'se cree que con cuatro partidas mas basta');
+  ok(poco.contraReferencia.faltan > 20, 'se cree que con cuatro partidas mas basta');
+
+  // Y con 11 partidas GANADAS TODAS, el error no puede salir cero. Con la
+  // formula de Wald -que usa lo observado- p(1-p) seria 0 y diria que se ve
+  // clarisimo con once partidas. Se usa la referencia, no lo observado.
+  const todasGanadas = resumen(jugadas(11, 11), maestria);
+  ok(todasGanadas.contraReferencia.margen > 0.15,
+    `con 11 partidas el margen no puede ser ${todasGanadas.contraReferencia.margen}`);
+
+  // La cuenta de partidas que faltan es la de UNA muestra contra una
+  // referencia conocida, no la de dos muestras: la referencia son miles de
+  // partidas y su error propio es despreciable. Con la formula equivocada
+  // pedia casi cuatro veces mas.
+  const esperado = Math.ceil(
+    ((1.96 * Math.sqrt(0.534 * 0.466) + 0.84 * Math.sqrt((8 / 11) * (3 / 11))) ** 2)
+    / ((8 / 11 - ref.winRate) ** 2),
+  ) - 11;
+  ok(Math.abs(poco.contraReferencia.faltan - esperado) <= 2,
+    `la cuenta de potencia no cuadra: dice ${poco.contraReferencia.faltan}, deberia rondar ${esperado}`);
 
   // Con mucha muestra y una diferencia grande, tiene que verse.
   const mucho = resumen(jugadas(400, 300), maestria);
@@ -1406,6 +1424,61 @@ test('las partidas viejas personalizan pero NO ensucian la comparacion', async (
   eq(quitadas.length, ps.length - 1, 'no quita la partida');
   ok(!quitadas.some((p) => p.t === unaSeguida.t), 'la partida quitada sigue ahi');
   eq(olvidar(ps, 'no-existe').length, ps.length, 'quita algo cuando no deberia');
+});
+
+test('la maestria se mide contra TU nivel, no contra el 50%', async () => {
+  const { masteryScore, tuNivel } = await import('../src/engine/score.js');
+
+  // Javi gana el 53.4% de sus partidas. Un heroe jugado a esa media exacta no
+  // es mejor que uno que no ha tocado nunca: es EXACTAMENTE su nivel. Con la
+  // escala centrada en 0.50 puntuaba 0.64 contra 0.50, o sea que la app
+  // premiaba tener datos apuntados en vez de ser bueno con el heroe.
+  const suya = { A: { games: 3821, winRate: 0.54 }, B: { games: 900, winRate: 0.51 } };
+  const nivel = tuNivel(suya);
+  ok(Math.abs(nivel - 0.534) < 0.002, `su nivel deberia rondar el 53.4%, sale ${nivel}`);
+
+  const conNivel = (wr, games) => masteryScore({ name: 'X' }, { ...suya, X: { games, winRate: wr } }).value;
+  const sinDatos = masteryScore({ name: 'Z' }, suya).value;
+  eq(sinDatos, 0.5, 'un heroe sin datos tuyos deberia salir neutro');
+
+  ok(Math.abs(conNivel(nivel, 500) - 0.5) < 0.02,
+    `a tu media exacta deberia empatar con un heroe desconocido, sale ${conNivel(nivel, 500)}`);
+  ok(conNivel(0.50, 500) < 0.45, 'un heroe al 50% deberia salir POR DEBAJO para un jugador del 53.4%');
+  ok(conNivel(0.60, 500) > 0.7, 'un heroe muy por encima de tu nivel deberia destacar');
+
+  // Y con pocas partidas se encoge hacia TU nivel, no hacia el 50%. Cuanto se
+  // encoge NO es un numero suelto: el prior sale de 0.25/σ², con σ medida de la
+  // dispersion real entre tus heroes. Con el valor viejo (20) cinco partidas al
+  // 90% puntuaban 0.87, casi el tope.
+  ok(conNivel(0.90, 2) < 0.58, `dos partidas ganadas no pueden disparar la nota: ${conNivel(0.90, 2)}`);
+  ok(conNivel(0.90, 5) < 0.62, `cinco partidas al 90% no pueden disparar la nota: ${conNivel(0.90, 5)}`);
+  ok(conNivel(0.90, 400) > 0.9, 'con muchisimas partidas al 90% la nota SI tiene que subir');
+
+  // Sin apenas partidas apuntadas no se puede deducir tu nivel: se usa 0.50,
+  // que es lo que hacia la app antes. Si no, con dos partidas tu "nivel" seria
+  // 0% o 100% y arrastraria todo lo demas.
+  eq(tuNivel({ A: { games: 2, winRate: 1 } }), 0.5, 'se cree un nivel sacado de dos partidas');
+  eq(tuNivel({}), 0.5, 'se inventa un nivel sin datos');
+});
+
+test('el encogimiento de la maestria sale de la dispersion medida', async () => {
+  const { priorDeMaestria } = await import('../src/engine/score.js');
+
+  // k = 0.25 / σ², con σ = lo que de verdad varia tu winrate entre heroes.
+  // Un jugador MUY parejo (todos sus heroes casi igual) tiene que encogerse
+  // mas; uno con heroes muy dispares, menos.
+  const parejo = Object.fromEntries(Array.from({ length: 8 }, (_, i) => [
+    `H${i}`, { games: 800, winRate: 0.53 + (i % 2 ? 0.005 : -0.005) }]));
+  const dispar = Object.fromEntries(Array.from({ length: 8 }, (_, i) => [
+    `H${i}`, { games: 800, winRate: 0.53 + (i % 2 ? 0.07 : -0.07) }]));
+  ok(priorDeMaestria(parejo) > priorDeMaestria(dispar),
+    'un jugador parejo deberia encogerse MAS que uno con heroes muy dispares');
+
+  // Y con topes: sin datos suficientes no se puede medir nada, y un caso
+  // extremo no puede dar un prior absurdo.
+  const k = priorDeMaestria({ A: { games: 500, winRate: 0.9 } });
+  ok(k >= 0.25 / 0.08 ** 2 && k <= 0.25 / 0.02 ** 2, `prior fuera de los topes: ${k}`);
+  ok(Number.isFinite(priorDeMaestria({})), 'sin datos deberia dar un prior por defecto');
 });
 
 await Promise.all(pendientes); // se esperan de verdad, sin plazos inventados

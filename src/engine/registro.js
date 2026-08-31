@@ -100,15 +100,31 @@ export function winrateDeReferencia(maestria = {}) {
 }
 
 /**
- * Cuántas partidas más harían falta para distinguir del azar una diferencia
- * como la que se está viendo. No es un umbral inventado: sale del tamaño del
- * efecto observado.
+ * Cuántas partidas harían falta en total para distinguir del azar una
+ * diferencia como la que se está viendo. No es un umbral inventado: sale del
+ * tamaño del efecto observado.
+ *
+ * Es una comparación de UNA muestra contra una referencia CONOCIDA: tu winrate
+ * de siempre sale de miles de partidas, así que su propio error es
+ * despreciable y no hay que pagarlo dos veces.
+ *
+ *   n = [z(α/2)·√(p0(1-p0)) + z(β)·√(p1(1-p1))]² / (p1-p0)²
+ *
+ * al 5% y 80% de potencia (z = 1.96 y 0.84).
+ *
+ * La primera versión usaba la fórmula de DOS muestras y encima con el
+ * coeficiente doblado: pedía 189 partidas donde hacen falta 50, casi cuatro
+ * veces más. Que en algo pensado para animarte a apuntar partidas es
+ * justamente el error que peor sienta.
  */
+const Z_ALFA = 1.96;
+const Z_POTENCIA = 0.84;
+
 function partidasNecesarias(p, base) {
   const dif = Math.abs(p - base);
   if (!(dif > 0)) return Infinity;
-  // n por grupo para 80% de potencia al 5%, aproximación normal habitual.
-  return Math.ceil(15.7 * (p * (1 - p) + base * (1 - base)) / (dif * dif));
+  const t = Z_ALFA * Math.sqrt(base * (1 - base)) + Z_POTENCIA * Math.sqrt(p * (1 - p));
+  return Math.ceil((t * t) / (dif * dif));
 }
 
 /**
@@ -140,7 +156,12 @@ export function resumen(partidas = [], maestria = {}) {
 
   let contraReferencia = null;
   if (wrSiguiendo != null && referencia && con.length >= 5) {
-    const se = Math.sqrt(wrSiguiendo * (1 - wrSiguiendo) / con.length);
+    // El error se calcula con la referencia, no con lo observado: es la prueba
+    // de puntuación, que con pocas partidas se comporta mejor que la de Wald
+    // -con 11 partidas al 100%, Wald daría un error de CERO y diría que se ve
+    // clarísimo-.
+    const p0 = referencia.winRate;
+    const se = Math.sqrt(p0 * (1 - p0) / con.length);
     const dif = wrSiguiendo - referencia.winRate;
     contraReferencia = {
       base: referencia.winRate,

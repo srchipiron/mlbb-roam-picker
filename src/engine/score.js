@@ -392,12 +392,89 @@ export function compScore(roamHero, allies) {
   };
 }
 
-/** Tu winrate personal, encogido con fuerza si llevas pocas partidas. */
-export function masteryScore(roamHero, mastery) {
+/**
+ * Tu winrate de siempre, ponderado por partidas.
+ *
+ * Hace falta un mínimo para creérselo: con dos partidas, tu "nivel" sería 0% o
+ * 100% y arrastraría todo lo demás. Por debajo de ese mínimo se usa el 50%,
+ * que es lo mismo que hacía la app antes de tener esto.
+ */
+const PARTIDAS_PARA_TU_NIVEL = 100;
+
+export function tuNivel(mastery = {}) {
+  let partidas = 0;
+  let ganadas = 0;
+  for (const m of Object.values(mastery ?? {})) {
+    if (!(m?.games > 0) || m.winRate == null) continue;
+    partidas += m.games;
+    ganadas += m.winRate * m.games;
+  }
+  return partidas >= PARTIDAS_PARA_TU_NIVEL ? ganadas / partidas : 0.5;
+}
+
+/**
+ * Tu winrate personal con ese héroe, encogido si llevas pocas partidas.
+ *
+ * OJO con la referencia: se encoge hacia TU NIVEL, no hacia el 50%, y la escala
+ * va centrada en tu nivel. Antes iba centrada en 0.50, y eso metía un sesgo que
+ * NO es el que esta función dice medir: para alguien que gana el 53,4% de sus
+ * partidas, un héroe jugado a su media exacta puntuaba 0.64 y uno que no ha
+ * tocado nunca, 0.50. O sea que premiaba TENER DATOS, no ser bueno con el
+ * héroe. Y un héroe al 50%, que para él es de los peores, salía neutro.
+ *
+ * Centrado en tu nivel: por encima de lo tuyo sube, por debajo baja, y a tu
+ * media exacta empata con un héroe del que no se sabe nada. Que es justo lo que
+ * la función dice que mide.
+ */
+/**
+ * Cuánto encoger un winrate personal hacia tu nivel, en partidas de prior.
+ *
+ * No es un número suelto: en un encogimiento bayesiano el peso del prior es
+ *
+ *     k = varianza de muestreo / varianza REAL entre héroes = 0.25 / σ²
+ *
+ * donde σ es lo que de verdad varía tu winrate de un héroe a otro. Y eso se
+ * puede MEDIR de tus propias partidas: la dispersión que se observa entre tus
+ * héroes menos la que explica el propio muestreo.
+ *
+ * El valor que había, 20, equivale a suponer σ = ±11 puntos: que tu winrate va
+ * del 42% al 64% según el héroe. No es creíble, y salía caro: cinco partidas
+ * al 90% puntuaban 0.87, casi el tope.
+ *
+ * Los límites están para que un jugador con pocos datos no acabe con un prior
+ * absurdo en ninguno de los dos sentidos.
+ */
+const SIGMA_MINIMA = 0.02;
+const SIGMA_MAXIMA = 0.08;
+/** Con menos de esto no se puede medir la dispersión: se usa ±4 puntos. */
+const HEROES_PARA_MEDIR_DISPERSION = 5;
+const SIGMA_POR_DEFECTO = 0.04;
+
+export function priorDeMaestria(mastery = {}, nivel) {
+  const base = nivel ?? tuNivel(mastery);
+  const suyos = Object.values(mastery ?? {}).filter((m) => m?.games >= 30 && m.winRate != null);
+
+  let sigma = SIGMA_POR_DEFECTO;
+  if (suyos.length >= HEROES_PARA_MEDIR_DISPERSION) {
+    const n = suyos.length;
+    const observada = suyos.reduce((s, m) => s + (m.winRate - base) ** 2, 0) / n;
+    // Lo que explica el propio muestreo. Lo que sobra es variación de verdad.
+    const porMuestreo = suyos.reduce((s, m) => s + 0.25 / m.games, 0) / n;
+    const real = observada - porMuestreo;
+    if (real > 0) sigma = Math.sqrt(real);
+  }
+  sigma = Math.max(SIGMA_MINIMA, Math.min(SIGMA_MAXIMA, sigma));
+  return 0.25 / (sigma * sigma);
+}
+
+export function masteryScore(roamHero, mastery, nivel, prior) {
   const m = lookup(mastery, roamHero.name) ?? mastery?.[roamHero.name];
   if (!m || !m.games) return { value: 0.5, reasons: [] };
-  const shrunk = (m.winRate * m.games + 0.5 * MASTERY_CONFIDENCE_GAMES) / (m.games + MASTERY_CONFIDENCE_GAMES);
-  const value = clamp01((shrunk - 0.40) / 0.20);
+  const base = nivel ?? tuNivel(mastery);
+  const k = prior ?? priorDeMaestria(mastery, base);
+  const shrunk = (m.winRate * m.games + base * k) / (m.games + k);
+  // Mismo ancho de siempre (±10 puntos), pero alrededor de tu nivel.
+  const value = clamp01((shrunk - (base - 0.10)) / 0.20);
   const reasons = [];
   if (m.games >= MASTERY_CONFIDENCE_GAMES && m.winRate >= 0.55) {
     reasons.push({ clave: 'regla.maestriaBuena', params: { pct: Math.round(m.winRate * 100), n: m.games }, good: true, w: 1.4 });
@@ -420,7 +497,7 @@ export function scoreHero(roamHero, ctx) {
     counter: counterScore(roamHero, enemies, meta.counters, ctx.enemyRoam, meta.stats),
     synergy: synergyScore(roamHero, allies, meta.synergies),
     comp: compScore(roamHero, allies),
-    mastery: masteryScore(roamHero, mastery),
+    mastery: masteryScore(roamHero, mastery, ctx.nivel, ctx.priorMaestria),
   };
 
   const total = Object.entries(weights).reduce(

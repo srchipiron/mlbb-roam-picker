@@ -20,7 +20,7 @@ comprobaciones automáticas importan más de lo normal.
 
 ## Reglas de trabajo
 
-**Nunca subas nada sin pasar `npm test`.** Son cuatro comprobaciones y 58
+**Nunca subas nada sin pasar `npm test`.** Son cuatro comprobaciones y 60
 pruebas (orden de declaraciones, CSS, versión documentada y motor). El
 despliegue corre esas cuatro más dos que no están en `npm test`: que la corrida
 nueva no resuelva menos que la guardada (`comparar-ingesta.mjs`), y que los
@@ -166,6 +166,23 @@ Todos estos llegaron a producción y costaron rondas enteras de ida y vuelta:
   la que más pares trae. Si añades un objetivo a `WANTED`, recoge TODOS los
   candidatos de todos los patrones, no solo los del primero que acierte: por
   cortar ahí, la ruta de `teammates` no llegaba a compararse nunca.
+- **La maestría medida contra el 50% en vez de contra TU nivel** — `masteryScore`
+  encogía hacia 0.50 y centraba la escala en 0.50. Para un jugador del 53,4%,
+  un héroe jugado a su media exacta puntuaba 0.64 y uno sin tocar, 0.50: la app
+  premiaba TENER DATOS, no ser bueno con el héroe. Hoy `tuNivel` saca su media
+  ponderada y todo va centrado ahí. Si añades algo que compare winrates
+  personales, compáralo contra su nivel, nunca contra 0.50.
+- **Un prior de encogimiento puesto a ojo** — `MASTERY_CONFIDENCE_GAMES = 20`
+  equivalía a suponer que su winrate varía ±11 puntos entre héroes (del 42% al
+  64%). En un encogimiento bayesiano el prior NO es libre: `k = 0.25/σ²`, con σ
+  la dispersión real. Hoy `priorDeMaestria` la mide de sus propios datos
+  descontando la varianza de muestreo; sale ±4 puntos, o sea k≈156. Con 20,
+  cinco partidas al 90% puntuaban 0.87.
+- **Una cuenta de potencia con la fórmula equivocada** — "faltan N partidas"
+  usaba la de dos muestras y con el coeficiente doblado, y pedía 178 donde son
+  39. Se compara UNA muestra contra una referencia conocida (miles de partidas),
+  así que su error no se paga dos veces. Y el error tipico va con la referencia,
+  no con lo observado: con 11 partidas ganadas todas, Wald da error CERO.
 - **Constantes calibradas contra una suposición, no contra el dato** — la
   confianza en un cruce se encogía con `pickRate/(pickRate+0.004)`, y ese 0.004
   salía de dar por hecho que el dato venía de unos pocos miles de partidas.
