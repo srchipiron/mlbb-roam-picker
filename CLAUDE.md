@@ -399,6 +399,19 @@ hay red no avisa: no poder preguntarlo no es un problema. NO lo metas en la
 precarga ni bajo `/data/`, o se serviría de caché y diría siempre que estás al
 día, que es peor que no comprobarlo.
 
+Desde 1.15.0 además se actualiza sola: la app pregunta al volver a primer plano
+y **se recarga cuando el worker nuevo toma el control** (`controllerchange`).
+Ese es el mecanismo imprescindible —comprobado en un navegador de verdad,
+publicando una versión nueva con la pestaña abierta: quitándolo, no se
+actualiza—. El `visibilitychange` es el refuerzo para cuando la pestaña lleva
+horas dormida y el navegador no comprueba por su cuenta; en la prueba no se
+distingue, porque ahí el navegador ya revalida solo. La recarga lleva pestillo:
+sin él, un navegador que reinstale el worker podría dejarla en bucle.
+
+Recargar es seguro porque el draft, la maestría y las partidas se guardan en
+`localStorage` en cada cambio. Si algún día se añade estado que NO se guarde,
+esto hay que revisarlo antes.
+
 ## Llevarse los datos a otro dispositivo
 
 `src/engine/perfil.js`. El almacenamiento del navegador va por dispositivo, así

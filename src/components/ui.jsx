@@ -4,6 +4,7 @@ import { recogerPerfil, exportarPerfil, leerPerfil, fundirPerfil } from '../engi
 import { esPrevia, siguioConsejo } from '../engine/registro.js';
 import { buildsDe, objetosDe, ajustesDeBuild } from '../engine/builds.js';
 import { crearT } from '../i18n.js';
+import { titular } from '../engine/selftest.js';
 
 // Traductor por defecto para los componentes que no reciben uno. La app le pasa
 // el suyo; esto solo evita que un olvido deje la pantalla en blanco.
@@ -453,7 +454,7 @@ export function SelfTest({ resultado, onClose }) {
     const duenno = window.location.hostname.split('.')[0];
     const repo = window.location.pathname.split('/').filter(Boolean)[0] ?? 'mlbb-roam-picker';
     const url = new URL(`https://github.com/${duenno}/${repo}/issues/new`);
-    url.searchParams.set('title', `Diagnóstico ${new Date().toLocaleDateString('es-ES')}: ${resultado.fallos ? `${resultado.fallos} fallos` : `${resultado.avisos} avisos`}`);
+    url.searchParams.set('title', `Diagnóstico ${new Date().toLocaleDateString('es-ES')}: ${titular(resultado.fallos, resultado.avisos)}`);
     url.searchParams.set('labels', 'diagnostico');
     url.searchParams.set('body', `Enviado desde el móvil con el botón Diagnóstico.\n\n\`\`\`\n${resultado.texto}\n\`\`\``);
     window.open(url.toString(), '_blank', 'noopener');
@@ -462,9 +463,10 @@ export function SelfTest({ resultado, onClose }) {
   return (
     <div className="sheet" role="dialog" aria-label="Diagnóstico">
       <div className="sheet-head">
+        {/* El mismo titular que el texto, para que la cabecera y lo que copias
+            digan lo mismo. Antes ponía "Todo correcto · 1 avisos". */}
         <strong style={{ flex: 1, alignSelf: 'center' }}>
-          {resultado.fallos ? `${resultado.fallos} fallos` : 'Todo correcto'}
-          {resultado.avisos ? ` · ${resultado.avisos} avisos` : ''}
+          {titular(resultado.fallos, resultado.avisos)}
         </strong>
         {navigator.share && <button className="close" onClick={compartir}>Enviar</button>}
         <button className="close" onClick={aGitHub}>A GitHub</button>
