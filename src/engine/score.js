@@ -21,6 +21,24 @@ const PRECISION_DEDUCIDA = 0.67;
 const SUB_MAX = 1.85;
 
 /**
+ * Desde qué cruce merece la pena decir "ganas" o "pierdes" este enfrentamiento.
+ *
+ * Medido sobre los 17.556 cruces reales, no supuesto: la distribución es MUY
+ * estrecha (p10 0.4846, mediana 0.5000, p90 0.5154). El umbral anterior era
+ * 0.53, que es el percentil 99: solo lo alcanzaba el 1,6% de los cruces, así
+ * que el motivo respaldado por datos casi nunca salía y en su lugar se leían
+ * los de los tags, que es lo que la app tenía peor fundado.
+ *
+ * Con el p90/p10 el motivo sale para el 10% de cruces más marcados de cada
+ * lado, que es justo lo que significa "este cruce destaca".
+ *
+ * Si cambias de fuente de datos, vuelve a medir la distribución: este número no
+ * es una opinión sobre qué winrate es "bueno", es dónde está la cola.
+ */
+export const CRUCE_DESTACABLE = 0.5154;
+export const CRUCE_MALO = 0.4846;
+
+/**
  * Lo que vale tapar el lado de daño que le falta al equipo, en la misma escala
  * que TEAM_NEEDS (engage 1.0, cc_hard 0.9, peel 0.8).
  *
@@ -218,13 +236,26 @@ export function counterScore(roamHero, enemies, counterMatrix, enemyRoamName = n
     const peso = enemyRoamName && normName(enemy.name) === normName(enemyRoamName) ? 2 : 1;
     pesoTotal += peso;
 
-    const porTags = ventajaPorTags(roamHero, enemy, reasons);
+    // Los motivos por tag se recogen aparte para poder CONTRASTARLOS con el
+    // dato antes de enseñarlos. Medir las once reglas por héroe dice que la
+    // etiqueta casi nunca predice el efecto que afirma: de los nueve héroes
+    // con `anti_mobility` solo Phoveus estorba de verdad a los móviles, y de
+    // los veinticinco con `engage` ninguno gana significativamente a los
+    // inmóviles. Enseñar "bloquea los dashes de X" cuando el cruce real dice
+    // que pierdes es explicar mal una decisión que se tomó bien.
+    const porTag = [];
+    const porTags = ventajaPorTags(roamHero, enemy, porTag);
     const pair = matchup(counterMatrix, roamHero.name, enemy.name);
 
     if (pair == null) {
+      // Sin dato del cruce, la regla es lo único que hay y para eso está.
+      reasons.push(...porTag);
       total += porTags * peso;
       continue;
     }
+    // Con dato: la regla explica el PORQUÉ y el cruce dice si es verdad. Solo
+    // se enseña la que va en el mismo sentido que el dato.
+    reasons.push(...porTag.filter((r) => (r.good ? pair >= 0.5 : pair <= 0.5)));
 
     // pair = winrate de roamHero contra enemy (0..1). 0.50 es neutro.
     // Se encoge hacia el empate según lo jugado que esté el rival: con poca
@@ -238,8 +269,8 @@ export function counterScore(roamHero, enemies, counterMatrix, enemyRoamName = n
     const porDato = clamp01((encogido - 0.44) / 0.12);
     total += porDato * peso;
 
-    if (pair >= 0.53) reasons.push({ clave: 'regla.ganaMatchup', params: { e: enemy.name }, good: true, w: 1.2 });
-    if (pair <= 0.47) reasons.push({ clave: 'regla.pierdeMatchup', params: { e: enemy.name }, good: false, w: 1.3 });
+    if (pair >= CRUCE_DESTACABLE) reasons.push({ clave: 'regla.ganaMatchup', params: { e: enemy.name }, good: true, w: 1.2 });
+    if (pair <= CRUCE_MALO) reasons.push({ clave: 'regla.pierdeMatchup', params: { e: enemy.name }, good: false, w: 1.3 });
   }
 
   return { value: total / pesoTotal, reasons: dedupe(reasons) };

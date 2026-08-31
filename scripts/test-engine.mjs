@@ -1777,6 +1777,60 @@ test('los retratos que la app va a pedir existen de verdad', async () => {
   ok(medio < 60 * 1024, `los retratos pesan ${Math.round(medio / 1024)} KB de media: se ha colado la imagen grande`);
 });
 
+test('los motivos que se ensenan estan respaldados por el dato', async () => {
+  const { counterScore, indexByName, CRUCE_DESTACABLE, CRUCE_MALO } = await import('../src/engine/score.js');
+
+  // Medir las once reglas por heroe dice que la etiqueta casi nunca predice el
+  // efecto que afirma: de los nueve heroes con `anti_mobility` solo Phoveus
+  // estorba de verdad a los moviles. Ensenar "bloquea los dashes de X" cuando
+  // el cruce real dice que pierdes es explicar mal una decision correcta.
+  const yo = { name: 'Khufra', tags: ['anti_mobility', 'engage', 'cc_hard'], roam: true };
+  const enemigo = { name: 'Fanny', tags: ['mobile', 'dash', 'assassin'] };
+
+  // 1. El cruce dice que PIERDES: el motivo por tag no se ensena.
+  const pierde = counterScore(yo, [enemigo], indexByName({ Khufra: { Fanny: 0.44 } }, 2));
+  ok(!pierde.reasons.some((r) => r.good), `ensena una ventaja perdiendo el cruce: ${JSON.stringify(pierde.reasons)}`);
+
+  // 2. El cruce lo respalda: se ensena, y con el dato al lado.
+  const gana = counterScore(yo, [enemigo], indexByName({ Khufra: { Fanny: 0.56 } }, 2));
+  ok(gana.reasons.some((r) => r.good && r.clave.startsWith('regla.') && r.clave !== 'regla.ganaMatchup'),
+    'con el cruce a favor deberia explicar POR QUE, no solo el numero');
+  ok(gana.reasons.some((r) => r.clave === 'regla.ganaMatchup'), 'no dice que gana el cruce');
+
+  // 3. SIN dato del cruce la regla es lo unico que hay, y para eso esta: no se
+  //    puede exigir que el dato la respalde porque no existe.
+  const sinDato = counterScore(yo, [enemigo], indexByName({}, 2));
+  ok(sinDato.reasons.some((r) => r.good), 'un heroe recien salido se queda sin ningun motivo');
+});
+
+test('el umbral de "ganas el cruce" sale de la distribucion, no de una intuicion', async () => {
+  const { CRUCE_DESTACABLE, CRUCE_MALO, indexByName, matchup } = await import('../src/engine/score.js');
+  const meta = JSON.parse(readFileSync(resolve(ROOT, 'public/data/roam-meta.json'), 'utf8'));
+  const C = indexByName(meta.counters, 2);
+  const nombres = (meta.heroes ?? []).map((h) => h.name);
+  if (nombres.length < 100) return;
+
+  const v = [];
+  for (const a of nombres) for (const b of nombres) {
+    if (a === b) continue;
+    const x = matchup(C, a, b);
+    if (x != null) v.push(x);
+  }
+  const porEncima = v.filter((x) => x >= CRUCE_DESTACABLE).length / v.length;
+  const porDebajo = v.filter((x) => x <= CRUCE_MALO).length / v.length;
+
+  // El umbral tiene que caer en la COLA de la distribucion real, no donde a
+  // uno le suene bien. Estuvo en 0.53, que es el percentil 99: el motivo
+  // respaldado por datos salia en el 1,6% de los cruces y en su lugar se leian
+  // los de los tags, que es lo que la app tenia peor fundado.
+  ok(porEncima > 0.04 && porEncima < 0.20,
+    `"ganas el cruce" sale en el ${(porEncima * 100).toFixed(1)}% de los cruces: no esta en la cola`);
+  ok(porDebajo > 0.04 && porDebajo < 0.20,
+    `"pierdes el cruce" sale en el ${(porDebajo * 100).toFixed(1)}% de los cruces: no esta en la cola`);
+  // Y simetricos: no hay razon para avisar mas de lo malo que de lo bueno.
+  ok(Math.abs(porEncima - porDebajo) < 0.03, 'los dos umbrales no cubren la misma cola');
+});
+
 test('el titular del diagnostico no se contradice ni escribe mal el plural', async () => {
   const { titular } = await import('../src/engine/selftest.js');
 
