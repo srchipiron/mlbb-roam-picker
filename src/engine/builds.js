@@ -161,6 +161,36 @@ export function amenazaEnemiga(enemies = []) {
 export const DESEQUILIBRIO = 0.7;
 
 /**
+ * Objetos que solo puede comprar una linea, segun la categoria que les pone la
+ * propia API (`equiptypename`).
+ *
+ * NO es una lista escrita a mano de objetos: es el tipo que trae el dato. Sin
+ * esto, a un roamer se le proponian las botas de JUNGLA -mismo efecto, misma
+ * defensa- que no puede comprar. Salio en la primera prueba contra el sitio
+ * publicado, no en las pruebas del motor: contra tres enemigos con control
+ * duro, los tres objetos propuestos eran de jungla.
+ */
+const TIPO_DE_LINEA = { Jungle: 'jungle', Roam: 'roam' };
+
+/**
+ * Los objetos que ese jugador puede comprar de verdad en su linea.
+ *
+ * Se quitan los de OTRA linea. Los que no son de ninguna (Defense, Magic,
+ * Attack, Movement) valen para todos, y van DELANTE de los que si lo son: entre
+ * unas botas de roam y las mismas botas sin apellido, la version universal dice
+ * lo mismo y no depende de la bendicion que lleves.
+ */
+function usables(equipment, linea) {
+  return Object.entries(equipment ?? {})
+    .map(([id, o]) => ({ id: Number(id), ...o }))
+    .filter((o) => {
+      const suya = TIPO_DE_LINEA[o.tipo];
+      return !suya || suya === linea;
+    })
+    .sort((a, b) => (TIPO_DE_LINEA[a.tipo] ? 1 : 0) - (TIPO_DE_LINEA[b.tipo] ? 1 : 0));
+}
+
+/**
  * Cuantos enemigos con dato hacen falta para hablar de una etiqueta.
  *
  * Uno solo no define un draft: contra UN heroe que cura, la build normal
@@ -188,14 +218,14 @@ export const ENEMIGOS_PARA_HABLAR = 2;
  */
 export const TOPE_AVISOS = 2;
 
-export function ajustesDeBuild(build, equipment, enemies = []) {
+export function ajustesDeBuild(build, equipment, enemies = [], linea = null) {
   const avisos = [];
   const objetos = objetosDe(equipment, build);
   const tiene = (efecto) => objetos.some((o) => o.efectos?.includes(efecto));
 
   // 1. El lado del que te van a pegar. Va primero porque es el que mas
   //    estadistica mueve: son 40-80 puntos de defensa, no un efecto.
-  const defensa = ajusteDefensivo(build, equipment, enemies);
+  const defensa = ajusteDefensivo(build, equipment, enemies, linea);
   if (defensa) {
     avisos.push({
       clave: defensa.lado === 'magica' ? 'build.ajusteMagica' : 'build.ajusteFisica',
@@ -215,7 +245,7 @@ export function ajustesDeBuild(build, equipment, enemies = []) {
     avisos.push({
       clave: 'build.ajusteCuracion',
       params: { n: curan.length, quien: curan.slice(0, 2).map((e) => e.name).join(', ') },
-      objetos: conEfecto(equipment, 'antiCuracion'),
+      objetos: conEfecto(equipment, 'antiCuracion', linea),
       peso: 2,
     });
   }
@@ -227,7 +257,7 @@ export function ajustesDeBuild(build, equipment, enemies = []) {
     avisos.push({
       clave: 'build.ajusteControl',
       params: { n: controlan.length, quien: controlan.slice(0, 2).map((e) => e.name).join(', ') },
-      objetos: conEfecto(equipment, 'cortaControl'),
+      objetos: conEfecto(equipment, 'cortaControl', linea),
       peso: 1,
     });
   }
@@ -257,11 +287,11 @@ function cuentan(heroes) {
  * y, a igualdad, por nombre, para que la lista sea estable entre corridas. Sin
  * un orden fijo, dos recargas de la app propondrian objetos distintos.
  */
-export function conEfecto(equipment, efecto, cuantos = 3) {
-  return Object.entries(equipment ?? {})
-    .map(([id, o]) => ({ id: Number(id), ...o }))
+export function conEfecto(equipment, efecto, linea = null, cuantos = 3) {
+  return usables(equipment, linea)
     .filter((o) => o.efectos?.includes(efecto))
-    .sort((a, b) => ((b.magica ?? 0) + (b.fisica ?? 0)) - ((a.magica ?? 0) + (a.fisica ?? 0))
+    .sort((a, b) => (TIPO_DE_LINEA[a.tipo] ? 1 : 0) - (TIPO_DE_LINEA[b.tipo] ? 1 : 0)
+      || ((b.magica ?? 0) + (b.fisica ?? 0)) - ((a.magica ?? 0) + (a.fisica ?? 0))
       || String(a.nombre).localeCompare(String(b.nombre)))
     .slice(0, cuantos);
 }
@@ -272,7 +302,7 @@ export function conEfecto(equipment, efecto, cuantos = 3) {
  * Devuelve `null` cuando no hay nada que decir: sin dato suficiente, con el
  * dano enemigo repartido, o cuando la build ya lleva defensa de ese lado.
  */
-export function ajusteDefensivo(build, equipment, enemies) {
+export function ajusteDefensivo(build, equipment, enemies, linea = null) {
   const amenaza = amenazaEnemiga(enemies);
   if (!amenaza) return null;
 
@@ -287,7 +317,7 @@ export function ajusteDefensivo(build, equipment, enemies) {
   const yaLoLleva = objetos.some((o) => (o[lado] ?? 0) > 0);
   if (yaLoLleva) return null;
 
-  return { lado, cuotaMagica: amenaza.cuotaMagica, conDato: amenaza.conDato, alternativas: mejoresDefensas(equipment, lado) };
+  return { lado, cuotaMagica: amenaza.cuotaMagica, conDato: amenaza.conDato, alternativas: mejoresDefensas(equipment, lado, linea) };
 }
 
 /**
@@ -306,12 +336,12 @@ export function ajusteDefensivo(build, equipment, enemies) {
  * Si algun dia lo hicieran, el diagnostico lo canta con el recuento de objetos
  * con defensa medida.
  */
-export function mejoresDefensas(equipment, lado, cuantos = 3) {
+export function mejoresDefensas(equipment, lado, linea = null, cuantos = 3) {
   const otro = lado === 'magica' ? 'fisica' : 'magica';
-  return Object.entries(equipment ?? {})
-    .map(([id, o]) => ({ id: Number(id), ...o }))
+  return usables(equipment, linea)
     .filter((o) => (o[lado] ?? 0) > 0 && (o[lado] ?? 0) >= (o[otro] ?? 0))
-    .sort((a, b) => (b[lado] ?? 0) - (a[lado] ?? 0))
+    .sort((a, b) => (TIPO_DE_LINEA[a.tipo] ? 1 : 0) - (TIPO_DE_LINEA[b.tipo] ? 1 : 0)
+      || (b[lado] ?? 0) - (a[lado] ?? 0))
     .slice(0, cuantos);
 }
 

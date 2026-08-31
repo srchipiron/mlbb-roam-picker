@@ -1531,6 +1531,54 @@ test('dos builds que se ven iguales en pantalla se juntan en una', async () => {
   ok(lista.some((b) => b.hechizo === 'Revitalize'), 'se ha perdido la build del otro hechizo');
 });
 
+test('no se proponen objetos que ese jugador no puede comprar', async () => {
+  const { conEfecto, mejoresDefensas, ajustesDeBuild } = await import('../src/engine/builds.js');
+
+  // Salio contra el sitio publicado, no aqui: a un ROAMER con tres enemigos de
+  // control duro se le proponian las tres botas de JUNGLA. Mismo efecto y misma
+  // defensa que las normales, y no puede comprarlas. El tipo lo trae la propia
+  // API, asi que no hace falta ninguna lista escrita a mano.
+  const equipment = {
+    1: { nombre: 'Tough Boots', tipo: 'Movement', magica: 18, efectos: ['cortaControl'] },
+    2: { nombre: "Ice Hunter's Tough Boots", tipo: 'Jungle', magica: 18, efectos: ['cortaControl'] },
+    // A proposito: MAS defensa y un nombre que ordena ANTES que el universal.
+    // Si la prueba no lo hiciera asi, pasaria por suerte del alfabeto aunque se
+    // quitara la regla, que es como ya colaron dos invariantes en su dia.
+    3: { nombre: 'Blessed Tough Boots', tipo: 'Roam', magica: 25, efectos: ['cortaControl'] },
+    4: { nombre: "Athena's Shield", tipo: 'Defense', magica: 48 },
+    5: { nombre: "Ice Hunter's Wings", tipo: 'Jungle', magica: 60 },
+  };
+
+  const paraRoam = conEfecto(equipment, 'cortaControl', 'roam').map((o) => o.nombre);
+  ok(!paraRoam.some((n) => n.includes("Hunter's")), `a un roamer se le proponen objetos de jungla: ${paraRoam}`);
+  const paraMid = conEfecto(equipment, 'cortaControl', 'mid').map((o) => o.nombre);
+  eq(paraMid.length, 1, `a un mid se le proponen objetos de otra linea: ${paraMid}`);
+  eq(paraMid[0], 'Tough Boots', 'el objeto universal deberia ser el primero');
+
+  // Y el de linea propia sirve, pero DETRAS del universal: dice lo mismo y no
+  // depende de la bendicion que lleves.
+  eq(paraRoam[0], 'Tough Boots', `el primero para un roamer deberia ser el universal: ${paraRoam}`);
+  ok(paraRoam.includes('Blessed Tough Boots'), 'las botas de roam deberian seguir valiendo para un roamer');
+
+  // Lo mismo con la defensa: 60 de defensa magica no valen si no puedes
+  // comprar el objeto.
+  const def = mejoresDefensas(equipment, 'magica', 'roam').map((o) => o.nombre);
+  ok(!def.includes("Ice Hunter's Wings"), `propone un objeto de jungla a un roamer: ${def}`);
+  eq(def[0], "Athena's Shield", 'no manda el que mas defensa da de los que si puede comprar');
+  const defJungla = mejoresDefensas(equipment, 'magica', 'jungle').map((o) => o.nombre);
+  ok(defJungla.includes("Ice Hunter's Wings"), 'a un jungla si deberia proponerle el objeto de jungla');
+  // Pero DETRAS del universal, aunque de mas defensa (60 contra 48): el objeto
+  // de linea ata la build a esa bendicion y el universal dice lo mismo.
+  eq(defJungla[0], "Athena's Shield", `el objeto de linea se ha colado delante: ${defJungla}`);
+
+  // Y el aviso completo, con la linea puesta, no cuela ninguno.
+  const mag = (n) => ({ name: n, damage: { fisico: 0, magico: 6 }, tags: [] });
+  const avisos = ajustesDeBuild({ objetos: [] }, equipment, [mag('A'), mag('B')], 'roam');
+  for (const a of avisos) {
+    for (const o of a.objetos) ok(o.tipo !== 'Jungle', `el aviso propone ${o.nombre}, que es de jungla`);
+  }
+});
+
 test('las builds se encuentran aunque el nombre se escriba distinto', async () => {
   const { buildsDe } = await import('../src/engine/builds.js');
 

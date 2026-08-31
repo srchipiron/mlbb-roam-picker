@@ -25,6 +25,9 @@ correcciones.
   - si **dos o más enemigos se curan** y tu build no lleva nada que corte la
     curación, te lo dice y te enseña los objetos que sí la cortan;
   - si **dos o más tienen control duro** y no llevas nada que lo acorte, igual.
+
+  Y solo te propone objetos que **puedes comprar en tu línea**: nada de botas de
+  jungla para un roam.
 - **Y sigue callándose.** Como mucho salen dos avisos, el que más pesa primero,
   y ninguno aparece si la build ya lo cubre o si no hay ningún objeto que
   proponer. Contra un enemigo suelto no dice nada: uno no es una composición.

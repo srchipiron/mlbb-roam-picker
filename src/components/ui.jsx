@@ -752,8 +752,8 @@ export function Build({ hero, linea, builds, equipment, enemies, onClose, t = tP
   const lista = useMemo(() => buildsDe(builds, hero, linea), [builds, hero, linea]);
   const principal = lista[0] ?? null;
   const ajustes = useMemo(
-    () => (principal ? ajustesDeBuild(principal, equipment, enemies) : []),
-    [principal, equipment, enemies],
+    () => (principal ? ajustesDeBuild(principal, equipment, enemies, linea) : []),
+    [principal, equipment, enemies, linea],
   );
   const pct = (n) => (n * 100).toFixed(1);
 
