@@ -8,6 +8,27 @@ que esto no se olvida.
 Criterio: `0.X.0` cuando cambia cómo decide la app o qué hace; `0.0.X` para
 correcciones.
 
+## 1.8.0
+
+- **Tu perfil, para llevarte tus datos a otro dispositivo.** Botón nuevo: te da
+  un código, lo copias del móvil y lo pegas en el ordenador. Y ya tienes allí tu
+  maestría y tus partidas.
+  Sin cuenta, sin contraseña y sin servidor: tus datos caben en el propio código
+  (unos 500 caracteres), así que viajan por donde tú los mandes — un WhatsApp a
+  ti mismo, un correo, lo que sea. Siguen sin pasar por ningún sitio nuestro.
+  **Al traerlos se juntan con lo que ya haya, nunca se sustituye.** Si juegas en
+  los dos sitios, ninguna de las dos copias pierde nada: de cada héroe se queda
+  la versión con más partidas, y las partidas se mezclan sin repetirse. Puedes
+  importar las veces que quieras y en los dos sentidos.
+  Si el código se pega a medias, lo detecta y no importa nada. Eso es a
+  propósito: media importación podría llevarse por delante miles de partidas.
+- **La app guarda un historial de su propia salud.** Cada revisión automática
+  (dos al día y tras cada publicación) anota sus cifras: cobertura, ruido de los
+  datos, cruces de la matriz, edad de los datos, héroes por línea. Un informe
+  suelto dice si hoy está bien; cien informes dicen qué se está moviendo, que es
+  lo que sirve para decidir qué va en la versión siguiente. No lleva nada tuyo:
+  son corridas automáticas contra lo publicado, sin móvil.
+
 ## 1.7.0
 
 - **El Diagnóstico compara tus partidas contra algo alcanzable.** Hasta ahora

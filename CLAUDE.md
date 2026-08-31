@@ -20,7 +20,7 @@ comprobaciones automáticas importan más de lo normal.
 
 ## Reglas de trabajo
 
-**Nunca subas nada sin pasar `npm test`.** Son cuatro comprobaciones y 55
+**Nunca subas nada sin pasar `npm test`.** Son cuatro comprobaciones y 57
 pruebas (orden de declaraciones, CSS, versión documentada y motor). El
 despliegue corre esas cuatro más dos que no están en `npm test`: que la corrida
 nueva no resuelva menos que la guardada (`comparar-ingesta.mjs`), y que los
@@ -247,8 +247,33 @@ En modo automático no hay móvil, así que la maestría y las partidas no se ve
 Esas comprobaciones se apagan con `env.sinDatosPersonales` en vez de convertirse
 en avisos: si no, todos los informes vendrían con avisos y dejaríamos de leerlos.
 
+Cada corrida deja además una fila en `historial/salud.jsonl` con sus cifras
+(cobertura, ruido, cruces, edad de los datos, pools por línea). Un umbral solo
+salta cuando ya es tarde; una serie enseña la pendiente. `node
+scripts/tendencia.mjs` la resume. No lleva nada personal: son corridas
+automáticas contra lo publicado.
+
 `mantenimiento.yml` (lunes) regenera las tablas de deducción y propone el cambio
 en un pull request, y avisa de héroes nuevos SIN inventarles tags.
+
+## Llevarse los datos a otro dispositivo
+
+`src/engine/perfil.js`. El almacenamiento del navegador va por dispositivo, así
+que la maestría no viaja sola. NO se ha montado una base de datos con códigos
+por persona: haría falta un servidor -la app es estática en GitHub Pages-,
+alguien pagándolo, y convertiría a Javi en responsable de datos de otras
+personas. Todo eso para mover kilobyte y medio.
+
+En su lugar, los datos van DENTRO del código: JSON, gzip si el navegador sabe, y
+base64url, con marca de versión delante y suma de control detrás. Unos 500
+caracteres. La promesa de "tus datos no salen de tu móvil" sigue siendo cierta:
+salen porque los saca él.
+
+Al importar se FUNDE, nunca se reemplaza (`fundirPerfil`): de cada héroe gana la
+copia con más partidas y las partidas se juntan sin duplicar. Sin eso, pegar un
+código viejo en el dispositivo bueno borraría la maestría de verdad. Hay una
+prueba que lo comprueba EN LAS DOS DIRECCIONES: la primera versión solo miraba
+la fácil y pasaba aunque se quitara el mecanismo entero.
 
 ## La API
 

@@ -18,7 +18,7 @@ on:
         default: false
 
 permissions:
-  contents: read
+  contents: write   # para poder commitear el historial de salud
   issues: write
 
 # Una vigilancia cada vez: si se solapan, una puede cerrar la incidencia que la
@@ -54,18 +54,48 @@ jobs:
             echo "PRUEBA DE ALARMA: fallo provocado a proposito, la app esta bien" | tee /tmp/diagnostico.txt
             exit 1
           fi
+          # El historial solo se anota en el intento que decide: si se anotara
+          # en los tres, una corrida mala dejaria tres filas iguales y el
+          # fichero contaria mal las veces que ha fallado.
           for intento in 1 2 3; do
-            if node scripts/diagnostico.mjs > /tmp/diagnostico.txt 2>&1; then
+            if [ "$intento" = "3" ]; then H="--historial historial/salud.jsonl"; else H=""; fi
+            if node scripts/diagnostico.mjs $H > /tmp/diagnostico.txt 2>&1; then
               echo "estado=bien" >> "$GITHUB_OUTPUT"
+              [ -z "$H" ] && node scripts/diagnostico.mjs --historial historial/salud.jsonl > /dev/null 2>&1
               cat /tmp/diagnostico.txt
               exit 0
             fi
             echo "intento $intento sin éxito; espero"
-            sleep 45
+            [ "$intento" != "3" ] && sleep 45
           done
           echo "estado=mal" >> "$GITHUB_OUTPUT"
           cat /tmp/diagnostico.txt
           exit 1
+
+      # Cada corrida deja una fila con las cifras. Un informe suelto dice si hoy
+      # esta bien; cien informes dicen QUE SE ESTA MOVIENDO -la cobertura que
+      # baja poco a poco, el ruido que sube, los datos que envejecen porque la
+      # actualizacion lleva dias fallando-. Eso es lo que se puede mirar antes
+      # de decidir que va en la version siguiente.
+      #
+      # Se commitea SIEMPRE, tanto si el diagnostico ha pasado como si no: las
+      # corridas malas son justo las que hay que poder mirar despues.
+      - name: Guardar la fila en el historial
+        if: always()
+        continue-on-error: true
+        run: |
+          if [ -s historial/salud.jsonl ] && ! git diff --quiet -- historial/salud.jsonl; then
+            git config user.name  "vigilancia-bot"
+            git config user.email "vigilancia-bot@users.noreply.github.com"
+            git add historial/salud.jsonl
+            git commit -m "salud: $(date -u +%Y-%m-%dT%H:%MZ)"
+            # Otra corrida puede haber commiteado mientras: se rebasa y se
+            # reintenta en vez de perder la fila.
+            for i in 1 2 3; do
+              git pull --rebase --autostash origin main && git push origin HEAD:main && break
+              sleep 5
+            done
+          fi
 
       - name: Abrir incidencia si algo falla
         if: failure()

@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { filtrarPorNombre } from '../engine/alias.js';
+import { recogerPerfil, exportarPerfil, leerPerfil, fundirPerfil } from '../engine/perfil.js';
 import { crearT } from '../i18n.js';
 
 // Traductor por defecto para los componentes que no reciben uno. La app le pasa
@@ -410,6 +411,89 @@ export function SelfTest({ resultado, onClose }) {
         <button className="close" onClick={onClose}>Cerrar</button>
       </div>
       <pre id="selftest-texto" className="selftest">{resultado.texto}</pre>
+    </div>
+  );
+}
+
+/**
+ * Tu perfil: el código que lleva tus datos a otro dispositivo.
+ *
+ * Sin servidor y sin cuenta. Tus datos son pequeños -once héroes de maestría y
+ * unas partidas- y caben en un texto que copias aquí y pegas allí. Al traerlos
+ * se FUNDEN con lo que ya haya, nunca se sustituye: si juegas en los dos sitios
+ * las copias divergen, y un "pegar y reemplazar" te borraría medio historial.
+ */
+export function Perfil({ datos, onImportar, onClose, t = tPorDefecto }) {
+  const [codigo, setCodigo] = useState('');
+  const [pegado, setPegado] = useState('');
+  const [copiado, setCopiado] = useState(false);
+  const [aviso, setAviso] = useState(null);
+
+  useEffect(() => {
+    let vivo = true;
+    exportarPerfil(recogerPerfil(datos)).then((c) => { if (vivo) setCodigo(c); });
+    return () => { vivo = false; };
+  }, [datos]);
+
+  const copiar = async () => {
+    try {
+      await navigator.clipboard.writeText(codigo);
+      setCopiado(true);
+      setTimeout(() => setCopiado(false), 1500);
+    } catch {
+      // Sin permiso de portapapeles queda el texto a la vista para copiarlo a mano.
+    }
+  };
+
+  const traer = async () => {
+    const { perfil, error } = await leerPerfil(pegado);
+    if (error) {
+      setAviso({ mal: true, texto: t(`perfil.error${error[0].toUpperCase()}${error.slice(1)}`) });
+      return;
+    }
+    const fundido = fundirPerfil(datos, perfil);
+    onImportar(fundido);
+    const r = fundido.resumen;
+    setAviso({
+      mal: false,
+      texto: t('perfil.fundido', {
+        ma: r.maestriaAntes, md: r.maestriaDespues, pa: r.partidasAntes, pd: r.partidasDespues,
+      }),
+    });
+    setPegado('');
+  };
+
+  return (
+    <div className="sheet" role="dialog" aria-label={t('perfil.titulo')}>
+      <div className="sheet-head">
+        <strong style={{ flex: 1, alignSelf: 'center' }}>{t('perfil.titulo')}</strong>
+        <button className="close" onClick={onClose}>{t('app.cerrar')}</button>
+      </div>
+      <div className="sheet-body">
+        <p className="nota">{t('perfil.queEs')}</p>
+        <p className="nota">{t('perfil.noSale')}</p>
+
+        <strong>{t('perfil.tuCodigo')}</strong>
+        <p className="nota">{t('perfil.contiene', {
+          heroes: Object.keys(datos.mastery ?? {}).length,
+          partidas: (datos.partidas ?? []).length,
+        })}</p>
+        <textarea className="codigo" readOnly rows={4} value={codigo} onFocus={(e) => e.target.select()} />
+        <button className="ancho" onClick={copiar}>{copiado ? t('perfil.copiado') : t('perfil.copiar')}</button>
+
+        <hr />
+
+        <strong>{t('perfil.pegaAqui')}</strong>
+        <textarea
+          className="codigo"
+          rows={4}
+          value={pegado}
+          onChange={(e) => setPegado(e.target.value)}
+          placeholder="MLPA1..."
+        />
+        <button className="ancho" onClick={traer} disabled={!pegado.trim()}>{t('perfil.importar')}</button>
+        {aviso && <p className={aviso.mal ? 'nota mal' : 'nota bien'}>{aviso.texto}</p>}
+      </div>
     </div>
   );
 }

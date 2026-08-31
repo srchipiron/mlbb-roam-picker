@@ -439,3 +439,35 @@ button:focus-visible, [tabindex]:focus-visible { outline: 2px solid var(--gold);
   border: 1px solid var(--gold); border-radius: var(--r);
   color: var(--gold); font-size: 12px; text-decoration: none;
 }
+
+/* --- Tu perfil: el codigo que lleva tus datos a otro dispositivo --- */
+
+/* El cuerpo de la hoja hace el scroll, no la hoja entera: si no, en un movil
+   bajo el teclado tapa el boton y no se puede pulsar. */
+.sheet-body {
+  flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 10px;
+  padding-bottom: 34px;
+}
+.sheet-body hr { border: 0; border-top: 1px solid var(--line); margin: 6px 0; width: 100%; }
+
+/* El codigo. Monoespaciado y con corte por caracter: son 500 caracteres sin
+   espacios, y sin esto se sale de la pantalla en vez de doblarse. */
+.codigo {
+  width: 100%; box-sizing: border-box; resize: vertical;
+  background: var(--panel-hi); border: 1px solid var(--line); border-radius: var(--r);
+  padding: 10px 12px; color: var(--text);
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 12px; line-height: 1.45; word-break: break-all;
+}
+
+.ancho {
+  width: 100%; padding: 12px; border-radius: var(--r);
+  background: var(--panel-hi); border: 1px solid var(--line); color: var(--text);
+  font-size: 15px;
+}
+.ancho:disabled { opacity: 0.45; }
+
+.nota { color: var(--muted); font-size: 13px; line-height: 1.5; margin: 0; }
+/* Los mismos colores que ya usa la app para bien y mal, no dos nuevos. */
+.nota.bien { color: var(--c-comp); }
+.nota.mal { color: var(--enemy); }

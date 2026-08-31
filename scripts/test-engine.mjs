@@ -1308,6 +1308,60 @@ test('el registro compara contra tu winrate de siempre, no solo contra la otra r
   eq(winrateDeReferencia({}), null, 'devuelve una referencia de la nada');
 });
 
+test('el perfil viaja entero y no puede borrar nada al llegar', async () => {
+  const { recogerPerfil, exportarPerfil, leerPerfil, fundirPerfil } = await import('../src/engine/perfil.js');
+
+  const mastery = Object.fromEntries(
+    ['Diggie', 'Franco', 'Khufra'].map((n, i) => [n, { games: 3821 - i * 900, winRate: 0.54 - i * 0.01 }]));
+  const partidas = Array.from({ length: 13 }, (_, i) => ({
+    t: 1700000000000 - i * 86400000, pick: 'Diggie', recomendados: ['Diggie'], gane: i % 3 !== 0,
+  }));
+
+  const codigo = await exportarPerfil(recogerPerfil({ mastery, partidas, rango: 'glory', linea: 'roam' }));
+  ok(codigo.startsWith('MLPA1.'), 'el codigo no lleva su marca delante');
+
+  const { perfil } = await leerPerfil(codigo);
+  ok(perfil, 'un codigo recien hecho no se puede volver a leer');
+  eq(Object.keys(perfil.mastery).length, 3, 'se pierden heroes por el camino');
+  eq(perfil.partidas.length, 13, 'se pierden partidas por el camino');
+  eq(perfil.mastery.Diggie.games, 3821, 'se pierde el numero de partidas de un heroe');
+
+  // Un codigo a medias NO puede importarse: llevarse por delante 3821 partidas
+  // de maestria por un pegado incompleto seria el peor fallo posible aqui.
+  const [m, cuerpo, ctrl] = codigo.split('.');
+  eq((await leerPerfil(`${m}.${cuerpo.slice(0, -8)}.${ctrl}`)).error, 'incompleto', 'traga un codigo cortado');
+  eq((await leerPerfil(`${m}.${cuerpo.slice(0, -1)}X.${ctrl}`)).error, 'incompleto', 'traga un codigo alterado');
+  eq((await leerPerfil('hola que tal')).error, 'formato', 'traga cualquier texto');
+  eq((await leerPerfil('')).error, 'vacio', 'traga una cadena vacia');
+  // Y los espacios y saltos de linea de un pegado real no pueden estorbar.
+  ok((await leerPerfil(`  ${m}.\n${cuerpo}.\n${ctrl} `)).perfil, 'un pegado con espacios no se lee');
+
+  // Al fundir, gana quien tenga MAS partidas y no se pierde nada del otro lado.
+  const enElPc = {
+    mastery: { Diggie: { games: 10, winRate: 0.9 }, Chou: { games: 500, winRate: 0.52 } },
+    partidas: [{ t: 1, pick: 'Chou', recomendados: [], gane: true }],
+  };
+  const f = fundirPerfil(enElPc, perfil);
+  eq(f.mastery.Diggie.games, 3821, 'el dispositivo con MENOS partidas pisa al que tiene mas');
+  ok(f.mastery.Chou, 'se pierde un heroe que solo estaba en el dispositivo de destino');
+  eq(f.partidas.length, 14, 'no junta las partidas de los dos lados');
+
+  // Y AL REVES, que es el caso peligroso: pegar un codigo VIEJO en el
+  // dispositivo bueno. Si el que llega pisara sin mirar, aqui se irian 3821
+  // partidas de maestria por pegar un codigo de hace un mes. La primera
+  // version de esta prueba solo miraba la direccion facil y pasaba aunque se
+  // quitara el mecanismo entero.
+  const viejo = { mastery: { Diggie: { games: 12, winRate: 0.9 } }, partidas: [] };
+  const alReves = fundirPerfil({ mastery, partidas }, viejo);
+  eq(alReves.mastery.Diggie.games, 3821, 'un codigo viejo se lleva por delante la maestria buena');
+  eq(alReves.partidas.length, 13, 'un codigo viejo se lleva por delante las partidas');
+
+  // Importar dos veces no puede duplicar nada: se hara mas de una vez.
+  const otraVez = fundirPerfil(f, perfil);
+  eq(otraVez.partidas.length, 14, 'importar dos veces duplica las partidas');
+  eq(Object.keys(otraVez.mastery).length, Object.keys(f.mastery).length, 'importar dos veces duplica maestria');
+});
+
 await Promise.all(pendientes); // se esperan de verdad, sin plazos inventados
 
 console.log(`\n${pasadas} pruebas correctas, ${fallos} fallos.`);

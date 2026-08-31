@@ -5,7 +5,7 @@ import { apuntar } from './engine/registro.js';
 import { analizarDraft } from './engine/analisis.js';
 import { crearT, idiomaPorDefecto, IDIOMAS } from './i18n.js';
 import { detectarRivalDeLinea, indiceDeLineas, frecuenciaDeRoles } from './engine/rival-de-linea.js';
-import { Side, HeroSheet, Pick, Legend, MasteryEditor, RankPicker, BanSuggestions, Footer, SelfTest, RegistroPartida, SelectorDeLinea, Analisis, AvisoLegal } from './components/ui.jsx';
+import { Side, HeroSheet, Pick, Legend, MasteryEditor, RankPicker, BanSuggestions, Footer, SelfTest, RegistroPartida, SelectorDeLinea, Analisis, AvisoLegal, Perfil } from './components/ui.jsx';
 
 // OJO: estas claves siguen diciendo 'roam-picker' aunque la app se llame ya
 // Mobile Legends Pick Assist. NO se renombran: el almacenamiento del navegador
@@ -53,9 +53,23 @@ export default function App() {
   const [eligiendoLinea, setEligiendoLinea] = useState(false);
   const [mastery, setMastery] = useState(() => load(MASTERY_KEY, {}));
   const [editingMastery, setEditingMastery] = useState(false);
+  const [verPerfil, setVerPerfil] = useState(false);
   const [test, setTest] = useState(null);
 
   const saveMastery = (next) => { setMastery(next); save(MASTERY_KEY, next); };
+
+  /**
+   * Trae los datos de otro dispositivo. Vienen ya FUNDIDOS con los de aquí
+   * (`fundirPerfil`), así que esto solo guarda: no puede borrar nada.
+   */
+  const traerPerfil = (fundido) => {
+    setMastery(fundido.mastery);
+    save(MASTERY_KEY, fundido.mastery);
+    setPartidas(fundido.partidas);
+    save(PARTIDAS_KEY, fundido.partidas);
+    if (fundido.rango && !rank) { setRank(fundido.rango); save(RANK_KEY, fundido.rango); }
+    if (fundido.linea && !linea) { setLinea(fundido.linea); save(LINEA_KEY, fundido.linea); }
+  };
 
   useEffect(() => {
     save(DRAFT_KEY, { enemies: enemyNames, allies: allyNames, bans: banNames, enemyRoam });
@@ -287,6 +301,7 @@ export default function App() {
           <button className="reset" disabled={!ranked.length} onClick={() => setApuntando(true)}>
             {t('app.apuntar')}
           </button>
+          <button className="reset" onClick={() => setVerPerfil(true)}>{t('perfil.boton')}</button>
         </div>
       </aside>
 
@@ -362,6 +377,15 @@ export default function App() {
           recomendados={ranked.slice(0, 3).map((r) => r.hero.name)}
           onGuardar={guardarPartida}
           onClose={() => setApuntando(false)}
+          t={t}
+        />
+      )}
+
+      {verPerfil && (
+        <Perfil
+          datos={{ mastery, partidas, rango: activeRank, linea, idioma }}
+          onImportar={traerPerfil}
+          onClose={() => setVerPerfil(false)}
           t={t}
         />
       )}
