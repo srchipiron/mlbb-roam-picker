@@ -220,6 +220,18 @@ Todos estos llegaron a producción y costaron rondas enteras de ida y vuelta:
   funde campo a campo: la primera que da cada dato manda. Mismo error de forma
   que el de `/academy` en los counters, y por eso `alternativas` ya se guarda
   para todas las claves, no solo para las que llevan `{id}`.
+- **Toda la hoja de estilos de móvil, muerta** — los tres bloques `@media`
+  estaban al PRINCIPIO del fichero, y una consulta de medios no añade
+  especificidad: cualquier regla base escrita después la pisa entera. El móvil
+  llevaba quién sabe cuánto enseñando el diseño de escritorio y nada fallaba.
+  Medido: `.slot` pedía `min-width: 0` y salía 84px; `.pick-name` pedía 16px y
+  salía 24px. Hoy los bloques van AL FINAL y `check-css.mjs` falla si vuelve a
+  aparecer una regla normal después del primer `@media`. Si añades una consulta
+  de medios, va al final del fichero, siempre.
+- **Texto escrito a mano en la interfaz** — «37/37 con datos · 37 con counters»
+  estaba en español dentro de App.jsx y salía tal cual con la app en inglés.
+  Todo lo que se ve pasa por `t()`; la única excepción a propósito es el
+  diagnóstico, que es depuración.
 - **Una corrida degradada commiteada por el bot de datos** — `update-data.yml`
   ejecutaba la ingesta encima de `public/data` y commiteaba lo que saliera. Salió
   una corrida con los 133 héroes SIN `lanes` y SIN `role`, y con counters de 34

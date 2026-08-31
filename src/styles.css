@@ -50,61 +50,14 @@ button:focus-visible, [tabindex]:focus-visible { outline: 2px solid var(--gold);
 
 /* Móvil en vertical: el draft es una tira compacta arriba y las recomendaciones
    ocupan el resto. En 30 segundos hay que ver el pick sin desplazarse. */
-@media (max-width: 820px) and (orientation: portrait) {
-  .app { grid-template-columns: 1fr; grid-template-rows: auto minmax(0, 1fr); }
-  .draft {
-    border-right: none; border-bottom: 1px solid var(--line);
-    padding: 10px 12px; overflow: visible;
-  }
-  .brand h1 { font-size: 17px; }
-  .side { margin-top: 8px; }
-  .side-label { font-size: 10px; margin-bottom: 3px; }
-  /* La × es la ÚNICA forma de quitar un pick desde el móvil: no se oculta. */
-  .slot { min-height: 38px; min-width: 0; flex: 1 1 96px; padding: 6px 7px; font-size: 12px; gap: 3px; }
-  .slot .x { font-size: 20px; padding: 0 4px; }
-  /* Fuera del desplegable no caben; dentro sí, y ahí deben verse. */
-  .draft > .side.bans { display: none; }
-  .tools { margin-top: 10px; }
-  .tools .reset { padding: 8px; font-size: 11px; }
-  .results { padding: 10px 12px; }
-  .pick { grid-template-columns: 28px 1fr auto; gap: 8px; padding: 9px 10px; }
-  .pick-name { font-size: 16px; }
-  .pick.top .pick-name { font-size: 20px; }
-  .slot-cara { width: 22px; height: 22px; flex-basis: 22px; }
-  .hero-cara { width: 30px; height: 30px; flex-basis: 30px; }
-  .pick.top .hero-cara { width: 36px; height: 36px; flex-basis: 36px; }
-  .rank { font-size: 15px; }
-  .pick.top .rank { font-size: 19px; }
-  .mastery-row { grid-template-columns: 1fr 74px 74px; }
-}
+
 
 /* Móvil en horizontal: caben las dos columnas, pero hay poca altura, así que
    se aprieta todo en vertical y cada columna se desplaza por su cuenta. */
-@media (max-height: 560px) and (orientation: landscape) {
-  .app { grid-template-columns: minmax(220px, 34%) 1fr; grid-template-rows: 100%; }
-  .draft { padding: 8px 10px; overflow-y: auto; }
-  .results { padding: 8px 12px; }
-  .brand h1 { font-size: 16px; }
-  .side { margin-top: 8px; }
-  .side-label { font-size: 10px; margin-bottom: 3px; }
-  .slot { min-height: 34px; flex: 1 1 92px; padding: 5px 6px; font-size: 12px; gap: 3px; }
-  .slot .x { font-size: 18px; padding: 0 4px; }
-  .pick { padding: 8px 10px; gap: 8px; margin-bottom: 6px; }
-  .pick-name { font-size: 16px; }
-  .pick.top .pick-name { font-size: 19px; }
-  .rank { font-size: 15px; }
-  .pick.top .rank { font-size: 19px; }
-  .why-bar { margin-bottom: 6px; }
-  .tools .reset { padding: 7px; font-size: 11px; }
-  .sheet { padding: 10px; }
-  .hero-grid { grid-template-columns: repeat(auto-fill, minmax(96px, 1fr)); }
-  .hero-grid button { min-height: 40px; padding: 8px 6px; }
-}
+
 
 /* Tablet o móvil grande en horizontal: el diseño de dos columnas original. */
-@media (min-width: 821px) and (max-height: 560px) {
-  .draft { overflow-y: auto; }
-}
+
 
 /* Panel plegable: en móvil los baneos y los ajustes se esconden hasta que hacen falta. */
 .more { margin-top: 10px; }
@@ -124,6 +77,14 @@ button:focus-visible, [tabindex]:focus-visible { outline: 2px solid var(--gold);
 }
 
 .results { padding: 14px 16px; overflow-y: auto; }
+
+/* Pantalla ancha: las recomendaciones en dos columnas.
+   La tarjeta es una fila baja y ancha, asi que a 1300px se quedaban 900 pixeles
+   de aire por tarjeta y solo cabian cuatro sin desplazarse. En dos columnas
+   caben las ocho de un vistazo, que es de lo que va la app: treinta segundos de
+   draft. Se parte a partir de 1100px, que es cuando cada columna sigue teniendo
+   sitio para el nombre, los motivos y la nota. */
+
 
 /* ---------- cabecera ---------- */
 
@@ -172,8 +133,9 @@ button:focus-visible, [tabindex]:focus-visible { outline: 2px solid var(--gold);
    salido, descarga a medias— el nombre recupera su sitio en vez de dejar el
    hueco mudo. El nombre sigue llegando a los lectores de pantalla por los
    aria-label de la × y de la marca de rival.
-   OJO: esta regla va FUERA de todo @media. Metida dentro del bloque de móvil
-   -donde acabó por descuido- funcionaba en el móvil y en escritorio no. */
+   OJO: esta regla va FUERA de toda consulta de medios. Metida dentro del
+   bloque de movil -donde acabo por descuido- funcionaba en el movil y en
+   escritorio no. */
 .slot-cara {
   width: 24px; height: 24px; flex: 0 0 24px;
   border-radius: 4px; object-fit: cover; background: var(--ink);
@@ -249,9 +211,13 @@ button:focus-visible, [tabindex]:focus-visible { outline: 2px solid var(--gold);
 .pick-wr { display: block; font-size: 11px; color: var(--muted); text-align: right; }
 
 /* la barra del "por qué": firma visual de la app */
+/* De donde sale la nota. Va acotada a proposito: estirada a todo el ancho era
+   lo mas grande de la tarjeta en pantalla ancha (mil pixeles) y lo unico que no
+   se podia leer. Su desglose esta en el `title`. */
 .why-bar {
   display: flex; height: 5px; border-radius: 3px; overflow: hidden;
   background: #0E1220; margin-bottom: 8px;
+  max-width: 300px;
 }
 .why-bar span { display: block; }
 
@@ -261,6 +227,10 @@ button:focus-visible, [tabindex]:focus-visible { outline: 2px solid var(--gold);
   border: 1px solid var(--line); border-radius: 99px; padding: 2px 9px;
 }
 .reasons li.bad { color: var(--enemy); border-color: #4A2833; }
+/* Un motivo de EQUIPO ("no hay primera linea") le vale igual a media lista y
+   sale repetido en varias tarjetas. Se apaga para que no compita con los que
+   hablan de ESTE heroe contra ESTE draft, que son los que decides mirando. */
+.reasons li.de-equipo { opacity: 0.62; border-style: dashed; }
 
 .legend { display: flex; gap: 12px; flex-wrap: wrap; margin: 14px 0 4px; font-size: 11px; color: var(--muted); }
 .legend i { display: inline-block; width: 8px; height: 8px; border-radius: 2px; margin-right: 5px; }
@@ -273,8 +243,12 @@ button:focus-visible, [tabindex]:focus-visible { outline: 2px solid var(--gold);
 
 /* ---------- selector de héroes ---------- */
 
+/* Fondo OPACO. Estuvo al 0.9 y en los paneles cortos -objetos, perfil- el draft
+   se transparentaba por detrás del texto y al sol no se leía. Es una pantalla
+   completa: dejar ver lo de atrás no aporta nada y quita legibilidad, que en un
+   móvil en mitad de una partida es lo único que importa. */
 .sheet {
-  position: fixed; inset: 0; background: rgba(6, 8, 14, 0.9);
+  position: fixed; inset: 0; background: var(--ink);
   display: flex; flex-direction: column; padding: 16px; z-index: 20;
 }
 .sheet-head { display: flex; gap: 10px; margin-bottom: 12px; }
@@ -298,9 +272,7 @@ button:focus-visible, [tabindex]:focus-visible { outline: 2px solid var(--gold);
 
 .empty-state { color: var(--muted); font-size: 13px; padding: 24px 0; }
 
-@media (prefers-reduced-motion: no-preference) {
-  .pick { transition: border-color 120ms ease; }
-}
+
 
 /* ---------- maestría ---------- */
 
@@ -324,8 +296,10 @@ button:focus-visible, [tabindex]:focus-visible { outline: 2px solid var(--gold);
 }
 .mastery-row input.bad { border-color: var(--enemy); color: var(--enemy); }
 
-.tools { display: flex; gap: 8px; margin-top: 18px; }
-.tools .reset { margin-top: 0; }
+/* Se envuelve. Sin esto los cinco botones se salian del ancho y "Tu perfil"
+   quedaba fuera de la pantalla, sin forma de llegar a el desde el movil. */
+.tools { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 18px; }
+.tools .reset { margin-top: 0; flex: 1 1 108px; }
 
 .inferred { font-size: 11px; color: var(--muted); margin-left: 6px; }
 /* Dentro del titular, que no herede mayusculas ni el espaciado del display. */
@@ -361,10 +335,6 @@ button:focus-visible, [tabindex]:focus-visible { outline: 2px solid var(--gold);
 .diag code { font-family: var(--font-num); font-size: 11px; word-break: break-all; }
 .diag summary { cursor: pointer; color: var(--gold); }
 
-.tie {
-  font-size: 12px; color: var(--muted); margin: 0 0 10px;
-  border-left: 2px solid var(--gold); padding-left: 9px;
-}
 
 /* ---------- pantalla de error ---------- */
 
@@ -441,9 +411,12 @@ button:focus-visible, [tabindex]:focus-visible { outline: 2px solid var(--gold);
 
 /* ---------- análisis del draft ---------- */
 
-.analisis { display: flex; flex-direction: column; gap: 5px; margin-bottom: 10px; }
+.analisis { display: flex; flex-direction: column; gap: 4px; margin-bottom: 8px; }
+/* Compacta a proposito: son tres frases justo por encima de la recomendacion,
+   y en un movil de 844px cada pixel de aqui es un pixel que la tarjeta nº1 no
+   ve. Medido: de 146px a 118px el bloque entero. */
 .frase {
-  margin: 0; padding: 8px 10px; font-size: 13px; line-height: 1.35;
+  margin: 0; padding: 6px 9px; font-size: 12.5px; line-height: 1.3;
   border-left: 3px solid var(--line); border-radius: 0 var(--r) var(--r) 0;
   background: var(--panel);
 }
@@ -463,11 +436,6 @@ button:focus-visible, [tabindex]:focus-visible { outline: 2px solid var(--gold);
   color: var(--muted); background: var(--panel);
 }
 .pick.top .pick-build { color: var(--gold); border-color: var(--gold); }
-
-/* Los demás paneles dejan ver el draft por detrás (0.9 de opacidad) y no
-   estorba porque su rejilla llena la pantalla. Este es corto: con el fondo a
-   medias, el draft se transparenta encima del texto y al sol no se lee. */
-.sheet-opaca { background: var(--ink); }
 
 .build-cuerpo { padding: 12px 14px; overflow-y: auto; display: flex; flex-direction: column; gap: 12px; }
 .build-vacio { margin: 0; font-size: 13px; color: var(--muted); }
@@ -599,3 +567,90 @@ button:focus-visible, [tabindex]:focus-visible { outline: 2px solid var(--gold);
 /* Al añadir partidas viejas la rejilla no puede comerse la pantalla: si no, el
    boton de Gané/Perdí queda debajo del teclado y no se alcanza. */
 .hero-grid.corto { max-height: 42vh; flex: none; }
+
+/* ---------------------------------------------------------------------------
+   CONSULTAS DE MEDIOS
+
+   Van AL FINAL, y no es cosmético: una consulta de medios no añade
+   especificidad, así que una regla base escrita después la pisa entera. Estaban
+   arriba y por eso NO se aplicaba ninguna: el móvil llevaba quién sabe cuánto
+   enseñando el diseño de escritorio -nombres a 24px, huecos de 84px- y nada
+   fallaba. Medido antes de moverlas: `.slot` pedía `min-width: 0` y salía 84px;
+   `.pick-name` pedía 16px y salía 24px.
+
+   `check-css.mjs` falla ahora si alguna vuelve a quedar por delante de una
+   regla base con su mismo selector.
+   ------------------------------------------------------------------------- */
+
+@media (max-width: 820px) and (orientation: portrait) {
+  .app { grid-template-columns: 1fr; grid-template-rows: auto minmax(0, 1fr); }
+  .draft {
+    border-right: none; border-bottom: 1px solid var(--line);
+    padding: 10px 12px; overflow: visible;
+  }
+  .brand h1 { font-size: 17px; }
+  .side { margin-top: 8px; }
+  .side-label { font-size: 10px; margin-bottom: 3px; }
+  /* La × es la ÚNICA forma de quitar un pick desde el móvil: no se oculta. */
+  /* Los cinco huecos en UNA fila. Cabian de dos en dos porque cada uno pedia
+     96px para el nombre; desde que llevan la cara, el nombre ya no esta y con
+     `flex: 1 1 0` se reparten el ancho. Medido: la tira del draft baja 50px, que
+     es una recomendacion mas a la vista sin desplazarse. */
+  .slot { min-height: 38px; min-width: 0; flex: 1 1 0; padding: 6px 4px; font-size: 12px; gap: 2px; }
+  .slot .x { font-size: 18px; padding: 0 2px; }
+  .slot .mark { padding: 0; }
+  .side-label { font-size: 10px; }
+  /* Fuera del desplegable no caben; dentro sí, y ahí deben verse. */
+  .draft > .side.bans { display: none; }
+  .tools { margin-top: 10px; }
+  .tools .reset { padding: 8px; font-size: 11px; }
+  .results { padding: 10px 12px; }
+  .pick { grid-template-columns: 28px 1fr auto; gap: 8px; padding: 9px 10px; }
+  .pick-name { font-size: 16px; }
+  .pick.top .pick-name { font-size: 20px; }
+  .slot-cara { width: 22px; height: 22px; flex-basis: 22px; }
+  .hero-cara { width: 30px; height: 30px; flex-basis: 30px; }
+  .pick.top .hero-cara { width: 36px; height: 36px; flex-basis: 36px; }
+  .rank { font-size: 15px; }
+  .pick.top .rank { font-size: 19px; }
+  .mastery-row { grid-template-columns: 1fr 74px 74px; }
+}
+
+@media (max-height: 560px) and (orientation: landscape) {
+  .app { grid-template-columns: minmax(220px, 34%) 1fr; grid-template-rows: 100%; }
+  .draft { padding: 8px 10px; overflow-y: auto; }
+  .results { padding: 8px 12px; }
+  .brand h1 { font-size: 16px; }
+  .side { margin-top: 8px; }
+  .side-label { font-size: 10px; margin-bottom: 3px; }
+  .slot { min-height: 34px; flex: 1 1 92px; padding: 5px 6px; font-size: 12px; gap: 3px; }
+  .slot .x { font-size: 18px; padding: 0 4px; }
+  .pick { padding: 8px 10px; gap: 8px; margin-bottom: 6px; }
+  .pick-name { font-size: 16px; }
+  .pick.top .pick-name { font-size: 19px; }
+  .rank { font-size: 15px; }
+  .pick.top .rank { font-size: 19px; }
+  .why-bar { margin-bottom: 6px; }
+  .tools .reset { padding: 7px; font-size: 11px; }
+  .sheet { padding: 10px; }
+  .hero-grid { grid-template-columns: repeat(auto-fill, minmax(96px, 1fr)); }
+  .hero-grid button { min-height: 40px; padding: 8px 6px; }
+}
+
+@media (min-width: 821px) and (max-height: 560px) {
+  .draft { overflow-y: auto; }
+}
+
+@media (min-width: 1100px) {
+  .results {
+    display: grid; align-content: start;
+    grid-template-columns: 1fr 1fr; gap: 0 12px;
+  }
+  /* Lo que no es una tarjeta ocupa las dos columnas: la cabecera, los avisos,
+     el analisis del draft, la leyenda y el pie legal. */
+  .results > :not(.pick) { grid-column: 1 / -1; }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .pick { transition: border-color 120ms ease; }
+}

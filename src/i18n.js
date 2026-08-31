@@ -39,7 +39,6 @@ const ES = {
   'app.tagsDeRolTitulo': 'No está en el catálogo: usa los tags genéricos de su rol',
   'app.marcarRival': 'Marca tu rival',
   'app.tuRival': 'tu rival: {nombre}',
-  'app.empate': '{nombres} están prácticamente igual. Coge el que mejor lleves.',
   'app.sinWinrates': 'Sin winrates: el ranking sale solo de composición y counters por rol.',
   'app.sinPool': 'Todavía no hay datos de qué héroes se juegan en {linea}. Se descargan con el meta: vuelve a abrir la app en un rato.',
   'app.errorDatos': 'No se han podido cargar los datos ({error}).',
@@ -49,6 +48,8 @@ const ES = {
   'app.elegirLinea': 'Elegir línea',
   'app.marcarRivalDe': 'Marcar a {nombre} como tu rival',
   'app.apuntarPartida': 'Apuntar partida',
+  'app.cobertura': '{con}/{total} con datos · {counters} con counters',
+  'app.enPool': '{n} en el pool',
 
   // --- perfil: llevarte tus datos a otro dispositivo ---
   'perfil.titulo': 'Tu perfil',
@@ -230,7 +231,6 @@ const EN = {
   'app.tagsDeRolTitulo': 'Not in the catalogue: using generic tags for its role',
   'app.marcarRival': 'Mark your rival',
   'app.tuRival': 'your rival: {nombre}',
-  'app.empate': '{nombres} are practically tied. Take the one you play best.',
   'app.sinWinrates': 'No win rates: ranking comes only from composition and role counters.',
   'app.sinPool': 'No data yet on which heroes are played in {linea}. It arrives with the meta: reopen the app in a while.',
   'app.errorDatos': 'Could not load the data ({error}).',
@@ -240,6 +240,8 @@ const EN = {
   'app.elegirLinea': 'Choose lane',
   'app.marcarRivalDe': 'Mark {nombre} as your rival',
   'app.apuntarPartida': 'Log match',
+  'app.cobertura': '{con}/{total} with data · {counters} with counters',
+  'app.enPool': '{n} in the pool',
 
   'perfil.titulo': 'Your profile',
   'perfil.boton': 'Your profile',
