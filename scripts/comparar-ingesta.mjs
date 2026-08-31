@@ -18,7 +18,7 @@
 
 import { readFile } from 'node:fs/promises';
 
-/** Las cuatro cosas que la app necesita, contadas. Nada de porcentajes. */
+/** Lo que la app necesita, contado. Nada de porcentajes. */
 export function medir(datos) {
   const heroes = datos?.heroes ?? [];
   return {
@@ -33,6 +33,12 @@ export function medir(datos) {
     // 133 en este recuento y una app mucho mas tonta.
     cruces: Object.values(datos?.counters ?? {}).reduce((n, fila) => n + Object.keys(fila ?? {}).length, 0),
     sinergias: Object.values(datos?.synergies ?? {}).reduce((n, fila) => n + Object.keys(fila ?? {}).length, 0),
+    objetos: Object.keys(datos?.equipment ?? {}).length,
+    // Las BUILDS, no los heroes con builds: un heroe con una build en vez de
+    // tres pasa igual en el recuento de heroes y la app tiene menos que
+    // ensenar. Mismo fallo que ya costo la matriz de counters.
+    builds: Object.values(datos?.builds ?? {})
+      .reduce((n, porLinea) => n + Object.values(porLinea ?? {}).reduce((m, l) => m + (l?.length ?? 0), 0), 0),
   };
 }
 

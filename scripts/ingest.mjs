@@ -83,7 +83,17 @@ const WANTED = {
   // paga la diferencia. El patron exige que la ruta ACABE en el parametro, para
   // no coger /{id}/stats ni /{id}/trends.
   detail: [/heroes?\/\{[^}]+\}\/?$/i],
+  // Objetos del juego. La variante /expanded trae `equiptips`, que es donde el
+  // propio juego escribe cuanta defensa da cada objeto. Sin ella solo hay
+  // nombre e icono, que no sirve para decidir nada.
+  equipment: [/equipment\/expanded\/?$/i, /equipments?\/?$/i, /items?\/?$/i],
+  // Builds de un heroe EN UNA LINEA. El parametro `lane` es obligatorio: sin
+  // el la API devuelve 422.
+  builds: [/builds?\/?$/i, /equip[-_]?recommend/i],
 };
+
+/** Rutas que llevan el heroe (o el recurso) dentro del camino, no como parametro. */
+const CON_ID = new Set(['counter', 'compatibility', 'detail', 'builds']);
 
 /** Prefijos de grupo de rutas que ha usado el proyecto en distintas versiones. */
 // '/heroes' confirmado: da 405 (existe, otro método) mientras '/mlbb' da 404.
@@ -228,7 +238,7 @@ async function discoverRoutes() {
 
       const routes = {};
       for (const [key, patterns] of Object.entries(WANTED)) {
-        const wantsId = key === 'counter' || key === 'compatibility' || key === 'detail';
+        const wantsId = CON_ID.has(key);
         // Por patrón, en orden de preferencia: manda el primero que exista,
         // pero se guardan TODOS los que encajan con cualquier patrón. Antes se
         // cortaba en el primer patrón con resultados, y por eso la ruta de
@@ -262,7 +272,7 @@ async function discoverRoutes() {
         // hecho que eran material didáctico. Era falso y caro: /academy da los
         // 132 cruces de cada héroe y la que se prefería, cinco.
         const otras = [...new Set(orden)].filter((p) => p !== match);
-        if (wantsId && otras.length) routes[key].alternativas = otras.map(describir);
+        if (otras.length) routes[key].alternativas = otras.map(describir);
       }
 
       diagnostics.routes = Object.fromEntries(
@@ -484,6 +494,144 @@ async function fetchFichas(heroes) {
   return out;
 }
 
+/**
+ * Cuanta defensa da un objeto, leida del texto del propio juego.
+ *
+ * Mismo criterio que `extraerDano` con las habilidades: no se deduce del tipo
+ * de objeto ni de una lista escrita a mano, se cuenta lo que Moonton escribe
+ * en `equiptips` ("+18 Extra Magic Defense"). El tipo mentiria: las botas
+ * Tough Boots estan catalogadas como "Movement" y dan 18 de defensa magica.
+ *
+ * Devuelve numeros, no etiquetas: quien decide es el motor.
+ */
+function extraerDefensa(tips) {
+  const t = String(tips ?? '').replace(/<br\s*\/?>/gi, '\n').replace(/<[^>]*>/g, ' ');
+  const suma = (re) => [...t.matchAll(re)].reduce((a, m) => a + Number(m[1]), 0);
+  const magica = suma(/\+\s*(\d+(?:\.\d+)?)\s*(?:Extra\s+)?Magic(?:al)?\s+Defen[cs]e/gi);
+  const fisica = suma(/\+\s*(\d+(?:\.\d+)?)\s*(?:Extra\s+)?Physical\s+Defen[cs]e/gi);
+  return { magica, fisica };
+}
+
+/**
+ * El catalogo de objetos: id -> nombre, tipo y defensa medida.
+ *
+ * Una sola peticion para los 152 objetos. Los nombres van en ingles a
+ * proposito, como los de heroe: son la clave del dato, y ensenar un nombre
+ * traducido mientras el motor busca otro es el fallo invisible de siempre.
+ */
+async function fetchEquipo() {
+  const out = {};
+  if (!ROUTES?.equipment) return out;
+
+  // Se leen TODAS las rutas de objetos que haya, no solo la mejor. La ruta
+  // /expanded trae `equiptips` -de donde sale la defensa- pero 152 objetos; la
+  // corta trae 184 sin tips. Con solo la primera, tres builds ensenaban
+  // "#10001" en vez de "Lantern of Hope". Gana la primera que dé cada campo,
+  // asi que la que va delante (la del esquema) manda donde tiene dato.
+  const rutas = [ROUTES.equipment, ...(ROUTES.equipment.alternativas ?? [])];
+  for (const ruta of rutas) {
+    let rows = [];
+    try {
+      ({ rows } = await callRoute(ruta, { size: 300, index: 1, lang: 'en' }));
+    } catch {
+      continue; // una ruta caida no puede costarnos las que si responden
+    }
+    for (const row of rows) {
+      const d = row?.data ?? row;
+      const id = Number(d?.equipid ?? d?.id);
+      const nombre = d?.equipname ?? d?.name;
+      if (!Number.isFinite(id) || !nombre) continue;
+      const { magica, fisica } = extraerDefensa(d.equiptips);
+      const obj = out[id] ?? {};
+      obj.nombre ??= String(nombre).trim();
+      obj.tipo ??= d.equiptypename ?? null;
+      if (magica && !obj.magica) obj.magica = magica;
+      if (fisica && !obj.fisica) obj.fisica = fisica;
+      out[id] = obj;
+    }
+    await sleep(200);
+  }
+  return out;
+}
+
+/**
+ * Builds por heroe y linea, tal como las juega la gente en el rango pedido.
+ *
+ * Se pide SOLO para las lineas que cada heroe juega de verdad (164 peticiones,
+ * no 665): pedir la build de jungla de un support devuelve ruido o nada.
+ *
+ * Lo que viene son las tres builds mas frecuentes, con su winrate y su cuota
+ * de uso, y TRES objetos: son los del nucleo, no los seis del inventario. Se
+ * guarda tal cual, sin completar lo que la API no da.
+ *
+ * OJO con el winrate de una build: no es causal. Quien elige una build rara
+ * suele ser quien mas juega ese heroe, asi que parte de la ventaja es del
+ * jugador y no del objeto. La app lo dice en pantalla; aqui solo se recoge.
+ */
+async function fetchBuilds(heroList) {
+  const out = {};
+  if (!ROUTES?.builds) return out;
+  const lineasValidas = new Set(['roam', 'jungle', 'mid', 'gold', 'exp']);
+  const errores = [];
+  let pedidas = 0;
+
+  for (const h of heroList) {
+    const suyas = (h.lanes ?? []).filter((l) => lineasValidas.has(l));
+    for (const lane of suyas) {
+      pedidas += 1;
+      try {
+        const { data } = await callRoute(
+          ROUTES.builds,
+          { lane, rank: RANK, lang: 'en', size: 20, index: 1 },
+          h.id ?? h.name,
+        );
+        const lista = recogerBuilds(data);
+        if (lista.length) (out[h.name] ??= {})[lane] = lista;
+      } catch (err) {
+        if (errores.length < 4) errores.push(`${h.name}/${lane}: ${err.message}`);
+      }
+      await sleep(200);
+    }
+  }
+  diagnostics.builds = {
+    pedidas,
+    heroes: Object.keys(out).length,
+    builds: Object.values(out).reduce((a, porLinea) => a + Object.values(porLinea).reduce((b, l) => b + l.length, 0), 0),
+    errores,
+  };
+  return out;
+}
+
+/**
+ * Saca las builds de la respuesta sin fijar la forma del envoltorio: se busca
+ * el primer array cuyos elementos tengan `equipid`, este donde este.
+ */
+function recogerBuilds(node, depth = 0) {
+  if (depth > HONDURA || node == null || typeof node !== 'object') return [];
+  if (Array.isArray(node) && node.some((x) => x && typeof x === 'object' && Array.isArray(x.equipid))) {
+    return node
+      .filter((b) => Array.isArray(b?.equipid) && b.equipid.length)
+      .map((b) => {
+        const out = { objetos: b.equipid.map(Number).filter(Number.isFinite) };
+        const wr = Number(b.build_win_rate ?? b.win_rate);
+        const pr = Number(b.build_pick_rate ?? b.pick_rate);
+        if (Number.isFinite(wr)) out.winRate = wr;
+        if (Number.isFinite(pr)) out.pickRate = pr;
+        const emblema = b?.emblem?.data?.emblemname ?? b?.emblem?.emblemname;
+        const hechizo = b?.battleskill?.data?.__data?.skillname ?? b?.battleskill?.data?.skillname;
+        if (emblema) out.emblema = String(emblema);
+        if (hechizo) out.hechizo = String(hechizo);
+        return out;
+      })
+      .filter((b) => b.objetos.length);
+  }
+  for (const v of Array.isArray(node) ? node : Object.values(node)) {
+    const found = recogerBuilds(v, depth + 1);
+    if (found.length) return found;
+  }
+  return [];
+}
+
 async function fetchHeroList() {
   const values = { size: 300, index: 1, page_size: 300, page_index: 1, lang: 'en' };
   const { rows } = ROUTES?.position
@@ -607,8 +755,20 @@ export function serializar(out) {
     return [k, `${MARCA}:${filas.length - 1}:${MARCA}`];
   }));
 
+  // Las builds tambien van a una linea por heroe: son tres builds por linea y
+  // con la indentacion normal se comen 3.000 lineas de diff por nada.
+  const compactarBuilds = (m) => Object.fromEntries(Object.entries(m ?? {}).map(([k, porLinea]) => {
+    filas.push(JSON.stringify(porLinea));
+    return [k, `${MARCA}:${filas.length - 1}:${MARCA}`];
+  }));
+
   const texto = JSON.stringify(
-    { ...out, counters: compactar(out.counters), synergies: compactar(out.synergies) },
+    {
+      ...out,
+      counters: compactar(out.counters),
+      synergies: compactar(out.synergies),
+      builds: compactarBuilds(out.builds),
+    },
     null,
     2,
   );
@@ -792,6 +952,27 @@ async function main() {
     }
   }
 
+  // Objetos y builds. Como todo lo demas, si falla se conserva lo anterior: un
+  // objeto no cambia de estadisticas de un dia para otro, y quedarse sin el
+  // dato es peor que tenerlo con un dia de retraso.
+  let equipo = previous?.equipment ?? {};
+  try {
+    const fresh = await fetchEquipo();
+    if (Object.keys(fresh).length) equipo = fresh;
+    console.log(`  · objetos: ${Object.keys(equipo).length}`);
+  } catch (err) {
+    console.warn(`  · objetos: fallo (${err.message}); conservo los anteriores`);
+  }
+
+  let builds = previous?.builds ?? {};
+  try {
+    const fresh = await fetchBuilds(heroList);
+    if (Object.keys(fresh).length) builds = fresh;
+    console.log(`  · builds: ${Object.keys(builds).length} heroes`);
+  } catch (err) {
+    console.warn(`  · builds: fallo (${err.message}); conservo las anteriores`);
+  }
+
   let relations = { counters: previous?.counters ?? {}, synergies: previous?.synergies ?? {} };
   try {
     const fresh = await fetchRelations(nombresPedir, stats, heroList);
@@ -848,6 +1029,7 @@ async function main() {
       speciality: diagnostics.speciality ?? null,
       rutasMedidas: diagnostics.rutasMedidas ?? null,
       dano: diagnostics.dano ?? null,
+      builds: diagnostics.builds ?? null,
       rangos: diagnostics.rangos ?? null,
       ok: [...new Set(diagnostics.ok)].slice(0, 6),
       failed: Object.keys(statsByRank).length ? [] : [...new Set(diagnostics.failed)].slice(0, 12),
@@ -856,6 +1038,8 @@ async function main() {
     statsByRank,
     counters: relations.counters,
     synergies: relations.synergies,
+    equipment: equipo,
+    builds,
   };
 
   await mkdir(dirname(OUT), { recursive: true });

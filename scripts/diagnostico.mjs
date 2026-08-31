@@ -170,6 +170,11 @@ if (rutaHistorial) {
     recorteCounters: recorte((a, b) => matchup(metaCtx.counters, a, b), 0.44, 0.12),
     recorteSinergias: recorte((a, b) => sinergia(metaCtx.synergies, a, b), 0.42, 0.16),
     ruido,
+    objetos: Object.keys(meta.equipment ?? {}).length,
+    // Las builds, no los heroes con builds: perder dos de las tres de cada
+    // heroe no mueve el segundo numero y si el primero.
+    builds: Object.values(meta.builds ?? {})
+      .reduce((n, porLinea) => n + Object.values(porLinea ?? {}).reduce((m, l) => m + (l?.length ?? 0), 0), 0),
     pools,
   };
 

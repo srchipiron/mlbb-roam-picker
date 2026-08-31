@@ -421,6 +421,62 @@ button:focus-visible, [tabindex]:focus-visible { outline: 2px solid var(--gold);
 .frase.ojo  { border-left-color: var(--enemy); }
 .frase.duda { border-left-color: var(--muted); }
 
+/* ---------- objetos ---------- */
+
+/* El botón vive en la esquina de la tarjeta, debajo del winrate. Tiene que ser
+   tocable con el pulgar: 34px de alto, que es lo mínimo cómodo en móvil. */
+.pick-build {
+  display: block; margin-top: 6px; margin-left: auto;
+  min-height: 34px; padding: 6px 10px;
+  border: 1px solid var(--line); border-radius: var(--r);
+  font-size: 11px; letter-spacing: 0.06em; text-transform: uppercase;
+  color: var(--muted); background: var(--panel);
+}
+.pick.top .pick-build { color: var(--gold); border-color: var(--gold); }
+
+/* Los demás paneles dejan ver el draft por detrás (0.9 de opacidad) y no
+   estorba porque su rejilla llena la pantalla. Este es corto: con el fondo a
+   medias, el draft se transparenta encima del texto y al sol no se lee. */
+.sheet-opaca { background: var(--ink); }
+
+.build-cuerpo { padding: 12px 14px; overflow-y: auto; display: flex; flex-direction: column; gap: 12px; }
+.build-vacio { margin: 0; font-size: 13px; color: var(--muted); }
+
+.build { display: flex; flex-direction: column; gap: 8px; }
+.build-nucleo {
+  margin: 0; font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase;
+  color: var(--muted);
+}
+.build-objetos { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 6px; }
+.build-objetos li {
+  display: flex; justify-content: space-between; align-items: baseline; gap: 10px;
+  padding: 9px 10px; border: 1px solid var(--line); border-radius: var(--r);
+  background: var(--panel);
+}
+.obj-nombre { font-size: 14px; }
+/* La defensa que da cada objeto es lo que conecta la build con el draft: se ve
+   siempre, no en un desplegable. */
+.obj-def { font-size: 11px; color: var(--gold); font-variant-numeric: tabular-nums; white-space: nowrap; }
+
+.build-extra { margin: 0; display: flex; flex-wrap: wrap; gap: 10px; font-size: 12px; color: var(--muted); }
+.build-cifras {
+  margin: 0; display: flex; flex-wrap: wrap; gap: 10px;
+  font-size: 12px; color: var(--muted); font-variant-numeric: tabular-nums;
+}
+
+.build-ajuste { display: flex; flex-direction: column; gap: 5px; }
+
+.build-otras { display: flex; flex-direction: column; gap: 6px; }
+.build-otra {
+  margin: 0; display: flex; flex-direction: column; gap: 3px;
+  font-size: 12px; padding: 8px 10px;
+  border: 1px solid var(--line); border-radius: var(--r);
+}
+
+/* El aviso de que el winrate de una build no es causal. Va junto al dato, no
+   escondido: es la diferencia entre informar y recomendar. */
+.build-nota { margin: 0; font-size: 11px; color: var(--muted); line-height: 1.4; }
+
 /* ---------- aviso público, idioma y donación ---------- */
 
 .aviso {

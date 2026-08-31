@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-08-31T05:37:03.607Z",
+  "generatedAt": "2026-08-31T08:48:02.511Z",
   "rank": "glory",
   "ranks": [
     "epic",
@@ -1976,7 +1976,9 @@
       "position": "GET https://arena-hv.fastapicloud.dev/api/heroes/positions (role, lane, size, index, order, lang)",
       "counter": "GET https://arena-hv.fastapicloud.dev/api/heroes/{hero_identifier}/counters (hero_identifier, days, rank, size, index, lang)",
       "compatibility": "GET https://arena-hv.fastapicloud.dev/api/heroes/{hero_identifier}/compatibility (hero_identifier, days, rank, size, index, lang)",
-      "detail": "GET https://arena-hv.fastapicloud.dev/api/heroes/{hero_identifier} (hero_identifier, size, index, lang)"
+      "detail": "GET https://arena-hv.fastapicloud.dev/api/heroes/{hero_identifier} (hero_identifier, size, index, lang)",
+      "equipment": "GET https://arena-hv.fastapicloud.dev/api/academy/equipment/expanded (size, index, lang)",
+      "builds": "GET https://arena-hv.fastapicloud.dev/api/academy/heroes/{hero_identifier}/builds (hero_identifier, lane, rank, size, index, lang)"
     },
     "relations": {
       "rutaCounter": "GET https://arena-hv.fastapicloud.dev/api/academy/heroes/{hero_identifier}/counters",
@@ -2002,6 +2004,12 @@
       "ok": 133,
       "conservados": 0,
       "sin": 0
+    },
+    "builds": {
+      "pedidas": 164,
+      "heroes": 133,
+      "builds": 492,
+      "errores": []
     },
     "rangos": {
       "epic": "133 héroes",
@@ -6948,5 +6956,915 @@
     "Cici": {"Claude":0.5005,"Kadita":0.5022,"Novaria":0.4985,"Bane":0.5129,"Badang":0.5113,"Akai":0.5015,"Joy":0.505,"Yi Sun-shin":0.4942,"Barats":0.469,"Vexana":0.5022,"Tigreal":0.5026,"Diggie":0.5041,"Jawhead":0.4755,"Terizla":0.4253,"Eudora":0.5043,"Saber":0.495,"Rafaela":0.4879,"Lapu-Lapu":0.4883,"Ruby":0.4707,"Bruno":0.4998,"Lunox":0.4952,"Franco":0.5036,"Luo Yi":0.5062,"Yu Zhong":0.4591,"Silvanna":0.4968,"Gord":0.5014,"Clint":0.4958,"Martis":0.4886,"Khaleed":0.4982,"Wanwan":0.5055,"Aulus":0.499,"Phoveus":0.4523,"Layla":0.507,"Yin":0.485,"Faramis":0.5068,"Leomord":0.506,"Benedetta":0.4711,"Hanabi":0.5025,"Cecilion":0.4982,"Selena":0.4977,"Aurora":0.4973,"Melissa":0.4962,"Argus":0.4983,"Hylos":0.4902,"Roger":0.4921,"Granger":0.4926,"Zilong":0.4563,"Chou":0.4807,"Aamon":0.5063,"Baxia":0.5107,"Vale":0.5077,"Khufra":0.4962,"Hanzo":0.5057,"Nana":0.5021,"Balmond":0.5094,"Pharsa":0.5048,"Julian":0.503,"Minotaur":0.4982,"Kaja":0.4969,"Freya":0.4849,"Alucard":0.499,"Gusion":0.5058,"Dyrroth":0.476,"Floryn":0.4962,"Chip":0.4948,"Ixia":0.5101,"Kagura":0.5012,"Odette":0.4958,"Alpha":0.515,"Aldous":0.4607,"Gloo":0.5114,"Fredrinn":0.4987,"Lesley":0.5053,"Kimmy":0.4929,"Helcurt":0.4954,"X.Borg":0.5297,"Hayabusa":0.4991,"Mathilda":0.4877,"Miya":0.4995,"Harith":0.5016,"Johnson":0.5015,"Lancelot":0.501,"Valir":0.4974,"Ling":0.5032,"Natan":0.5052,"Atlas":0.5059,"Obsidia":0.4947,"Natalia":0.4986,"Lolita":0.5013,"Masha":0.4748,"Zhuxin":0.4932,"Sun":0.5118,"Karina":0.4978,"Brody":0.4956,"Irithel":0.5044,"Paquito":0.4898,"Uranus":0.4454,"Harley":0.5041,"Carmilla":0.5003,"Alice":0.5186,"Guinevere":0.5136,"Suyou":0.496,"Marcel":0.5004,"Moskov":0.5001,"Karrie":0.5057,"Hirara":0.5006,"Popol and Kupa":0.4879,"Esmeralda":0.4621,"Estes":0.4897,"Lylia":0.4998,"Cyclops":0.4963,"Xavier":0.5024,"Gatotkaca":0.5154,"Zetian":0.5023,"Nolan":0.4979,"Fanny":0.4982,"Belerick":0.5061,"Zhask":0.5042,"Arlott":0.4194,"Edith":0.4255,"Chang'e":0.4991,"Hilda":0.494,"Sora":0.47,"Thamuz":0.5014,"Yve":0.5132,"Angela":0.5061,"Beatrix":0.4968,"Valentina":0.4807,"Kalea":0.4952,"Lukas":0.5053,"Grock":0.5009,"Minsitthar":0.453},
     "Valir": {"Silvanna":0.5023,"Aamon":0.5001,"Zetian":0.4613,"Khaleed":0.4983,"Phoveus":0.4963,"Arlott":0.4965,"Masha":0.5048,"Diggie":0.506,"Gatotkaca":0.5043,"Vexana":0.4503,"Lolita":0.5018,"Valentina":0.4822,"Guinevere":0.5015,"Moskov":0.5029,"Hanabi":0.5026,"Gusion":0.5009,"Karrie":0.5132,"Rafaela":0.4958,"Cyclops":0.4917,"Marcel":0.5027,"Terizla":0.508,"Melissa":0.4907,"Kaja":0.4992,"Lancelot":0.5044,"Yi Sun-shin":0.4936,"Martis":0.5031,"Fanny":0.4989,"Ixia":0.5019,"Chang'e":0.4615,"Miya":0.5,"Vale":0.4572,"Novaria":0.4651,"Argus":0.5028,"Clint":0.4979,"Bruno":0.4946,"Sora":0.5023,"Atlas":0.5003,"Ruby":0.4958,"Baxia":0.5108,"Yu Zhong":0.5004,"Hirara":0.5014,"Hilda":0.5022,"Joy":0.4944,"Fredrinn":0.5052,"Zhuxin":0.4495,"Floryn":0.5003,"Julian":0.5011,"Edith":0.491,"Claude":0.4993,"Hanzo":0.5143,"Lapu-Lapu":0.4985,"Kagura":0.4821,"Lesley":0.5048,"X.Borg":0.5125,"Yin":0.5027,"Luo Yi":0.4252,"Cici":0.4974,"Aulus":0.5031,"Angela":0.499,"Eudora":0.4778,"Estes":0.5055,"Akai":0.5034,"Mathilda":0.4897,"Lunox":0.4691,"Yve":0.4397,"Layla":0.5068,"Xavier":0.4467,"Aldous":0.509,"Beatrix":0.5006,"Pharsa":0.4572,"Selena":0.474,"Hylos":0.5007,"Kimmy":0.4723,"Chip":0.4956,"Gord":0.4481,"Uranus":0.4987,"Minsitthar":0.4966,"Alice":0.5001,"Lylia":0.4561,"Granger":0.4947,"Belerick":0.498,"Odette":0.456,"Dyrroth":0.5005,"Nolan":0.4937,"Alucard":0.4984,"Franco":0.507,"Bane":0.4961,"Minotaur":0.4989,"Zhask":0.4722,"Leomord":0.5025,"Lukas":0.5013,"Helcurt":0.5059,"Freya":0.493,"Zilong":0.5013,"Saber":0.4981,"Wanwan":0.5001,"Kalea":0.5071,"Natan":0.4977,"Esmeralda":0.4946,"Harith":0.4899,"Gloo":0.5041,"Khufra":0.4927,"Brody":0.5007,"Roger":0.4965,"Irithel":0.4964,"Badang":0.499,"Benedetta":0.5035,"Hayabusa":0.5005,"Ling":0.4964,"Grock":0.4992,"Harley":0.5088,"Barats":0.4933,"Sun":0.5088,"Thamuz":0.501,"Natalia":0.5165,"Obsidia":0.4979,"Nana":0.4541,"Paquito":0.5048,"Jawhead":0.4987,"Aurora":0.4519,"Faramis":0.4578,"Kadita":0.4549,"Johnson":0.4948,"Carmilla":0.4991,"Balmond":0.5067,"Cecilion":0.4685,"Tigreal":0.4993,"Karina":0.5004,"Alpha":0.5085,"Chou":0.5048,"Suyou":0.4964,"Popol and Kupa":0.4921},
     "Marcel": {"Bruno":0.5045,"Novaria":0.5065,"Aurora":0.4943,"Uranus":0.4957,"Selena":0.5052,"Guinevere":0.5144,"Lesley":0.5073,"Melissa":0.5077,"Grock":0.4386,"Chip":0.4803,"Claude":0.5054,"Bane":0.5014,"Kagura":0.4908,"Mathilda":0.496,"Hayabusa":0.506,"Leomord":0.4909,"Angela":0.5039,"Baxia":0.4701,"Layla":0.5116,"Lukas":0.4852,"Lancelot":0.4911,"Popol and Kupa":0.503,"Badang":0.4931,"Obsidia":0.5048,"Franco":0.4118,"Fredrinn":0.4728,"Akai":0.4917,"Terizla":0.5037,"Hylos":0.513,"Vale":0.5072,"Zetian":0.491,"Chou":0.5103,"Gatotkaca":0.5136,"Martis":0.4973,"Johnson":0.4546,"Atlas":0.5063,"Argus":0.5001,"Clint":0.5069,"Odette":0.4985,"Valentina":0.5275,"Sun":0.4946,"Belerick":0.4949,"Ixia":0.4798,"Hirara":0.4941,"Jawhead":0.5118,"Irithel":0.502,"Yve":0.5096,"Wanwan":0.4975,"Cecilion":0.501,"Dyrroth":0.5057,"Gloo":0.4879,"Ruby":0.5058,"Khufra":0.4533,"Floryn":0.4967,"Benedetta":0.4924,"Ling":0.4954,"Kaja":0.4385,"Granger":0.5064,"Yu Zhong":0.5002,"Chang'e":0.5015,"X.Borg":0.4974,"Beatrix":0.4946,"Lunox":0.4997,"Alice":0.489,"Thamuz":0.4942,"Joy":0.4926,"Pharsa":0.4993,"Arlott":0.4967,"Natalia":0.5357,"Cici":0.5004,"Yi Sun-shin":0.5071,"Khaleed":0.484,"Aamon":0.5089,"Sora":0.5044,"Diggie":0.5233,"Karina":0.492,"Minotaur":0.4409,"Roger":0.5032,"Vexana":0.5049,"Zhask":0.4916,"Gusion":0.5029,"Esmeralda":0.4906,"Hanabi":0.508,"Masha":0.4974,"Aldous":0.5033,"Hilda":0.4897,"Suyou":0.5046,"Miya":0.5013,"Nolan":0.5035,"Karrie":0.5043,"Alpha":0.5098,"Tigreal":0.4691,"Julian":0.511,"Brody":0.5034,"Helcurt":0.5099,"Carmilla":0.5538,"Yin":0.5014,"Zhuxin":0.5026,"Hanzo":0.5013,"Nana":0.5016,"Aulus":0.4928,"Luo Yi":0.5175,"Alucard":0.4965,"Estes":0.4194,"Rafaela":0.5246,"Natan":0.5092,"Saber":0.5393,"Lylia":0.4925,"Freya":0.496,"Phoveus":0.493,"Eudora":0.5122,"Fanny":0.5017,"Paquito":0.4985,"Zilong":0.5131,"Cyclops":0.5176,"Minsitthar":0.5114,"Edith":0.5146,"Kimmy":0.5023,"Moskov":0.5071,"Xavier":0.5142,"Kalea":0.4934,"Balmond":0.4958,"Barats":0.5049,"Gord":0.5007,"Lolita":0.3549,"Faramis":0.5109,"Lapu-Lapu":0.497,"Valir":0.5027,"Kadita":0.5049,"Harith":0.5048,"Harley":0.514,"Silvanna":0.5112}
+  },
+  "equipment": {
+    "1001": {
+      "nombre": "Dagger",
+      "tipo": "Attack"
+    },
+    "1002": {
+      "nombre": "Knife",
+      "tipo": "Attack"
+    },
+    "1003": {
+      "nombre": "Javelin",
+      "tipo": "Attack"
+    },
+    "1004": {
+      "nombre": "Vampire Mallet",
+      "tipo": "Attack"
+    },
+    "1005": {
+      "nombre": "Iron Hunting Bow",
+      "tipo": "Attack"
+    },
+    "1006": {
+      "nombre": "Regular Spear",
+      "tipo": "Attack"
+    },
+    "1007": {
+      "nombre": "Swift Crossbow",
+      "tipo": "Attack"
+    },
+    "1008": {
+      "nombre": "Expert Gloves",
+      "tipo": "Attack"
+    },
+    "1010": {
+      "nombre": "Power Potion",
+      "tipo": "Attack"
+    },
+    "1101": {
+      "nombre": "Mystery Codex",
+      "tipo": "Magic"
+    },
+    "1102": {
+      "nombre": "Power Crystal",
+      "tipo": "Magic"
+    },
+    "1103": {
+      "nombre": "Magic Necklace",
+      "tipo": "Magic"
+    },
+    "1104": {
+      "nombre": "Book of Sages",
+      "tipo": "Magic"
+    },
+    "1105": {
+      "nombre": "Mystic Container",
+      "tipo": "Magic"
+    },
+    "1110": {
+      "nombre": "Magic Potion",
+      "tipo": "Magic"
+    },
+    "1111": {
+      "nombre": "Throw Forbidden",
+      "tipo": "Magic"
+    },
+    "1112": {
+      "nombre": "Broken Heart",
+      "tipo": "Magic"
+    },
+    "1113": {
+      "nombre": "Allow Throw",
+      "tipo": "Magic"
+    },
+    "1114": {
+      "nombre": "Resonating Heart",
+      "tipo": "Magic"
+    },
+    "1201": {
+      "nombre": "Vitality Crystal",
+      "tipo": "Defense"
+    },
+    "1202": {
+      "nombre": "Leather Jerkin",
+      "tipo": "Defense",
+      "fisica": 14
+    },
+    "1203": {
+      "nombre": "Magic Resist Cloak",
+      "tipo": "Defense",
+      "magica": 14
+    },
+    "1204": {
+      "nombre": "Healing Necklace",
+      "tipo": "Defense"
+    },
+    "1205": {
+      "nombre": "Hero's Ring",
+      "tipo": "Defense"
+    },
+    "1210": {
+      "nombre": "Rock Potion",
+      "tipo": "Defense"
+    },
+    "1301": {
+      "nombre": "Boots",
+      "tipo": "Movement"
+    },
+    "1401": {
+      "nombre": "Hunter's Knife",
+      "tipo": null
+    },
+    "1411": {
+      "nombre": "Ice Hunter's Speed Boots",
+      "tipo": "Jungle"
+    },
+    "1412": {
+      "nombre": "Flame Hunter's Speed Boots",
+      "tipo": "Jungle"
+    },
+    "1413": {
+      "nombre": "Behemoth Hunter's Speed Boots",
+      "tipo": "Jungle"
+    },
+    "1501": {
+      "nombre": "Wooden Mask",
+      "tipo": null
+    },
+    "1511": {
+      "nombre": "Roaming Boots - Conceal",
+      "tipo": "Roam"
+    },
+    "1512": {
+      "nombre": "Roaming Boots - Encourage",
+      "tipo": "Roam"
+    },
+    "1513": {
+      "nombre": "Roaming Boots - Favor",
+      "tipo": "Roam"
+    },
+    "1514": {
+      "nombre": "Roaming Boots - Dire Hit",
+      "tipo": "Roam"
+    },
+    "2001": {
+      "nombre": "Legion Sword",
+      "tipo": "Attack"
+    },
+    "2002": {
+      "nombre": "Ogre Tomahawk",
+      "tipo": "Attack"
+    },
+    "2003": {
+      "nombre": "Rogue Meteor",
+      "tipo": "Attack"
+    },
+    "2004": {
+      "nombre": "Fury hammer",
+      "tipo": "Attack"
+    },
+    "2005": {
+      "nombre": "Magic Blade",
+      "tipo": "Attack"
+    },
+    "2006": {
+      "nombre": "Demon Hunter Sword",
+      "tipo": "Attack"
+    },
+    "2007": {
+      "nombre": "Deadly Blade",
+      "tipo": null
+    },
+    "2008": {
+      "nombre": "Corrosion Scythe",
+      "tipo": "Attack"
+    },
+    "2009": {
+      "nombre": "Golden Staff",
+      "tipo": "Attack"
+    },
+    "2010": {
+      "nombre": "Greedy Crusher (removed)",
+      "tipo": null
+    },
+    "2011": {
+      "nombre": "Wind of Nature",
+      "tipo": "Attack"
+    },
+    "2012": {
+      "nombre": "Evil Hunter (removed)",
+      "tipo": null
+    },
+    "2013": {
+      "nombre": "War Axe",
+      "tipo": "Attack"
+    },
+    "2014": {
+      "nombre": "Sky Piercer",
+      "tipo": "Attack"
+    },
+    "2015": {
+      "nombre": "百战神斧（已废弃）",
+      "tipo": null
+    },
+    "2101": {
+      "nombre": "Magic Wand",
+      "tipo": "Magic"
+    },
+    "2102": {
+      "nombre": "Tome of Evil",
+      "tipo": "Magic"
+    },
+    "2103": {
+      "nombre": "Azure Blade",
+      "tipo": "Magic"
+    },
+    "2104": {
+      "nombre": "Exotic Veil",
+      "tipo": "Magic"
+    },
+    "2105": {
+      "nombre": "Elegant Gem",
+      "tipo": "Magic"
+    },
+    "2106": {
+      "nombre": "Enchanted Talisman",
+      "tipo": "Magic"
+    },
+    "2107": {
+      "nombre": "Winter Crown",
+      "tipo": "Magic"
+    },
+    "2108": {
+      "nombre": "Feather of Heaven",
+      "tipo": "Magic"
+    },
+    "2110": {
+      "nombre": "锁魂项链（已删除）",
+      "tipo": null
+    },
+    "2111": {
+      "nombre": "Shadow Twinblades",
+      "tipo": null
+    },
+    "2112": {
+      "nombre": "Wishing Lantern",
+      "tipo": "Magic"
+    },
+    "2113": {
+      "nombre": "寒冬权杖（已废弃）",
+      "tipo": null
+    },
+    "2201": {
+      "nombre": "Ares Belt",
+      "tipo": "Defense"
+    },
+    "2202": {
+      "nombre": "Molten Essence",
+      "tipo": "Defense"
+    },
+    "2203": {
+      "nombre": "Silence Robe",
+      "tipo": "Defense",
+      "magica": 23
+    },
+    "2204": {
+      "nombre": "Black Ice Shield",
+      "tipo": "Defense",
+      "magica": 20,
+      "fisica": 20
+    },
+    "2205": {
+      "nombre": "Dreadnaught Armor",
+      "tipo": "Defense",
+      "fisica": 30
+    },
+    "2206": {
+      "nombre": "Steel Legplates",
+      "tipo": "Defense",
+      "fisica": 35
+    },
+    "2207": {
+      "nombre": "Blade Armor",
+      "tipo": "Defense",
+      "fisica": 80
+    },
+    "2208": {
+      "nombre": "Queen's Wings",
+      "tipo": "Defense"
+    },
+    "2209": {
+      "nombre": "雷霆腰带（已废弃）",
+      "tipo": null
+    },
+    "2210": {
+      "nombre": "Ares Crown (removed)",
+      "tipo": null
+    },
+    "2211": {
+      "nombre": "女王之翼（已废弃）",
+      "tipo": null
+    },
+    "2212": {
+      "nombre": "Thunder Belt",
+      "tipo": "Defense",
+      "magica": 15,
+      "fisica": 15
+    },
+    "2301": {
+      "nombre": "Warrior Boots",
+      "tipo": "Movement",
+      "fisica": 18
+    },
+    "2302": {
+      "nombre": "Tough Boots",
+      "tipo": "Movement",
+      "magica": 18
+    },
+    "2303": {
+      "nombre": "Magic Boots",
+      "tipo": "Movement"
+    },
+    "2304": {
+      "nombre": "Arcane Boots",
+      "tipo": "Movement"
+    },
+    "2305": {
+      "nombre": "Swift Boots",
+      "tipo": "Movement"
+    },
+    "2306": {
+      "nombre": "Rapid Boots",
+      "tipo": "Movement"
+    },
+    "2308": {
+      "nombre": "Demon Boots",
+      "tipo": "Movement"
+    },
+    "2401": {
+      "nombre": "Curse Sword",
+      "tipo": null
+    },
+    "2402": {
+      "nombre": "Pillager Axe",
+      "tipo": null
+    },
+    "2403": {
+      "nombre": "Nimble Blade",
+      "tipo": null
+    },
+    "2501": {
+      "nombre": "Iron Mask",
+      "tipo": null
+    },
+    "3001": {
+      "nombre": "Malefic Roar",
+      "tipo": "Attack"
+    },
+    "3002": {
+      "nombre": "Haas' Claws",
+      "tipo": "Attack"
+    },
+    "3003": {
+      "nombre": "Berserker's Fury",
+      "tipo": "Attack"
+    },
+    "3004": {
+      "nombre": "Endless Battle",
+      "tipo": "Attack"
+    },
+    "3005": {
+      "nombre": "Windtalker",
+      "tipo": "Attack"
+    },
+    "3006": {
+      "nombre": "Scarlet Phantom",
+      "tipo": null
+    },
+    "3007": {
+      "nombre": "Blade of the Heptaseas",
+      "tipo": "Attack"
+    },
+    "3008": {
+      "nombre": "Blade of Despair",
+      "tipo": "Attack"
+    },
+    "3009": {
+      "nombre": "Hunter Strike",
+      "tipo": "Attack"
+    },
+    "3010": {
+      "nombre": "Bloodlust Axe",
+      "tipo": null
+    },
+    "3011": {
+      "nombre": "Goldshine Hammer (removed)",
+      "tipo": null
+    },
+    "3012": {
+      "nombre": "Rose Gold Meteor",
+      "tipo": "Attack"
+    },
+    "3013": {
+      "nombre": "Sea Halberd",
+      "tipo": "Attack"
+    },
+    "3014": {
+      "nombre": "Great Dragon Spear",
+      "tipo": "Attack"
+    },
+    "3015": {
+      "nombre": "Malefic Gun",
+      "tipo": "Attack"
+    },
+    "3101": {
+      "nombre": "Divine Glaive",
+      "tipo": "Magic"
+    },
+    "3102": {
+      "nombre": "Holy Crystal",
+      "tipo": "Magic"
+    },
+    "3103": {
+      "nombre": "Concentrated Energy",
+      "tipo": "Magic"
+    },
+    "3104": {
+      "nombre": "Ice Queen Wand",
+      "tipo": "Magic"
+    },
+    "3105": {
+      "nombre": "Glowing Wand",
+      "tipo": "Magic"
+    },
+    "3106": {
+      "nombre": "Starlium Scythe",
+      "tipo": "Magic"
+    },
+    "3107": {
+      "nombre": "命运刻钟（已废弃）",
+      "tipo": null
+    },
+    "3108": {
+      "nombre": "Blood Wings",
+      "tipo": "Magic"
+    },
+    "3109": {
+      "nombre": "Fleeting Time",
+      "tipo": "Magic"
+    },
+    "3110": {
+      "nombre": "Lightning Truncheon",
+      "tipo": "Magic"
+    },
+    "3111": {
+      "nombre": "Genius Wand",
+      "tipo": "Magic"
+    },
+    "3112": {
+      "nombre": "Flask of the Oasis",
+      "tipo": "Magic"
+    },
+    "3113": {
+      "nombre": "Clock of Destiny",
+      "tipo": "Magic"
+    },
+    "3201": {
+      "nombre": "Cursed Helmet",
+      "tipo": "Defense",
+      "magica": 20
+    },
+    "3202": {
+      "nombre": "Guardian Helmet",
+      "tipo": "Defense"
+    },
+    "3203": {
+      "nombre": "Antique Cuirass",
+      "tipo": "Defense",
+      "fisica": 40
+    },
+    "3204": {
+      "nombre": "Oracle",
+      "tipo": "Defense",
+      "magica": 20,
+      "fisica": 20
+    },
+    "3205": {
+      "nombre": "Athena's Shield",
+      "tipo": "Defense",
+      "magica": 48
+    },
+    "3206": {
+      "nombre": "Dominance Ice",
+      "tipo": "Defense",
+      "magica": 40,
+      "fisica": 40
+    },
+    "3207": {
+      "nombre": "Immortality",
+      "tipo": "Defense",
+      "fisica": 15
+    },
+    "3208": {
+      "nombre": "Brute Force Breastplate",
+      "tipo": "Defense",
+      "fisica": 20
+    },
+    "3209": {
+      "nombre": "Twilight Armor (Discarded)",
+      "tipo": null
+    },
+    "3210": {
+      "nombre": "Radiant Armor",
+      "tipo": "Defense",
+      "magica": 40
+    },
+    "3211": {
+      "nombre": "破碎流年（已废弃）",
+      "tipo": null
+    },
+    "3212": {
+      "nombre": "Chastise Pauldron",
+      "tipo": "Defense",
+      "fisica": 40
+    },
+    "3401": {
+      "nombre": "Star Shard",
+      "tipo": null
+    },
+    "3402": {
+      "nombre": "Beast Killer",
+      "tipo": null
+    },
+    "3403": {
+      "nombre": "Raptor Machete",
+      "tipo": null
+    },
+    "3411": {
+      "nombre": "Ice Hunter's Warrior Boots",
+      "tipo": "Jungle",
+      "fisica": 18
+    },
+    "3412": {
+      "nombre": "Flame Hunter's Warrior Boots",
+      "tipo": "Jungle",
+      "fisica": 18
+    },
+    "3413": {
+      "nombre": "Behemoth Hunter's Warrior Boots",
+      "tipo": "Jungle",
+      "fisica": 18
+    },
+    "3421": {
+      "nombre": "Ice Hunter's Tough Boots",
+      "tipo": "Jungle",
+      "magica": 18
+    },
+    "3422": {
+      "nombre": "Flame Hunter's Tough Boots",
+      "tipo": "Jungle",
+      "magica": 18
+    },
+    "3423": {
+      "nombre": "Behemoth Hunter's Tough Boots",
+      "tipo": "Jungle",
+      "magica": 18
+    },
+    "3431": {
+      "nombre": "Ice Hunter's Magic Boots",
+      "tipo": "Jungle"
+    },
+    "3432": {
+      "nombre": "Flame Hunter's Magic Boots",
+      "tipo": "Jungle"
+    },
+    "3433": {
+      "nombre": "Behemoth Hunter's Magic Boots",
+      "tipo": "Jungle"
+    },
+    "3441": {
+      "nombre": "Ice Hunter's Arcane Boots",
+      "tipo": "Jungle"
+    },
+    "3442": {
+      "nombre": "Flame Hunter's Arcane Boots",
+      "tipo": "Jungle"
+    },
+    "3443": {
+      "nombre": "Behemoth Hunter's Arcane Boots",
+      "tipo": "Jungle"
+    },
+    "3451": {
+      "nombre": "Ice Hunter's Swift Boots",
+      "tipo": "Jungle"
+    },
+    "3452": {
+      "nombre": "Flame Hunter's Swift Boots",
+      "tipo": "Jungle"
+    },
+    "3453": {
+      "nombre": "Behemoth Hunter's Swift Boots",
+      "tipo": "Jungle"
+    },
+    "3461": {
+      "nombre": "Ice Hunter's Rapid Boots",
+      "tipo": "Jungle"
+    },
+    "3462": {
+      "nombre": "Flame Hunter's Rapid Boots",
+      "tipo": "Jungle"
+    },
+    "3463": {
+      "nombre": "Behemoth Hunter's Rapid Boots",
+      "tipo": "Jungle"
+    },
+    "3471": {
+      "nombre": "Ice Hunter's Demon Boots",
+      "tipo": "Jungle"
+    },
+    "3472": {
+      "nombre": "Flame Hunter's Demon Boots",
+      "tipo": "Jungle"
+    },
+    "3473": {
+      "nombre": "Behemoth Hunter's Demon Boots",
+      "tipo": "Jungle"
+    },
+    "3501": {
+      "nombre": "Shadow Mask",
+      "tipo": null
+    },
+    "3502": {
+      "nombre": "Courage Mask",
+      "tipo": null
+    },
+    "3503": {
+      "nombre": "Awe Mask",
+      "tipo": null
+    },
+    "3511": {
+      "nombre": "Warrior Boots - Conceal",
+      "tipo": "Roam",
+      "fisica": 18
+    },
+    "3512": {
+      "nombre": "Warrior Boots - Encourage",
+      "tipo": "Roam",
+      "fisica": 18
+    },
+    "3513": {
+      "nombre": "Warrior Boots - Favor",
+      "tipo": "Roam",
+      "fisica": 18
+    },
+    "3514": {
+      "nombre": "Warrior Boots - Dire Hit",
+      "tipo": "Roam",
+      "fisica": 18
+    },
+    "3521": {
+      "nombre": "Tough Boots - Conceal",
+      "tipo": "Roam",
+      "magica": 18
+    },
+    "3522": {
+      "nombre": "Tough Boots - Encourage",
+      "tipo": "Roam",
+      "magica": 18
+    },
+    "3523": {
+      "nombre": "Tough Boots - Favor",
+      "tipo": "Roam",
+      "magica": 18
+    },
+    "3524": {
+      "nombre": "Tough Boots - Dire Hit",
+      "tipo": "Roam",
+      "magica": 18
+    },
+    "3531": {
+      "nombre": "Magic Boots - Conceal",
+      "tipo": "Roam"
+    },
+    "3532": {
+      "nombre": "Magic Boots - Encourage",
+      "tipo": "Roam"
+    },
+    "3533": {
+      "nombre": "Magic Boots - Favor",
+      "tipo": "Roam"
+    },
+    "3534": {
+      "nombre": "Magic Boots - Dire Hit",
+      "tipo": "Roam"
+    },
+    "3541": {
+      "nombre": "Arcane Boots - Conceal",
+      "tipo": "Roam"
+    },
+    "3542": {
+      "nombre": "Arcane Boots - Encourage",
+      "tipo": "Roam"
+    },
+    "3543": {
+      "nombre": "Arcane Boots - Favor",
+      "tipo": "Roam"
+    },
+    "3544": {
+      "nombre": "Arcane Boots - Dire Hit",
+      "tipo": "Roam"
+    },
+    "3551": {
+      "nombre": "Swift Boots - Conceal",
+      "tipo": "Roam"
+    },
+    "3552": {
+      "nombre": "Swift Boots - Encourage",
+      "tipo": "Roam"
+    },
+    "3553": {
+      "nombre": "Swift Boots - Favor",
+      "tipo": "Roam"
+    },
+    "3554": {
+      "nombre": "Swift Boots - Dire Hit",
+      "tipo": "Roam"
+    },
+    "3561": {
+      "nombre": "Rapid Boots- Conceal",
+      "tipo": "Roam"
+    },
+    "3562": {
+      "nombre": "Rapid Boots - Encourage",
+      "tipo": "Roam"
+    },
+    "3563": {
+      "nombre": "Rapid Boots - Favor",
+      "tipo": "Roam"
+    },
+    "3564": {
+      "nombre": "Rapid Boots - Dire Hit",
+      "tipo": "Roam"
+    },
+    "3571": {
+      "nombre": "Demon Boots - Conceal",
+      "tipo": "Roam"
+    },
+    "3572": {
+      "nombre": "Demon Boots - Encourage",
+      "tipo": "Roam"
+    },
+    "3573": {
+      "nombre": "Demon Boots - Favor",
+      "tipo": "Roam"
+    },
+    "3574": {
+      "nombre": "Demon Boots - Dire Hit",
+      "tipo": "Roam"
+    },
+    "10000": {
+      "nombre": "Shimmering Lantern",
+      "tipo": null
+    },
+    "10001": {
+      "nombre": "Lantern of Hope",
+      "tipo": null
+    },
+    "10002": {
+      "nombre": "Bud of Hope",
+      "tipo": null
+    },
+    "10003": {
+      "nombre": "Flower of Hope",
+      "tipo": null
+    }
+  },
+  "builds": {
+    "Hirara": {"jungle":[{"objetos":[3009,2013,3208],"winRate":0.5542360343305308,"pickRate":0.0921886396567806,"emblema":"Assassin","hechizo":"Retribution"},{"objetos":[3009,2014,2013],"winRate":0.5844838820069719,"pickRate":0.1264235627003107,"emblema":"Assassin","hechizo":"Retribution"},{"objetos":[3009,2014,2013],"winRate":0.601048821283497,"pickRate":0.0961574562029594,"emblema":"Assassin","hechizo":"Retribution"}]},
+    "Marcel": {"roam":[{"objetos":[2212,3206,3112],"winRate":0.6132045063247353,"pickRate":0.054648088461859,"emblema":"Support","hechizo":"Flicker"},{"objetos":[2212,3206,3112],"winRate":0.6500498730900179,"pickRate":0.2459411016144513,"emblema":"Support","hechizo":"Revitalize"},{"objetos":[2212,3206,3204],"winRate":0.6490759296370519,"pickRate":0.0540247000990719,"emblema":"Support","hechizo":"Revitalize"}]},
+    "Sora": {"exp":[{"objetos":[3201,3206,3202],"winRate":0.5474203071732331,"pickRate":0.0247995058053706,"emblema":"Tank","hechizo":"Flicker"},{"objetos":[2013,3208,2208],"winRate":0.5297222442035293,"pickRate":0.0275358797721214,"emblema":"Fighter","hechizo":"Flicker"},{"objetos":[2013,2208,3208],"winRate":0.5551321998448489,"pickRate":0.0508403814537559,"emblema":"Fighter","hechizo":"Flicker"}]},
+    "Obsidia": {"gold":[{"objetos":[3005,3002,2014],"winRate":0.5125558516089364,"pickRate":0.0277849912072092,"emblema":"Fighter","hechizo":"Flicker"},{"objetos":[3005,3002,2014],"winRate":0.5570786775717083,"pickRate":0.0237296011808764,"emblema":"Fighter","hechizo":"Aegis"},{"objetos":[3005,3002,2014],"winRate":0.5393874019292105,"pickRate":0.029353570419776,"emblema":"Fighter","hechizo":"Flicker"}]},
+    "Zetian": {"mid":[{"objetos":[3105,3108,3101],"winRate":0.5629091582039834,"pickRate":0.0557358500539993,"emblema":"Mage","hechizo":"Flicker"},{"objetos":[3105,3110,3109],"winRate":0.578626845749562,"pickRate":0.0397415142042584,"emblema":"Mage","hechizo":"Flicker"},{"objetos":[3105,3110,3101],"winRate":0.577153563286098,"pickRate":0.1713514124320841,"emblema":"Mage","hechizo":"Flicker"}]},
+    "Kalea": {"roam":[{"objetos":[3204,3206,3109],"winRate":0.4970011424219345,"pickRate":0.0409369830020324,"emblema":"Tank","hechizo":"Flicker"},{"objetos":[3112,3204,3206],"winRate":0.459082483781279,"pickRate":0.0420516038263452,"emblema":"Tank","hechizo":"Flicker"},{"objetos":[3204,3206,3109],"winRate":0.4881900900476168,"pickRate":0.0413325564763952,"emblema":"Tank","hechizo":"Flicker"}]},
+    "Lukas": {"exp":[{"objetos":[3009,2013,2208],"winRate":0.6125084212890186,"pickRate":0.0149443195728468,"emblema":"Assassin","hechizo":"Vengeance"},{"objetos":[3009,2013,2208],"winRate":0.55288098145241,"pickRate":0.0144300107979673,"emblema":"Assassin","hechizo":"Vengeance"},{"objetos":[3009,2013,2208],"winRate":0.6323180567416263,"pickRate":0.01768450302922,"emblema":"Fighter","hechizo":"Vengeance"}],"jungle":[{"objetos":[3009,2013,3012],"winRate":0.6427610430424467,"pickRate":0.0288937357191608,"emblema":"Assassin","hechizo":"Retribution"},{"objetos":[3009,2013,2208],"winRate":0.6156963510738384,"pickRate":0.1466675569007982,"emblema":"Assassin","hechizo":"Retribution"},{"objetos":[3009,2013,2208],"winRate":0.6243659215891141,"pickRate":0.2879916317991632,"emblema":"Assassin","hechizo":"Retribution"}]},
+    "Suyou": {"jungle":[{"objetos":[3009,2013,2208],"winRate":0.514157941220014,"pickRate":0.1719257939333979,"emblema":"Assassin","hechizo":"Retribution"},{"objetos":[3009,2014,2013],"winRate":0.5396038152284621,"pickRate":0.1795868542853788,"emblema":"Assassin","hechizo":"Retribution"},{"objetos":[3009,2014,2013],"winRate":0.5437941332728126,"pickRate":0.102096974563131,"emblema":"Assassin","hechizo":"Retribution"}]},
+    "Zhuxin": {"mid":[{"objetos":[3113,3105,3104],"winRate":0.5658333510333255,"pickRate":0.0399619402009598,"emblema":"All","hechizo":"Purify"},{"objetos":[3113,3105,3104],"winRate":0.541108326103024,"pickRate":0.1056541379421566,"emblema":"All","hechizo":"Flicker"},{"objetos":[3113,2014,3105],"winRate":0.5574183175909375,"pickRate":0.0802472698629881,"emblema":"All","hechizo":"Flicker"}]},
+    "Chip": {"roam":[{"objetos":[3109,3204,3212],"winRate":0.5188903281519862,"pickRate":0.0225312102499495,"emblema":"Tank","hechizo":"Flicker"},{"objetos":[3109,3204,3212],"winRate":0.5187505514868084,"pickRate":0.0275632778241233,"emblema":"Support","hechizo":"Flicker"},{"objetos":[3109,3212,3203],"winRate":0.5698430083972253,"pickRate":0.0333079581577136,"emblema":"Tank","hechizo":"Flicker"}]},
+    "Cici": {"exp":[{"objetos":[2013,3208,3009],"winRate":0.5680805959118579,"pickRate":0.0793586116525983,"emblema":"Fighter","hechizo":"Vengeance"},{"objetos":[2013,3208,3009],"winRate":0.5765551985981308,"pickRate":0.0211388362836024,"emblema":"Fighter","hechizo":"Vengeance"},{"objetos":[2013,3208,3204],"winRate":0.5386688017823574,"pickRate":0.1108415250954226,"emblema":"Fighter","hechizo":"Vengeance"}]},
+    "Nolan": {"jungle":[{"objetos":[3007,3015,3009],"winRate":0.5068555702496176,"pickRate":0.1722800263355998,"emblema":"Assassin","hechizo":"Retribution"},{"objetos":[3007,3009,3001],"winRate":0.5223846849562858,"pickRate":0.0883186607572937,"emblema":"Assassin","hechizo":"Retribution"},{"objetos":[3007,3009,3015],"winRate":0.5171880196592883,"pickRate":0.0655025427892983,"emblema":"Assassin","hechizo":"Retribution"}]},
+    "Ixia": {"gold":[{"objetos":[3013,2008,2014],"winRate":0.5032695913724669,"pickRate":0.0551318327704298,"emblema":"Marksman","hechizo":"Flicker"},{"objetos":[3013,2008,2014],"winRate":0.5257636974662991,"pickRate":0.0347437232236004,"emblema":"Marksman","hechizo":"Flicker"},{"objetos":[3013,2008,2014,3015],"winRate":0.5544382371198014,"pickRate":0.0253621439171787,"emblema":"Marksman","hechizo":"Flicker"}]},
+    "Arlott": {"exp":[{"objetos":[3013,2014,3001],"winRate":0.5514357401728464,"pickRate":0.0124725835359425,"emblema":"Fighter","hechizo":"Petrify"},{"objetos":[3013,2014,3001],"winRate":0.5846627690378267,"pickRate":0.0209483614255905,"emblema":"Assassin","hechizo":"Petrify"},{"objetos":[3013,2014,3001],"winRate":0.551228783592645,"pickRate":0.0174816299549089,"emblema":"Fighter","hechizo":"Petrify"}]},
+    "Novaria": {"mid":[{"objetos":[2014,3111,3110],"winRate":0.5041233521110401,"pickRate":0.0201877026068504,"emblema":"Assassin","hechizo":"Flameshot"},{"objetos":[2014,3111,3110],"winRate":0.5070480267802245,"pickRate":0.025741988053157,"emblema":"Assassin","hechizo":"Flicker"},{"objetos":[3110,3105,2112],"winRate":0.5384464177683119,"pickRate":0.0511940980954223,"emblema":"Mage","hechizo":"Flicker"}]},
+    "Joy": {"jungle":[{"objetos":[3103,3102,3101],"winRate":0.5206549272936041,"pickRate":0.1018494464694293,"emblema":"Mage","hechizo":"Retribution"},{"objetos":[3111,3102,3103],"winRate":0.5737794264040976,"pickRate":0.1605225264311852,"emblema":"Mage","hechizo":"Retribution"},{"objetos":[3111,3103,3102],"winRate":0.5628664786715007,"pickRate":0.099721203778345,"emblema":"Mage","hechizo":"Retribution"}]},
+    "Fredrinn": {"jungle":[{"objetos":[3208,3204,3212],"winRate":0.6202898891185867,"pickRate":0.0223660528629709,"emblema":"Support","hechizo":"Retribution"},{"objetos":[3208,3204,2208],"winRate":0.613130274357,"pickRate":0.0508361655628043,"emblema":"Support","hechizo":"Retribution"},{"objetos":[2013,3208,3204],"winRate":0.6055026878324701,"pickRate":0.0748691114606318,"emblema":"Support","hechizo":"Retribution"}]},
+    "Julian": {"jungle":[{"objetos":[2108,3103,3005],"winRate":0.5404181812227788,"pickRate":0.4270854958569144,"emblema":"Mage","hechizo":"Retribution"},{"objetos":[2108,3005,3103],"winRate":0.5297196392121286,"pickRate":0.0250516929636818,"emblema":"Mage","hechizo":"Retribution"},{"objetos":[2108,3103,3005],"winRate":0.5453348691788712,"pickRate":0.0212479824337891,"emblema":"Mage","hechizo":"Retribution"}],"exp":[{"objetos":[2108,3103,3005],"winRate":0.5503120602092639,"pickRate":0.0352450933613258,"emblema":"Mage","hechizo":"Inspire"},{"objetos":[2108,3103,3005],"winRate":0.4983689036760529,"pickRate":0.0332195194801764,"emblema":"Mage","hechizo":"Vengeance"},{"objetos":[2108,3103,3005],"winRate":0.5150786217075386,"pickRate":0.0759808559815353,"emblema":"Mage","hechizo":"Inspire"}]},
+    "Xavier": {"mid":[{"objetos":[2106,3105,3110],"winRate":0.5607306367111908,"pickRate":0.0765672119685824,"emblema":"Mage","hechizo":"Flicker"},{"objetos":[3105,2106,2112],"winRate":0.5170357374238955,"pickRate":0.0598715820854817,"emblema":"Mage","hechizo":"Flicker"},{"objetos":[2106,3105,2112],"winRate":0.5327684099403692,"pickRate":0.0337767399793816,"emblema":"Mage","hechizo":"Flicker"}]},
+    "Melissa": {"gold":[{"objetos":[2008,2006,2009],"winRate":0.6463475074784497,"pickRate":0.0309195420017643,"emblema":"Fighter","hechizo":"Purify"},{"objetos":[2008,2006,2009],"winRate":0.5961581288216692,"pickRate":0.0286712726027558,"emblema":"Fighter","hechizo":"Inspire"},{"objetos":[2008,2006,2009],"winRate":0.6090737756412007,"pickRate":0.0667895090612609,"emblema":"Marksman","hechizo":"Inspire"}]},
+    "Yin": {"jungle":[{"objetos":[3009,3001,2001],"winRate":0.1231572838073128,"pickRate":0.015428644088134,"emblema":"Marksman","hechizo":"Retribution"},{"objetos":[3009,3013,3004],"winRate":0.5397622387949494,"pickRate":0.0121271112527916,"emblema":"Assassin","hechizo":"Retribution"},{"objetos":[3009,3001,3008],"winRate":0.551354897972574,"pickRate":0.0682379467635666,"emblema":"Marksman","hechizo":"Retribution"}],"exp":[{"objetos":[3007,3008,3009],"winRate":0.5546262415054888,"pickRate":0.0206942060550115,"emblema":"Assassin","hechizo":"Petrify"},{"objetos":[2013,3013,3004],"winRate":0.5704866407518575,"pickRate":0.0244275047717952,"emblema":"Fighter","hechizo":"Petrify"},{"objetos":[2013,3013,3004],"winRate":0.582309410779112,"pickRate":0.0172169255696105,"emblema":"Fighter","hechizo":"Petrify"}]},
+    "Floryn": {"roam":[{"objetos":[10001,3112,3109],"winRate":0.5365320046406921,"pickRate":0.2530903006204483,"emblema":"Support","hechizo":"Flicker"},{"objetos":[10001,3112,3109],"winRate":0.5447638911268817,"pickRate":0.1071022253907745,"emblema":"Support","hechizo":"Flicker"},{"objetos":[10001,3112,3109],"winRate":0.5498017090408871,"pickRate":0.0679413418654139,"emblema":"Support","hechizo":"Revitalize"}]},
+    "Edith": {"exp":[{"objetos":[3206,2108,3210],"winRate":0.6009760096320111,"pickRate":0.090929737435477,"emblema":"Fighter","hechizo":"Inspire"},{"objetos":[3206,2108,3203],"winRate":0.535266416212498,"pickRate":0.0220112088403556,"emblema":"Fighter","hechizo":"Inspire"},{"objetos":[3206,2108,3205],"winRate":0.55928621742193,"pickRate":0.0297621266049233,"emblema":"Fighter","hechizo":"Inspire"}],"roam":[{"objetos":[3206,2108,3210],"winRate":0.5085860431128973,"pickRate":0.0675460569341444,"emblema":"Fighter","hechizo":"Inspire"},{"objetos":[3206,2108,3205],"winRate":0.4800596347372344,"pickRate":0.0165533495391222,"emblema":"Fighter","hechizo":"Inspire"},{"objetos":[3206,3210,2108],"winRate":0.5591919191919192,"pickRate":0.0152700484939722,"emblema":"Tank","hechizo":"Flicker"}]},
+    "Valentina": {"mid":[{"objetos":[3110,3105,3101],"winRate":0.5095500274246516,"pickRate":0.119794231153104,"emblema":"Mage","hechizo":"Flicker"},{"objetos":[3105,3110,3108],"winRate":0.5407957951792387,"pickRate":0.0405100139729856,"emblema":"Mage","hechizo":"Flicker"},{"objetos":[3105,3110,3101],"winRate":0.5269745142568761,"pickRate":0.0659225497371748,"emblema":"Mage","hechizo":"Flicker"}]},
+    "Aamon": {"jungle":[{"objetos":[3111,3102,3101],"winRate":0.5418714138590555,"pickRate":0.0206836655946987,"emblema":"Mage","hechizo":"Retribution"},{"objetos":[3111,3102,3101],"winRate":0.5348943114113316,"pickRate":0.0481125736724355,"emblema":"Assassin","hechizo":"Retribution"},{"objetos":[3111,2108,3102],"winRate":0.5593502278030074,"pickRate":0.0413438996423798,"emblema":"Mage","hechizo":"Retribution"}]},
+    "Aulus": {"jungle":[{"objetos":[2013,3208,3001],"winRate":0.5933781347320111,"pickRate":0.0845869092018246,"emblema":"Assassin","hechizo":"Retribution"},{"objetos":[2013,3208,3012],"winRate":0.5709112363436616,"pickRate":0.1362957006391504,"emblema":"Fighter","hechizo":"Retribution"},{"objetos":[2013,3208,3012],"winRate":0.5996583601286174,"pickRate":0.0689894214371872,"emblema":"Assassin","hechizo":"Retribution"}]},
+    "Natan": {"gold":[{"objetos":[2108,3005,3103],"winRate":0.511978904004715,"pickRate":0.0890602838894291,"emblema":"Fighter","hechizo":"Aegis"},{"objetos":[2108,3103,3005],"winRate":0.5432289422017909,"pickRate":0.0904039182390652,"emblema":"Fighter","hechizo":"Aegis"},{"objetos":[2108,3005,3103],"winRate":0.4968695914787841,"pickRate":0.0465867196111632,"emblema":"Mage","hechizo":"Aegis"}]},
+    "Phoveus": {"exp":[{"objetos":[2212,3203,2013],"winRate":0.5411768773337021,"pickRate":0.0162058916966376,"emblema":"Fighter","hechizo":"Vengeance"},{"objetos":[2212,3203,3204],"winRate":0.5324301705199289,"pickRate":0.0107116663482339,"emblema":"Tank","hechizo":"Vengeance"},{"objetos":[2013,2208,3204],"winRate":0.5961318998138025,"pickRate":0.0093283048975702,"emblema":"Fighter","hechizo":"Vengeance"}]},
+    "Beatrix": {"gold":[{"objetos":[3008,3015,3013],"winRate":0.538188757212748,"pickRate":0.1298988587385893,"emblema":"Marksman","hechizo":"Flicker"},{"objetos":[3013,3008,3015],"winRate":0.5981572003287624,"pickRate":0.0200917980581782,"emblema":"Marksman","hechizo":"Flicker"},{"objetos":[3008,3015,3013],"winRate":0.5522809152291652,"pickRate":0.0291424503875908,"emblema":"Marksman","hechizo":"Flicker"}]},
+    "Gloo": {"roam":[{"objetos":[3201,3105,3204],"winRate":0.5937006638621677,"pickRate":0.1674487339213034,"emblema":"All","hechizo":"Flameshot"},{"objetos":[3201,3105,3204],"winRate":0.6153495241408019,"pickRate":0.0719878164170496,"emblema":"All","hechizo":"Flicker"},{"objetos":[3201,3105,3204],"winRate":0.6075238629983156,"pickRate":0.0526389895179316,"emblema":"All","hechizo":"Flameshot"}],"exp":[{"objetos":[3201,3105,3204],"winRate":0.6011514083757048,"pickRate":0.1325223033906315,"emblema":"All","hechizo":"Flameshot"},{"objetos":[3201,3105,3204],"winRate":0.6091419534199022,"pickRate":0.0810813535428156,"emblema":"All","hechizo":"Flameshot"},{"objetos":[3201,3105,3204],"winRate":0.6270134758603451,"pickRate":0.0548495660294884,"emblema":"All","hechizo":"Flicker"}]},
+    "Paquito": {"exp":[{"objetos":[3009,3013,3001],"winRate":0.5335805724641048,"pickRate":0.0439145435552165,"emblema":"Assassin","hechizo":"Flicker"},{"objetos":[3009,2014,3001],"winRate":0.6039477333662054,"pickRate":0.0331068032113569,"emblema":"Assassin","hechizo":"Flicker"},{"objetos":[3009,2014,3001],"winRate":0.5671593737128802,"pickRate":0.1319066191032907,"emblema":"Assassin","hechizo":"Flicker"}]},
+    "Mathilda": {"roam":[{"objetos":[3112,2106,3204],"winRate":0.5357216255097295,"pickRate":0.0637013640695119,"emblema":"Support","hechizo":"Revitalize"},{"objetos":[3112,2106,3204],"winRate":0.5001210090291353,"pickRate":0.0370111601929004,"emblema":"Support","hechizo":"Flicker"},{"objetos":[3112,2106,3204],"winRate":0.5344053740748447,"pickRate":0.0463619645301963,"emblema":"Support","hechizo":"Revitalize"}]},
+    "Yve": {"mid":[{"objetos":[3105,3101,2112],"winRate":0.5437896459995908,"pickRate":0.0209856874777239,"emblema":"Mage","hechizo":"Flicker"},{"objetos":[2106,3105,2112],"winRate":0.5377371555186262,"pickRate":0.0155041589192392,"emblema":"Mage","hechizo":"Flicker"},{"objetos":[3105,3101,2112],"winRate":0.5148388247888664,"pickRate":0.0722024451095662,"emblema":"Mage","hechizo":"Flicker"}]},
+    "Brody": {"gold":[{"objetos":[3007,2014,3015],"winRate":0.5427585187207133,"pickRate":0.0350194924475727,"emblema":"Assassin","hechizo":"Flicker"},{"objetos":[3007,2014,3015],"winRate":0.5214730958111814,"pickRate":0.1806990515852848,"emblema":"Assassin","hechizo":"Flicker"},{"objetos":[3007,2014,3015],"winRate":0.5571175517280368,"pickRate":0.0264197543648903,"emblema":"Fighter","hechizo":"Flicker"}]},
+    "Barats": {"jungle":[{"objetos":[2013,2212,2208],"winRate":0.5591701611123372,"pickRate":0.0371361176815785,"emblema":"Fighter","hechizo":"Retribution"},{"objetos":[3210,3212,3202],"winRate":0.5540038336658452,"pickRate":0.0419029166318336,"emblema":"Fighter","hechizo":"Retribution"},{"objetos":[2013,3203,3208],"winRate":0.5468166348468498,"pickRate":0.0197474645645542,"emblema":"Tank","hechizo":"Retribution"}]},
+    "Khaleed": {"roam":[{"objetos":[2212,3206,3203],"winRate":0.5345468780583283,"pickRate":0.0254564433975308,"emblema":"Tank","hechizo":"Flicker"},{"objetos":[2212,3206,3205],"winRate":0.5388133277899863,"pickRate":0.0209732891702988,"emblema":"Tank","hechizo":"Flicker"},{"objetos":[2212,3206,3212],"winRate":0.5758766626360339,"pickRate":0.0453273175939202,"emblema":"Tank","hechizo":"Flicker"}],"exp":[{"objetos":[2212,3206,3212],"winRate":0.5597302504816956,"pickRate":0.011487468551487,"emblema":"Assassin","hechizo":"Flicker"},{"objetos":[2212,3206,3212],"winRate":0.5555555555555556,"pickRate":0.0077025800692052,"emblema":"Tank","hechizo":"Flicker"},{"objetos":[2212,3206,3212],"winRate":0.5713463751438435,"pickRate":0.0128228775481596,"emblema":"Tank","hechizo":"Flicker"}]},
+    "Benedetta": {"exp":[{"objetos":[3007,3009,3008],"winRate":0.5680984143836407,"pickRate":0.0179900265322477,"emblema":"Fighter","hechizo":"Petrify"},{"objetos":[3007,3009,3001,3008],"winRate":0.5805383104905092,"pickRate":0.0209339019012701,"emblema":"Fighter","hechizo":"Petrify"},{"objetos":[3007,3009,3001],"winRate":0.5307033123168458,"pickRate":0.0187029509340265,"emblema":"Fighter","hechizo":"Petrify"}]},
+    "Luo Yi": {"mid":[{"objetos":[2014,2106,3111],"winRate":0.4934033262101645,"pickRate":0.0261546387243204,"emblema":"Mage","hechizo":"Flicker"},{"objetos":[2106,3105,3101],"winRate":0.5182207680922334,"pickRate":0.077986411154906,"emblema":"Mage","hechizo":"Flicker"},{"objetos":[2106,3105,2101],"winRate":0.2782781363023899,"pickRate":0.017133074451902,"emblema":"Mage","hechizo":"Flicker"}]},
+    "Yu Zhong": {"exp":[{"objetos":[3009,2013,2208],"winRate":0.5968235465539851,"pickRate":0.0559938780167481,"emblema":"Fighter","hechizo":"Petrify"},{"objetos":[2013,2208,3204],"winRate":0.5766999976799759,"pickRate":0.041372819709369,"emblema":"Fighter","hechizo":"Petrify"},{"objetos":[2013,2208,3009],"winRate":0.6026351324516462,"pickRate":0.0241682998274413,"emblema":"Fighter","hechizo":"Petrify"}]},
+    "Popol and Kupa": {"jungle":[{"objetos":[3013,3005,3003],"winRate":0.5760130837724877,"pickRate":0.1331699596835993,"emblema":"Assassin","hechizo":"Retribution"},{"objetos":[3013,3005,3008],"winRate":0.6244124099028519,"pickRate":0.0308882675886146,"emblema":"Marksman","hechizo":"Retribution"},{"objetos":[3013,3005,3008],"winRate":0.6161342918550359,"pickRate":0.0435365501486657,"emblema":"Assassin","hechizo":"Retribution"}],"gold":[{"objetos":[3013,3005,3003],"winRate":0.5112517905826903,"pickRate":0.0364680843175947,"emblema":"Assassin","hechizo":"Flicker"},{"objetos":[3013,3005,3008],"winRate":0.5470885140957774,"pickRate":0.0410651424026369,"emblema":"Assassin","hechizo":"Flicker"},{"objetos":[3013,3005,3008],"winRate":0.5510952522549311,"pickRate":0.0510040898313682,"emblema":"Marksman","hechizo":"Flicker"}]},
+    "Atlas": {"roam":[{"objetos":[3206,3109,3205],"winRate":0.5519126208920753,"pickRate":0.0131642055224928,"emblema":"Tank","hechizo":"Flicker"},{"objetos":[3206,3205,3212],"winRate":0.5823406985735674,"pickRate":0.0307995410041914,"emblema":"Support","hechizo":"Flicker"},{"objetos":[3206,3205,3109],"winRate":0.5644333124608641,"pickRate":0.0131502704543364,"emblema":"Support","hechizo":"Flicker"}]},
+    "Carmilla": {"roam":[{"objetos":[3201,3206,3205],"winRate":0.5387142444777391,"pickRate":0.0261920221457254,"emblema":"Tank","hechizo":"Petrify"},{"objetos":[3201,3206,3203],"winRate":0.5532447113609517,"pickRate":0.1321246046274097,"emblema":"Tank","hechizo":"Petrify"},{"objetos":[3201,3206,3212],"winRate":0.5542312146306291,"pickRate":0.0164771656409316,"emblema":"Tank","hechizo":"Petrify"}]},
+    "Cecilion": {"mid":[{"objetos":[3113,3105,3110],"winRate":0.5398648547860201,"pickRate":0.0391026439299443,"emblema":"Mage","hechizo":"Flicker"},{"objetos":[3113,3105,3110],"winRate":0.560561204788261,"pickRate":0.0203918313684992,"emblema":"Mage","hechizo":"Flicker"},{"objetos":[3113,3105,2112],"winRate":0.5690394875970782,"pickRate":0.023995931024567,"emblema":"Mage","hechizo":"Flicker"}]},
+    "Silvanna": {"exp":[{"objetos":[3111,2108,2107],"winRate":0.5624293274232213,"pickRate":0.0341069449956285,"emblema":"Mage","hechizo":"Petrify"},{"objetos":[2108,3111,3103],"winRate":0.5648006480064801,"pickRate":0.0257109502360867,"emblema":"Mage","hechizo":"Petrify"},{"objetos":[3111,2108,2107],"winRate":0.5563693743703612,"pickRate":0.0750340448524299,"emblema":"Mage","hechizo":"Petrify"}]},
+    "Wanwan": {"gold":[{"objetos":[2008,3005,3002,3003],"winRate":0.5955060284983559,"pickRate":0.0579071137736206,"emblema":"Marksman","hechizo":"Inspire"},{"objetos":[2008,3005,3002,3015],"winRate":0.5785867880182027,"pickRate":0.0211539743173382,"emblema":"Marksman","hechizo":"Inspire"},{"objetos":[2008,3005,3002,3003],"winRate":0.5490627777328917,"pickRate":0.0523724038857218,"emblema":"Marksman","hechizo":"Inspire"}]},
+    "Masha": {"exp":[{"objetos":[3013,3007,3001],"winRate":0.6144074360960496,"pickRate":0.0457395277384904,"emblema":"Assassin","hechizo":"Flicker"},{"objetos":[3013,3007,3001],"winRate":0.6323501281609855,"pickRate":0.0370437030381534,"emblema":"Assassin","hechizo":"Petrify"},{"objetos":[3013,3007,3001],"winRate":0.6161725243798678,"pickRate":0.0866124547564857,"emblema":"Assassin","hechizo":"Flicker"}]},
+    "Baxia": {"jungle":[{"objetos":[3201,3203,3212],"winRate":0.5278041825095057,"pickRate":0.0421736254484957,"emblema":"Tank","hechizo":"Retribution"},{"objetos":[3201,3210,3212],"winRate":0.5409349691283778,"pickRate":0.0416624907294193,"emblema":"Tank","hechizo":"Retribution"},{"objetos":[3201,3212,3210],"winRate":0.5370799780766474,"pickRate":0.0792392444560257,"emblema":"Tank","hechizo":"Retribution"}],"roam":[{"objetos":[3201,3212,3210],"winRate":0.4541139240506329,"pickRate":0.0082475303083689,"emblema":"Tank","hechizo":"Vengeance"},{"objetos":[3201,3212,3210],"winRate":0.4491017964071856,"pickRate":0.0065379947539443,"emblema":"Tank","hechizo":"Revitalize"},{"objetos":[3201,3210,3203],"winRate":0.4310344827586207,"pickRate":0.0068120424382414,"emblema":"Tank","hechizo":"Flicker"}]},
+    "Lylia": {"mid":[{"objetos":[2106,3105,2112],"winRate":0.5335917312661499,"pickRate":0.0323980714378425,"emblema":"Mage","hechizo":"Purify"},{"objetos":[2106,3105,2112],"winRate":0.5131866775854526,"pickRate":0.0313558430741058,"emblema":"Mage","hechizo":"Flicker"},{"objetos":[2106,3102,3101],"winRate":0.5586165739108712,"pickRate":0.0253444752927156,"emblema":"Mage","hechizo":"Purify"}]},
+    "Dyrroth": {"exp":[{"objetos":[3007,3009,3012],"winRate":0.6129212654868605,"pickRate":0.0274680411835588,"emblema":"Assassin","hechizo":"Petrify"},{"objetos":[3007,3009,3013],"winRate":0.5716742467310972,"pickRate":0.0196508510737238,"emblema":"Assassin","hechizo":"Petrify"},{"objetos":[3007,2014,3009],"winRate":0.6077298692385235,"pickRate":0.0195325717185543,"emblema":"Assassin","hechizo":"Petrify"}],"jungle":[{"objetos":[2013,3012,2208],"winRate":0.5785429375879869,"pickRate":0.0613519894051938,"emblema":"Fighter","hechizo":"Retribution"},{"objetos":[2013,3012,2208],"winRate":0.5731827322123818,"pickRate":0.0280380894800484,"emblema":"Assassin","hechizo":"Retribution"},{"objetos":[2013,3208,3012],"winRate":0.5631241007580475,"pickRate":0.0558614517955509,"emblema":"Assassin","hechizo":"Retribution"}]},
+    "Ling": {"jungle":[{"objetos":[3003,3002,3004],"winRate":0.5723193998013331,"pickRate":0.1061418504277346,"emblema":"Marksman","hechizo":"Retribution"},{"objetos":[3003,3002,3004],"winRate":0.5641372565732512,"pickRate":0.28872828783637,"emblema":"Assassin","hechizo":"Retribution"},{"objetos":[3003,3002,3008],"winRate":0.5976757332292052,"pickRate":0.0570541168497866,"emblema":"Marksman","hechizo":"Retribution"}]},
+    "X.Borg": {"exp":[{"objetos":[2014,2013,3104],"winRate":0.563137852246763,"pickRate":0.0323196552570106,"emblema":"Tank","hechizo":"Flicker"},{"objetos":[2013,2014,3104],"winRate":0.5685371796598548,"pickRate":0.0335056938879831,"emblema":"Tank","hechizo":"Flicker"},{"objetos":[2013,2014,3104],"winRate":0.5589859260825638,"pickRate":0.0174607368290636,"emblema":"Fighter","hechizo":"Flicker"}]},
+    "Terizla": {"exp":[{"objetos":[2013,2208,3205],"winRate":0.5581634876304791,"pickRate":0.0471288348712491,"emblema":"Fighter","hechizo":"Flicker"},{"objetos":[2013,2208,3204],"winRate":0.590351183582428,"pickRate":0.0761681392385566,"emblema":"Fighter","hechizo":"Flicker"},{"objetos":[2013,3206,2208],"winRate":0.5958427281906454,"pickRate":0.0614797597210748,"emblema":"Fighter","hechizo":"Flicker"}]},
+    "Esmeralda": {"exp":[{"objetos":[2106,3204,3206],"winRate":0.5982747350935793,"pickRate":0.0609777011987695,"emblema":"Support","hechizo":"Purify"},{"objetos":[2106,3204,3206],"winRate":0.5734088972093327,"pickRate":0.075297809173221,"emblema":"Support","hechizo":"Vengeance"},{"objetos":[2106,3204,3206],"winRate":0.5835581608293273,"pickRate":0.0447270489384475,"emblema":"Support","hechizo":"Flicker"}]},
+    "Guinevere": {"exp":[{"objetos":[3103,3111,2107],"winRate":0.5431405749622704,"pickRate":0.0077290433591167,"emblema":"Mage","hechizo":"Flicker"},{"objetos":[3103,2208,3101],"winRate":0.5607880130326718,"pickRate":0.0441836011248038,"emblema":"Mage","hechizo":"Flicker"},{"objetos":[3103,3106,3101],"winRate":0.5507915738533992,"pickRate":0.05479236535413,"emblema":"Mage","hechizo":"Flicker"}]},
+    "Granger": {"gold":[{"objetos":[3009,2014,3001],"winRate":0.4682234416032473,"pickRate":0.2717822054910245,"emblema":"Assassin","hechizo":"Flicker"},{"objetos":[3009,2014,3013],"winRate":0.3848809101089836,"pickRate":0.0402387717343264,"emblema":"Assassin","hechizo":"Flicker"},{"objetos":[3009,2014,3001],"winRate":0.4323617791152789,"pickRate":0.1227144602143967,"emblema":"Assassin","hechizo":"Flicker"}]},
+    "Khufra": {"roam":[{"objetos":[2212,3206,3203],"winRate":0.565864729913754,"pickRate":0.018621101909411,"emblema":"Tank","hechizo":"Flicker"},{"objetos":[2212,3206,3201],"winRate":0.614349590510118,"pickRate":0.0736499658852622,"emblema":"Tank","hechizo":"Flicker"},{"objetos":[2212,3206,3201],"winRate":0.6511359138763556,"pickRate":0.0213563668108569,"emblema":"Tank","hechizo":"Flicker"}]},
+    "Badang": {"roam":[{"objetos":[2212,3206,3205],"winRate":0.5526409592651244,"pickRate":0.0462687035267615,"emblema":"Support","hechizo":"Flicker"},{"objetos":[2212,3206,3203],"winRate":0.5624227924941728,"pickRate":0.1451084373311877,"emblema":"Support","hechizo":"Flicker"},{"objetos":[2212,3206,3212],"winRate":0.5648100390177005,"pickRate":0.0445561793894719,"emblema":"Support","hechizo":"Flicker"}],"exp":[{"objetos":[2212,3206,3203],"winRate":0.5650890703677062,"pickRate":0.0368375193087958,"emblema":"Support","hechizo":"Flicker"},{"objetos":[2212,3206,3212],"winRate":0.5646219049743475,"pickRate":0.0087347458565,"emblema":"Support","hechizo":"Flicker"},{"objetos":[2212,3206,3205],"winRate":0.5582068905892016,"pickRate":0.0090145382957133,"emblema":"Support","hechizo":"Flicker"}]},
+    "Faramis": {"mid":[{"objetos":[3110,3111,3102],"winRate":0.5881545064377682,"pickRate":0.011603724347303,"emblema":"Mage","hechizo":"Flicker"},{"objetos":[3105,3110,2112],"winRate":0.6055514974433893,"pickRate":0.0109084969143057,"emblema":"Mage","hechizo":"Flicker"},{"objetos":[3110,3105,3102],"winRate":0.5833042263360112,"pickRate":0.0114065108347909,"emblema":"Assassin","hechizo":"Flicker"}],"roam":[{"objetos":[3105,3110,3102],"winRate":0.5463126843657817,"pickRate":0.0098465792577015,"emblema":"Assassin","hechizo":"Flicker"},{"objetos":[3105,3102,3108],"winRate":0.5377315860822413,"pickRate":0.0128557403523855,"emblema":"Assassin","hechizo":"Flicker"},{"objetos":[3110,3111,3102],"winRate":0.5078201368523949,"pickRate":0.0118856054048716,"emblema":"Mage","hechizo":"Flicker"}]},
+    "Kadita": {"mid":[{"objetos":[3111,3110,3102],"winRate":0.592319656854684,"pickRate":0.0510439074344774,"emblema":"Mage","hechizo":"Petrify"},{"objetos":[3111,3110,3101],"winRate":0.5652573225964266,"pickRate":0.0582650198806618,"emblema":"Mage","hechizo":"Petrify"},{"objetos":[3111,2014,3110],"winRate":0.5585727151798802,"pickRate":0.0464067476559321,"emblema":"Mage","hechizo":"Petrify"}]},
+    "Minsitthar": {"exp":[{"objetos":[2008,2009,2006],"winRate":0.5669611809102095,"pickRate":0.0753881029638195,"emblema":"Marksman","hechizo":"Flicker"},{"objetos":[2008,2009,2006],"winRate":0.5904463586530933,"pickRate":0.0206012024296786,"emblema":"Fighter","hechizo":"Flicker"},{"objetos":[2008,2006,2009],"winRate":0.5838761184874732,"pickRate":0.1299848261428403,"emblema":"Fighter","hechizo":"Flicker"}],"roam":[{"objetos":[3109,3206,3203],"winRate":0.4704716607213635,"pickRate":0.0123377300793501,"emblema":"Tank","hechizo":"Flicker"},{"objetos":[2008,2009,2006],"winRate":0.4997842781948399,"pickRate":0.0377809364221398,"emblema":"Marksman","hechizo":"Flicker"},{"objetos":[2008,2006,2009],"winRate":0.5122586129040827,"pickRate":0.0613659035932477,"emblema":"Fighter","hechizo":"Flicker"}]},
+    "Harith": {"gold":[{"objetos":[3106,2108,3102],"winRate":0.523836213946895,"pickRate":0.385178533326837,"emblema":"Mage","hechizo":"Purify"},{"objetos":[3106,2108,3102],"winRate":0.5305921075815989,"pickRate":0.1191871453988586,"emblema":"Mage","hechizo":"Flicker"},{"objetos":[3106,2108,2101],"winRate":0.0663758771098047,"pickRate":0.0398656946864221,"emblema":"Mage","hechizo":"Purify"}],"jungle":[{"objetos":[3106,2108,2101],"winRate":0.0986962488563586,"pickRate":0.0553701581190357,"emblema":"Mage","hechizo":"Retribution"},{"objetos":[3106,2108,3102],"winRate":0.6134449062113894,"pickRate":0.4510160272038197,"emblema":"Mage","hechizo":"Retribution"},{"objetos":[3106,2108,3102],"winRate":0.6013513513513514,"pickRate":0.1143370968661149,"emblema":"Mage","hechizo":"Retribution"}]},
+    "Thamuz": {"exp":[{"objetos":[2008,2013,3204],"winRate":0.5673110025666634,"pickRate":0.1402050671808878,"emblema":"Fighter","hechizo":"Vengeance"},{"objetos":[2008,2013,2208],"winRate":0.5829924616421396,"pickRate":0.0304934085549,"emblema":"Fighter","hechizo":"Vengeance"},{"objetos":[2008,2013,3204],"winRate":0.5773711278555197,"pickRate":0.0199786378396978,"emblema":"Fighter","hechizo":"Vengeance"}]},
+    "Kimmy": {"mid":[{"objetos":[2108,2014,3103],"winRate":0.5542969352930079,"pickRate":0.0635602180988945,"emblema":"Mage","hechizo":"Purify"},{"objetos":[2108,2014,3103],"winRate":0.5481931284013227,"pickRate":0.0735102716207643,"emblema":"Mage","hechizo":"Flicker"},{"objetos":[2108,3105,3103],"winRate":0.4849050356680613,"pickRate":0.0181075059244677,"emblema":"Mage","hechizo":"Flicker"}],"gold":[{"objetos":[2108,2014,3103],"winRate":0.4852164991170348,"pickRate":0.0991871318877778,"emblema":"Mage","hechizo":"Flicker"},{"objetos":[2108,2014,2009],"winRate":0.5208175624526874,"pickRate":0.0219749358326394,"emblema":"Mage","hechizo":"Purify"},{"objetos":[2108,2014,3103],"winRate":0.5080312834271485,"pickRate":0.1116057056354746,"emblema":"Mage","hechizo":"Purify"}]},
+    "Belerick": {"roam":[{"objetos":[3206,3212,3202],"winRate":0.6113069572310919,"pickRate":0.0288408093587267,"emblema":"Tank","hechizo":"Revitalize"},{"objetos":[3206,3212,3202],"winRate":0.6084663361366496,"pickRate":0.0203653275617358,"emblema":"Tank","hechizo":"Flicker"},{"objetos":[3206,3203,3205],"winRate":0.5596220511089978,"pickRate":0.0182597961128542,"emblema":"Tank","hechizo":"Revitalize"}]},
+    "Hanzo": {"jungle":[{"objetos":[2212,3208,2009],"winRate":0.598722698804206,"pickRate":0.3577167567847384,"emblema":"Support","hechizo":"Retribution"},{"objetos":[2212,3204,2009],"winRate":0.5323633297075323,"pickRate":0.0311437855071261,"emblema":"Support","hechizo":"Retribution"},{"objetos":[2212,2009,3208],"winRate":0.5809669057097067,"pickRate":0.0515381100383811,"emblema":"Support","hechizo":"Retribution"}]},
+    "Lunox": {"mid":[{"objetos":[2014,3111,3110],"winRate":0.5224821928683265,"pickRate":0.0261678651206889,"emblema":"Assassin","hechizo":"Flicker"},{"objetos":[3105,3111,3101],"winRate":0.5263298182484549,"pickRate":0.0346390817385845,"emblema":"Mage","hechizo":"Flicker"},{"objetos":[2014,3111,3110],"winRate":0.5169184556939659,"pickRate":0.0195951704832344,"emblema":"Assassin","hechizo":"Flicker"}]},
+    "Leomord": {"jungle":[{"objetos":[2013,3208,3004],"winRate":0.5622857059128074,"pickRate":0.1582345053577708,"emblema":"Marksman","hechizo":"Retribution"},{"objetos":[2013,3208,3013],"winRate":0.5423392806570377,"pickRate":0.0341115915651337,"emblema":"Assassin","hechizo":"Retribution"},{"objetos":[2013,3208,3004],"winRate":0.566090258934039,"pickRate":0.1375662234381702,"emblema":"Assassin","hechizo":"Retribution"}]},
+    "Vale": {"mid":[{"objetos":[3111,3110,3101],"winRate":0.5630379683304474,"pickRate":0.0369298264717971,"emblema":"Assassin","hechizo":"Flicker"},{"objetos":[3111,3110,3102],"winRate":0.5744250505655853,"pickRate":0.0123711072692419,"emblema":"Mage","hechizo":"Flicker"},{"objetos":[3111,3110,3101],"winRate":0.5606152665408844,"pickRate":0.014490107701568,"emblema":"Mage","hechizo":"Flicker"}]},
+    "Claude": {"gold":[{"objetos":[2008,2006,2009],"winRate":0.5189317640432972,"pickRate":0.0588228135421961,"emblema":"Fighter","hechizo":"Purify"},{"objetos":[2006,2009,2008],"winRate":0.5178342528371148,"pickRate":0.0628976624382869,"emblema":"Fighter","hechizo":"Purify"},{"objetos":[2008,2006,2009],"winRate":0.5221548078690936,"pickRate":0.0284990956330256,"emblema":"Fighter","hechizo":"Flicker"}]},
+    "Aldous": {"exp":[{"objetos":[3007,3004,3001],"winRate":0.5508514407606927,"pickRate":0.1965214741459209,"emblema":"Assassin","hechizo":"Flicker"},{"objetos":[3007,3001,3004],"winRate":0.5475039112501778,"pickRate":0.0222028190096046,"emblema":"Assassin","hechizo":"Flicker"},{"objetos":[3004,3007,3001],"winRate":0.5793188308220927,"pickRate":0.0340044809842376,"emblema":"Assassin","hechizo":"Flicker"}]},
+    "Selena": {"mid":[{"objetos":[3106,3110,3101],"winRate":0.5510571748363257,"pickRate":0.023469841607987,"emblema":"Mage","hechizo":"Flicker"},{"objetos":[2106,3105,3110],"winRate":0.5655043986386695,"pickRate":0.0280197975622254,"emblema":"Mage","hechizo":"Flicker"},{"objetos":[3106,3110,3101],"winRate":0.5683551710169945,"pickRate":0.0679598391897883,"emblema":"Mage","hechizo":"Flicker"}],"roam":[{"objetos":[3106,3110,3101],"winRate":0.4927820996070254,"pickRate":0.0694920100072061,"emblema":"Mage","hechizo":"Flicker"},{"objetos":[2106,3105,3110],"winRate":0.5012110231715458,"pickRate":0.0584459627031495,"emblema":"Mage","hechizo":"Flicker"},{"objetos":[3106,3110,3101],"winRate":0.4794295262278474,"pickRate":0.0423600866518383,"emblema":"Mage","hechizo":"Flicker"}]},
+    "Kaja": {"roam":[{"objetos":[2212,3109,3203],"winRate":0.4936373151594803,"pickRate":0.0278472607257833,"emblema":"Support","hechizo":"Flicker"},{"objetos":[2212,3109,3206],"winRate":0.5226745840908459,"pickRate":0.2286699524662124,"emblema":"Support","hechizo":"Flicker"},{"objetos":[2212,3109,3205],"winRate":0.4847650277250705,"pickRate":0.0237923152614358,"emblema":"Support","hechizo":"Flicker"}]},
+    "Chang'e": {"mid":[{"objetos":[2014,3110,3102],"winRate":0.5662266897229514,"pickRate":0.0280598807202861,"emblema":"Mage","hechizo":"Flicker"},{"objetos":[2014,3111,3102],"winRate":0.5548319126520448,"pickRate":0.0182235805207884,"emblema":"Mage","hechizo":"Flicker"},{"objetos":[2014,3105,3101],"winRate":0.5123303906523027,"pickRate":0.0229738244385528,"emblema":"Mage","hechizo":"Flicker"}]},
+    "Hanabi": {"gold":[{"objetos":[2008,2009,2006],"winRate":0.5742949744386721,"pickRate":0.2099677714267376,"emblema":"Fighter","hechizo":"Aegis"},{"objetos":[2008,2006,2009],"winRate":0.5615917788823483,"pickRate":0.1001929755461586,"emblema":"Marksman","hechizo":"Aegis"},{"objetos":[2008,2006,2009],"winRate":0.5782933207185188,"pickRate":0.1141207758341261,"emblema":"Fighter","hechizo":"Aegis"}]},
+    "Uranus": {"exp":[{"objetos":[3203,3206,3204],"winRate":0.5679524357250474,"pickRate":0.0250068971831539,"emblema":"All","hechizo":"Vengeance"},{"objetos":[2212,3206,3204],"winRate":0.602449393997081,"pickRate":0.0127686002141469,"emblema":"All","hechizo":"Flicker"},{"objetos":[2212,3206,3204],"winRate":0.6163297421619659,"pickRate":0.0267736293848766,"emblema":"All","hechizo":"Revitalize"}]},
+    "Martis": {"jungle":[{"objetos":[2014,2013,2208],"winRate":0.538857955218576,"pickRate":0.1437585687157784,"emblema":"Fighter","hechizo":"Retribution"},{"objetos":[2014,2013,2208],"winRate":0.5223398927981898,"pickRate":0.0382608239024238,"emblema":"Marksman","hechizo":"Retribution"},{"objetos":[2014,3013,2013],"winRate":0.5150973381009138,"pickRate":0.042866996500132,"emblema":"Fighter","hechizo":"Retribution"}],"exp":[{"objetos":[2014,2013,2208],"winRate":0.5696685428392745,"pickRate":0.0848221863860126,"emblema":"Fighter","hechizo":"Flicker"},{"objetos":[2014,3013,2013],"winRate":0.5564108732258841,"pickRate":0.0132309879477169,"emblema":"Fighter","hechizo":"Flicker"},{"objetos":[2013,2014,2208],"winRate":0.5875112772264467,"pickRate":0.0164636734001019,"emblema":"Fighter","hechizo":"Flicker"}]},
+    "Valir": {"mid":[{"objetos":[3105,3104,2112],"winRate":0.5853705461759483,"pickRate":0.0727865805603248,"emblema":"All","hechizo":"Flicker"},{"objetos":[3105,3104,3208],"winRate":0.5997676941581566,"pickRate":0.0389356403992737,"emblema":"All","hechizo":"Flicker"},{"objetos":[3105,2106,3104],"winRate":0.5792738675161783,"pickRate":0.0642799406520969,"emblema":"Mage","hechizo":"Flicker"}]},
+    "Gusion": {"jungle":[{"objetos":[3111,3110,3101],"winRate":0.497700368781649,"pickRate":0.0898225641266131,"emblema":"Assassin","hechizo":"Retribution"},{"objetos":[3111,3102,3110],"winRate":0.5762840396231483,"pickRate":0.0377327934257281,"emblema":"Assassin","hechizo":"Retribution"},{"objetos":[3111,2014,3102],"winRate":0.5805824722233391,"pickRate":0.0296526593522937,"emblema":"Assassin","hechizo":"Retribution"}],"mid":[{"objetos":[3111,3102,3110],"winRate":0.5565957156035396,"pickRate":0.0114128294411929,"emblema":"Assassin","hechizo":"Petrify"},{"objetos":[3111,3102,3110],"winRate":0.5389289938415107,"pickRate":0.0095606670903894,"emblema":"Assassin","hechizo":"Petrify"},{"objetos":[3111,3110,3101],"winRate":0.5019906722784666,"pickRate":0.0102835953005767,"emblema":"Assassin","hechizo":"Petrify"}]},
+    "Angela": {"roam":[{"objetos":[3112,3109,3105],"winRate":0.5706122561471362,"pickRate":0.0223016776121287,"emblema":"Support","hechizo":"Flicker"},{"objetos":[3112,3105,2106],"winRate":0.5744566172051958,"pickRate":0.1108051317122822,"emblema":"Support","hechizo":"Flicker"},{"objetos":[3112,3109,3105],"winRate":0.567433976265041,"pickRate":0.1165155937491421,"emblema":"Support","hechizo":"Flicker"}]},
+    "Jawhead": {"roam":[{"objetos":[3206,3205,3212],"winRate":0.5174038914697368,"pickRate":0.0310123001050238,"emblema":"Tank","hechizo":"Flicker"},{"objetos":[3206,3205,3212],"winRate":0.5163446116245322,"pickRate":0.0546750212448767,"emblema":"Support","hechizo":"Flicker"},{"objetos":[3206,3205,3212],"winRate":0.5105465004793864,"pickRate":0.0130663821488749,"emblema":"Tank","hechizo":"Flicker"}],"exp":[{"objetos":[3007,3009,3001],"winRate":0.5485097094686135,"pickRate":0.0332075283061311,"emblema":"Assassin","hechizo":"Flicker"},{"objetos":[2014,3013,3009],"winRate":0.5213042450972671,"pickRate":0.0158676797720513,"emblema":"Assassin","hechizo":"Flicker"},{"objetos":[3007,3009,3001],"winRate":0.5603721571330117,"pickRate":0.0181334199805044,"emblema":"Assassin","hechizo":"Flicker"}]},
+    "Lesley": {"gold":[{"objetos":[3003,3015,3013],"winRate":0.5037640821475803,"pickRate":0.105543135804328,"emblema":"Marksman","hechizo":"Flicker"},{"objetos":[3003,3015,3008],"winRate":0.5687965024710802,"pickRate":0.0305507214275033,"emblema":"Marksman","hechizo":"Flicker"},{"objetos":[3003,3015,3013],"winRate":0.5067017765085488,"pickRate":0.0279605136944608,"emblema":"Marksman","hechizo":"Flicker"}]},
+    "Pharsa": {"mid":[{"objetos":[3110,3105,2101],"winRate":0.3067435527791126,"pickRate":0.0203503975765109,"emblema":"Mage","hechizo":"Flicker"},{"objetos":[3110,3105,3101],"winRate":0.517637757655731,"pickRate":0.0955183272014482,"emblema":"Mage","hechizo":"Flicker"},{"objetos":[3105,3110,3101],"winRate":0.528225896672857,"pickRate":0.024281069968685,"emblema":"Mage","hechizo":"Flicker"}]},
+    "Helcurt": {"jungle":[{"objetos":[2008,2006,3007],"winRate":0.4750820035812192,"pickRate":0.057353940896549,"emblema":"Marksman","hechizo":"Retribution"},{"objetos":[2008,2014,2006],"winRate":0.4946569459702387,"pickRate":0.0273005376676349,"emblema":"Assassin","hechizo":"Retribution"},{"objetos":[3007,2008,2006],"winRate":0.5288006050714542,"pickRate":0.0228308800808501,"emblema":"Assassin","hechizo":"Retribution"}],"roam":[{"objetos":[2008,2006,3001],"winRate":0.4677533936217192,"pickRate":0.0533014170933366,"emblema":"Marksman","hechizo":"Petrify"},{"objetos":[3007,2008,2006],"winRate":0.5220100844144808,"pickRate":0.0722556928836268,"emblema":"Assassin","hechizo":"Petrify"},{"objetos":[3007,2006,2008],"winRate":0.5088768606224628,"pickRate":0.0378143993548526,"emblema":"Assassin","hechizo":"Petrify"}]},
+    "Zhask": {"mid":[{"objetos":[3105,3102,3101],"winRate":0.5718827101916872,"pickRate":0.0390791781678746,"emblema":"Mage","hechizo":"Flameshot"},{"objetos":[2014,3105,3101],"winRate":0.5489511780781446,"pickRate":0.0334720689071205,"emblema":"Mage","hechizo":"Flameshot"},{"objetos":[2014,3105,3102],"winRate":0.5754029360435274,"pickRate":0.0301029824233936,"emblema":"Mage","hechizo":"Flameshot"}]},
+    "Hylos": {"roam":[{"objetos":[3113,3206,3205],"winRate":0.5194530652633473,"pickRate":0.0322259658694365,"emblema":"All","hechizo":"Revitalize"},{"objetos":[2212,3113,3206],"winRate":0.5617750372747718,"pickRate":0.0286783991233633,"emblema":"Tank","hechizo":"Revitalize"},{"objetos":[2212,3206,3212],"winRate":0.5309080962800875,"pickRate":0.0132481144266023,"emblema":"Tank","hechizo":"Revitalize"}]},
+    "Diggie": {"roam":[{"objetos":[3112,3109,3207],"winRate":0.5720513283932767,"pickRate":0.0882267585555878,"emblema":"Support","hechizo":"Revitalize"},{"objetos":[3112,3109,3206],"winRate":0.5890291049675396,"pickRate":0.0262317144342357,"emblema":"Support","hechizo":"Revitalize"},{"objetos":[3112,3109,3202],"winRate":0.6275471061191923,"pickRate":0.1662725988385257,"emblema":"Support","hechizo":"Revitalize"}]},
+    "Lancelot": {"jungle":[{"objetos":[2013,3004,3208],"winRate":0.4724853908732911,"pickRate":0.0533271544272013,"emblema":"Assassin","hechizo":"Retribution"},{"objetos":[2013,3004,3208],"winRate":0.4759958454347868,"pickRate":0.1672002994689828,"emblema":"Assassin","hechizo":"Retribution"},{"objetos":[2013,3208,3004],"winRate":0.4604354828917435,"pickRate":0.0900500529988062,"emblema":"Assassin","hechizo":"Retribution"}]},
+    "Odette": {"mid":[{"objetos":[3111,2014,3110],"winRate":0.5629067731944881,"pickRate":0.0162002581395772,"emblema":"Assassin","hechizo":"Flicker"},{"objetos":[2014,3105,3101],"winRate":0.5474103944670977,"pickRate":0.048416440946027,"emblema":"Assassin","hechizo":"Flicker"},{"objetos":[3111,3105,2107],"winRate":0.5443976511062341,"pickRate":0.0122590848770201,"emblema":"Assassin","hechizo":"Flicker"}]},
+    "Argus": {"exp":[{"objetos":[3005,3002,3003],"winRate":0.602817191034341,"pickRate":0.0311904716091667,"emblema":"Marksman","hechizo":"Petrify"},{"objetos":[3005,3002,3003],"winRate":0.5791487881247827,"pickRate":0.0138266212567265,"emblema":"Marksman","hechizo":"Inspire"},{"objetos":[3005,3003,3002],"winRate":0.5804057397328055,"pickRate":0.0145826518635393,"emblema":"Marksman","hechizo":"Petrify"}]},
+    "Grock": {"roam":[{"objetos":[2212,3206,3212],"winRate":0.5413640735423259,"pickRate":0.0365704772192144,"emblema":"Tank","hechizo":"Flicker"},{"objetos":[2212,3206,2207],"winRate":0.5537571481122295,"pickRate":0.0304865273772645,"emblema":"Tank","hechizo":"Flicker"},{"objetos":[2212,3206,2207],"winRate":0.5454068118968998,"pickRate":0.087375409016276,"emblema":"Tank","hechizo":"Flicker"}]},
+    "Irithel": {"gold":[{"objetos":[3005,3003,3002],"winRate":0.5494927716504961,"pickRate":0.0716887996282495,"emblema":"Assassin","hechizo":"Sprint"},{"objetos":[3005,3002,3003],"winRate":0.5707711879047415,"pickRate":0.0630869495286569,"emblema":"Assassin","hechizo":"Purify"},{"objetos":[3005,3002,3003],"winRate":0.5597625682774069,"pickRate":0.1987468281813057,"emblema":"Assassin","hechizo":"Sprint"}]},
+    "Harley": {"jungle":[{"objetos":[3103,3208,3111],"winRate":0.5697764862207914,"pickRate":0.0415027746380551,"emblema":"Mage","hechizo":"Retribution"},{"objetos":[2014,3111,3110],"winRate":0.4820195111011438,"pickRate":0.0799684000177548,"emblema":"Assassin","hechizo":"Retribution"},{"objetos":[3103,3208,3111],"winRate":0.5616555053361414,"pickRate":0.0663144547949431,"emblema":"Mage","hechizo":"Retribution"}],"mid":[{"objetos":[3111,3110,3101],"winRate":0.4851859216544045,"pickRate":0.0101482688514335,"emblema":"Mage","hechizo":"Flicker"},{"objetos":[3103,3208,3111],"winRate":0.4735590892281684,"pickRate":0.0190988845783242,"emblema":"Assassin","hechizo":"Flameshot"},{"objetos":[2014,3111,3110],"winRate":0.4664205440034747,"pickRate":0.0185843074144515,"emblema":"Assassin","hechizo":"Flameshot"}]},
+    "Gatotkaca": {"roam":[{"objetos":[2212,3206,2208],"winRate":0.5130380028150233,"pickRate":0.0268008795310491,"emblema":"Tank","hechizo":"Revitalize"},{"objetos":[2212,3206,3205],"winRate":0.5169311079057628,"pickRate":0.0144527003886415,"emblema":"Tank","hechizo":"Revitalize"},{"objetos":[3210,3203,3206],"winRate":0.4835297673012995,"pickRate":0.0328484000178686,"emblema":"Tank","hechizo":"Revitalize"}],"exp":[{"objetos":[2212,3206,2208],"winRate":0.5384474885844749,"pickRate":0.0119153585162713,"emblema":"Tank","hechizo":"Vengeance"},{"objetos":[2212,3206,2208],"winRate":0.5803864382063434,"pickRate":0.0388027186604308,"emblema":"Tank","hechizo":"Revitalize"},{"objetos":[2212,3206,3203],"winRate":0.5059477487493051,"pickRate":0.0097880045528639,"emblema":"Tank","hechizo":"Revitalize"}]},
+    "Karrie": {"gold":[{"objetos":[2008,2009,2006],"winRate":0.5479854925859219,"pickRate":0.0540472136701806,"emblema":"Fighter","hechizo":"Purify"},{"objetos":[2008,2006,2009],"winRate":0.502412299938596,"pickRate":0.0668867439444078,"emblema":"Fighter","hechizo":"Flicker"},{"objetos":[2008,2009,2006],"winRate":0.5324618545404739,"pickRate":0.2433931478411518,"emblema":"Fighter","hechizo":"Flicker"}]},
+    "Roger": {"jungle":[{"objetos":[3005,3002,3012],"winRate":0.5311188221616777,"pickRate":0.086733802406018,"emblema":"Assassin","hechizo":"Retribution"},{"objetos":[3005,2014,3002],"winRate":0.5364839230379508,"pickRate":0.0653291860349657,"emblema":"Assassin","hechizo":"Retribution"},{"objetos":[3005,2014,3002],"winRate":0.5341588202416269,"pickRate":0.0716124816131051,"emblema":"Assassin","hechizo":"Retribution"}]},
+    "Vexana": {"mid":[{"objetos":[3105,3110,3101],"winRate":0.5647696947121886,"pickRate":0.0252522141864617,"emblema":"Mage","hechizo":"Flicker"},{"objetos":[3111,3105,3110],"winRate":0.5430833987301134,"pickRate":0.0541834001987408,"emblema":"Assassin","hechizo":"Flicker"},{"objetos":[3105,3110,3101],"winRate":0.5582719876017048,"pickRate":0.0897928374985053,"emblema":"Mage","hechizo":"Flicker"}]},
+    "Lapu-Lapu": {"exp":[{"objetos":[3009,2013,3206],"winRate":0.5272549477746913,"pickRate":0.039725585199257,"emblema":"Fighter","hechizo":"Flicker"},{"objetos":[2013,2208,3204],"winRate":0.5797820401046208,"pickRate":0.0394309701909428,"emblema":"Fighter","hechizo":"Flicker"},{"objetos":[3009,2013,2208],"winRate":0.5638348310270687,"pickRate":0.0623573119697918,"emblema":"Fighter","hechizo":"Flicker"}]},
+    "Aurora": {"mid":[{"objetos":[3105,3108,2101],"winRate":0.4352800562028412,"pickRate":0.0466518429101781,"emblema":"Mage","hechizo":"Flicker"},{"objetos":[3105,3110,3101],"winRate":0.5547359515028052,"pickRate":0.0518174566758407,"emblema":"Mage","hechizo":"Flicker"},{"objetos":[3105,3108,3102],"winRate":0.552706802006767,"pickRate":0.1021494163145883,"emblema":"Mage","hechizo":"Flicker"}]},
+    "Hilda": {"roam":[{"objetos":[2212,3206,3212],"winRate":0.5672511870621973,"pickRate":0.0221872560181537,"emblema":"Tank","hechizo":"Revitalize"},{"objetos":[2212,3206,3204],"winRate":0.5795656028368794,"pickRate":0.0258849581752857,"emblema":"Tank","hechizo":"Revitalize"},{"objetos":[2212,3206,3204],"winRate":0.5882237939163935,"pickRate":0.0453503090371528,"emblema":"Support","hechizo":"Revitalize"}],"exp":[{"objetos":[2212,3206,3204],"winRate":0.5947245322245323,"pickRate":0.0117160085799668,"emblema":"Tank","hechizo":"Revitalize"},{"objetos":[2212,3206,3212],"winRate":0.582356225572306,"pickRate":0.0109061181739712,"emblema":"Tank","hechizo":"Revitalize"},{"objetos":[2212,3206,3204],"winRate":0.594115004492363,"pickRate":0.0203325117715744,"emblema":"Support","hechizo":"Revitalize"}]},
+    "Estes": {"roam":[{"objetos":[3112,2106,3109],"winRate":0.6072932240380815,"pickRate":0.0345504657315619,"emblema":"Support","hechizo":"Purify"},{"objetos":[3112,2106,3109],"winRate":0.5810359072132188,"pickRate":0.0467126856632578,"emblema":"Support","hechizo":"Revitalize"},{"objetos":[3112,2106,3109],"winRate":0.6010280592398853,"pickRate":0.0622007538153889,"emblema":"Support","hechizo":"Revitalize"}]},
+    "Cyclops": {"mid":[{"objetos":[2106,3105,3103],"winRate":0.5684059289272942,"pickRate":0.0354801125288666,"emblema":"Mage","hechizo":"Flicker"},{"objetos":[2106,3103,3105],"winRate":0.5722437920073195,"pickRate":0.0625304618986514,"emblema":"Mage","hechizo":"Flicker"},{"objetos":[2106,3103,2208],"winRate":0.6194165665418051,"pickRate":0.0830228618726866,"emblema":"Mage","hechizo":"Flicker"}]},
+    "Johnson": {"roam":[{"objetos":[3206,3109,2207],"winRate":0.5389671361502347,"pickRate":0.0106626885994333,"emblema":"Tank","hechizo":"Vengeance"},{"objetos":[3109,3206,3205],"winRate":0.5144895511080245,"pickRate":0.0113270506188078,"emblema":"Tank","hechizo":"Sprint"},{"objetos":[3206,3203,2207],"winRate":0.5321361443136234,"pickRate":0.0439447943052232,"emblema":"Tank","hechizo":"Sprint"}]},
+    "Moskov": {"gold":[{"objetos":[2008,2009,2006],"winRate":0.5413281812413393,"pickRate":0.0513409689663263,"emblema":"Marksman","hechizo":"Purify"},{"objetos":[2008,2009,2006],"winRate":0.5339225091333847,"pickRate":0.1469517509452507,"emblema":"Marksman","hechizo":"Flicker"},{"objetos":[2008,2009,2006],"winRate":0.5560014536067618,"pickRate":0.0466315884506595,"emblema":"Fighter","hechizo":"Flicker"}]},
+    "Yi Sun-shin": {"jungle":[{"objetos":[3009,2013,3004],"winRate":0.5462780220145219,"pickRate":0.1949487934887218,"emblema":"Assassin","hechizo":"Retribution"},{"objetos":[3009,2014,2013],"winRate":0.5586027623862739,"pickRate":0.0514189141170665,"emblema":"Assassin","hechizo":"Retribution"},{"objetos":[3009,2014,3004],"winRate":0.5690050266694044,"pickRate":0.1020040451669001,"emblema":"Assassin","hechizo":"Retribution"}]},
+    "Ruby": {"exp":[{"objetos":[2013,3004,2208],"winRate":0.57074663247299,"pickRate":0.0331450818475268,"emblema":"Fighter","hechizo":"Flicker"},{"objetos":[2013,3004,2208],"winRate":0.5822726607728802,"pickRate":0.0604019220419192,"emblema":"Fighter","hechizo":"Flicker"},{"objetos":[2013,3004,2208],"winRate":0.569180161266598,"pickRate":0.0314686182767352,"emblema":"Fighter","hechizo":"Flicker"}]},
+    "Alpha": {"jungle":[{"objetos":[2013,2014,2208],"winRate":0.5779227864952751,"pickRate":0.0281113188841117,"emblema":"Fighter","hechizo":"Retribution"},{"objetos":[2014,2013,2208],"winRate":0.5317499837623677,"pickRate":0.0283370879714157,"emblema":"Assassin","hechizo":"Retribution"},{"objetos":[2013,2014,2208],"winRate":0.5657055106508814,"pickRate":0.0591275742583976,"emblema":"Fighter","hechizo":"Retribution"}],"exp":[{"objetos":[2013,2014,2208],"winRate":0.563717398481347,"pickRate":0.0131031096633812,"emblema":"Fighter","hechizo":"Vengeance"},{"objetos":[2013,2014,2208],"winRate":0.5650972364380757,"pickRate":0.0316979320100447,"emblema":"Fighter","hechizo":"Vengeance"},{"objetos":[2014,2013,3008],"winRate":0.5494027411039859,"pickRate":0.043004717379032,"emblema":"Fighter","hechizo":"Vengeance"}]},
+    "Sun": {"exp":[{"objetos":[2008,3005,3014],"winRate":0.5544150296489897,"pickRate":0.0291951698292784,"emblema":"Marksman","hechizo":"Petrify"},{"objetos":[3005,2008,3014],"winRate":0.5696947322273241,"pickRate":0.0444485240575239,"emblema":"Support","hechizo":"Petrify"},{"objetos":[3005,2008,3014],"winRate":0.5796554654947242,"pickRate":0.0989479384393224,"emblema":"Support","hechizo":"Petrify"}],"jungle":[{"objetos":[2008,3005,3014],"winRate":0.5890844127954386,"pickRate":0.0896596526261213,"emblema":"Support","hechizo":"Retribution"},{"objetos":[3005,2008,3014],"winRate":0.5940460081190798,"pickRate":0.0441308034939421,"emblema":"Support","hechizo":"Retribution"},{"objetos":[3005,2008,3014],"winRate":0.5905621933134803,"pickRate":0.0462906584320569,"emblema":"Support","hechizo":"Retribution"}]},
+    "Chou": {"exp":[{"objetos":[3007,3013,3008],"winRate":0.5198259299553251,"pickRate":0.0442231631369568,"emblema":"Assassin","hechizo":"Flicker"},{"objetos":[3007,2014,3004],"winRate":0.5245935650918265,"pickRate":0.0308375207451226,"emblema":"Assassin","hechizo":"Flicker"},{"objetos":[3007,3008,3004],"winRate":0.556825817486385,"pickRate":0.0544630963942834,"emblema":"Assassin","hechizo":"Flicker"}],"roam":[{"objetos":[3206,3212,3205],"winRate":0.5019139319523578,"pickRate":0.0850079378538321,"emblema":"Tank","hechizo":"Flicker"},{"objetos":[3206,3205,3212],"winRate":0.4753502580849047,"pickRate":0.011880811419496,"emblema":"Tank","hechizo":"Flicker"},{"objetos":[3206,3212,3210],"winRate":0.4942487027831199,"pickRate":0.017245511530069,"emblema":"Tank","hechizo":"Flicker"}]},
+    "Kagura": {"mid":[{"objetos":[3111,3101,3110],"winRate":0.5733317111746457,"pickRate":0.0208368014155691,"emblema":"Assassin","hechizo":"Flameshot"},{"objetos":[3111,3101,3102],"winRate":0.5724598725136318,"pickRate":0.0192551446623362,"emblema":"Assassin","hechizo":"Flameshot"},{"objetos":[3111,3101,3102],"winRate":0.5647443588015842,"pickRate":0.0128541563328379,"emblema":"Assassin","hechizo":"Flameshot"}]},
+    "Natalia": {"jungle":[{"objetos":[3007,3003,3013],"winRate":0.5912388392857143,"pickRate":0.0539140932176778,"emblema":"Assassin","hechizo":"Retribution"},{"objetos":[3007,3003,3014],"winRate":0.5980517673253549,"pickRate":0.0675618502131404,"emblema":"Assassin","hechizo":"Retribution"},{"objetos":[3007,3003,3001],"winRate":0.5908151973441534,"pickRate":0.1529308454727167,"emblema":"Assassin","hechizo":"Retribution"}],"roam":[{"objetos":[3007,3003,3014],"winRate":0.5390156609752206,"pickRate":0.0477385485487555,"emblema":"Assassin","hechizo":"Execute"},{"objetos":[3007,3003,3001],"winRate":0.5288817039045396,"pickRate":0.1501162802086405,"emblema":"Assassin","hechizo":"Execute"},{"objetos":[3007,3003,3013],"winRate":0.5256058820515448,"pickRate":0.0849580096223641,"emblema":"Assassin","hechizo":"Execute"}]},
+    "Gord": {"mid":[{"objetos":[3105,2014,3104],"winRate":0.5845179404417129,"pickRate":0.0175086932851086,"emblema":"Mage","hechizo":"Flicker"},{"objetos":[3105,2014,3104],"winRate":0.5782782629621982,"pickRate":0.1302844112710108,"emblema":"All","hechizo":"Flicker"},{"objetos":[2014,3105,3104],"winRate":0.5686976721676426,"pickRate":0.0199954750597019,"emblema":"All","hechizo":"Flicker"}]},
+    "Freya": {"exp":[{"objetos":[2009,2013,3004],"winRate":0.624520758585341,"pickRate":0.0281886882305075,"emblema":"Fighter","hechizo":"Vengeance"},{"objetos":[2008,2009,2013],"winRate":0.5489448604492853,"pickRate":0.029714431683681,"emblema":"Fighter","hechizo":"Vengeance"},{"objetos":[2009,2008,2013],"winRate":0.5494874149596117,"pickRate":0.0308367778147655,"emblema":"Fighter","hechizo":"Vengeance"}],"jungle":[{"objetos":[2008,2013,3004],"winRate":0.5685030285549466,"pickRate":0.0467387677654838,"emblema":"Assassin","hechizo":"Retribution"},{"objetos":[2008,2013,3008],"winRate":0.5668209106703593,"pickRate":0.0979616666610496,"emblema":"Assassin","hechizo":"Retribution"},{"objetos":[2008,2013,2009],"winRate":0.5120434740037207,"pickRate":0.0344204669158412,"emblema":"Assassin","hechizo":"Retribution"}]},
+    "Hayabusa": {"jungle":[{"objetos":[3009,2014,2013],"winRate":0.540612852267397,"pickRate":0.1558048602444004,"emblema":"Assassin","hechizo":"Retribution"},{"objetos":[3009,2013,3001],"winRate":0.5002520192022373,"pickRate":0.1033282322964725,"emblema":"Assassin","hechizo":"Retribution"},{"objetos":[3009,2014,3004],"winRate":0.5304473048888957,"pickRate":0.0545407733289484,"emblema":"Assassin","hechizo":"Retribution"}]},
+    "Lolita": {"roam":[{"objetos":[3112,3212,3204],"winRate":0.599968945706744,"pickRate":0.0338464341333782,"emblema":"Tank","hechizo":"Revitalize"},{"objetos":[3112,3206,3210],"winRate":0.5872306883867578,"pickRate":0.0200019970464734,"emblema":"Support","hechizo":"Flicker"},{"objetos":[3112,3204,3206],"winRate":0.6477852622984283,"pickRate":0.0171640889001004,"emblema":"Support","hechizo":"Revitalize"}]},
+    "Minotaur": {"roam":[{"objetos":[3112,3206,3210],"winRate":0.6194288750965077,"pickRate":0.0321301714432804,"emblema":"Support","hechizo":"Revitalize"},{"objetos":[3206,3112,3210],"winRate":0.6026440007398056,"pickRate":0.0200315428703239,"emblema":"Support","hechizo":"Revitalize"},{"objetos":[3112,3206,3205],"winRate":0.5969787513529015,"pickRate":0.0174130110554684,"emblema":"Support","hechizo":"Revitalize"}]},
+    "Layla": {"gold":[{"objetos":[3005,3002,3003],"winRate":0.5174796244895074,"pickRate":0.0885518100808446,"emblema":"Assassin","hechizo":"Flicker"},{"objetos":[3005,3003,3002],"winRate":0.5126322621545335,"pickRate":0.207437581799623,"emblema":"Assassin","hechizo":"Flicker"},{"objetos":[3005,3003,3002],"winRate":0.5238144188596491,"pickRate":0.0182755230479244,"emblema":"Marksman","hechizo":"Flicker"}]},
+    "Fanny": {"jungle":[{"objetos":[3007,3001,2013],"winRate":0.4632015192762856,"pickRate":0.027888988815757,"emblema":"Assassin","hechizo":"Retribution"},{"objetos":[3007,3001,3012],"winRate":0.4535771802254648,"pickRate":0.0427697431879489,"emblema":"Assassin","hechizo":"Retribution"},{"objetos":[3007,2014,3001],"winRate":0.504092945967665,"pickRate":0.0191554327211704,"emblema":"Assassin","hechizo":"Retribution"}]},
+    "Zilong": {"exp":[{"objetos":[3005,3002,3014],"winRate":0.5056240317909342,"pickRate":0.0190643606755669,"emblema":"Assassin","hechizo":"Inspire"},{"objetos":[3005,3002,3003],"winRate":0.5134050919490011,"pickRate":0.0161643230527631,"emblema":"Assassin","hechizo":"Inspire"},{"objetos":[2008,3005,3014],"winRate":0.4983511104240738,"pickRate":0.0249196502748519,"emblema":"Fighter","hechizo":"Inspire"}]},
+    "Eudora": {"mid":[{"objetos":[3111,3105,3110],"winRate":0.5712108595220441,"pickRate":0.0368338014676378,"emblema":"Assassin","hechizo":"Flicker"},{"objetos":[3111,3105,3101],"winRate":0.5763191715248934,"pickRate":0.0315815656624013,"emblema":"Assassin","hechizo":"Flicker"},{"objetos":[3111,2014,3110],"winRate":0.5898253695436183,"pickRate":0.1409065068917633,"emblema":"Assassin","hechizo":"Flicker"}]},
+    "Rafaela": {"roam":[{"objetos":[3112,2106,2208],"winRate":0.6653471577467087,"pickRate":0.0375816709586517,"emblema":"Support","hechizo":"Purify"},{"objetos":[3112,2106,2208],"winRate":0.6798971583220568,"pickRate":0.0269724212649839,"emblema":"Support","hechizo":"Revitalize"},{"objetos":[2106,3112,3108],"winRate":0.6627763690433811,"pickRate":0.0266572198711485,"emblema":"Support","hechizo":"Flicker"}]},
+    "Clint": {"gold":[{"objetos":[3004,2014,3015],"winRate":0.5380454489010307,"pickRate":0.0476321165741785,"emblema":"Assassin","hechizo":"Flicker"},{"objetos":[3004,3015,3003],"winRate":0.5127040490924448,"pickRate":0.0274509571967497,"emblema":"Assassin","hechizo":"Flicker"},{"objetos":[3004,2014,3001],"winRate":0.5331494592775835,"pickRate":0.0249622338179155,"emblema":"Assassin","hechizo":"Flicker"}]},
+    "Bruno": {"gold":[{"objetos":[3002,3003,3015],"winRate":0.546878103688009,"pickRate":0.0602035152267697,"emblema":"Marksman","hechizo":"Flicker"},{"objetos":[3002,3003,3015],"winRate":0.5735139080366556,"pickRate":0.0245768902291365,"emblema":"Marksman","hechizo":"Purify"},{"objetos":[3002,3003,3015],"winRate":0.541913394228627,"pickRate":0.0849886841866616,"emblema":"Marksman","hechizo":"Flicker"}]},
+    "Bane": {"jungle":[{"objetos":[2013,3009,3004],"winRate":0.5801545253863135,"pickRate":0.0440645618786094,"emblema":"Assassin","hechizo":"Retribution"},{"objetos":[2014,2013,3004],"winRate":0.5489044665467758,"pickRate":0.0795117296361901,"emblema":"Assassin","hechizo":"Retribution"},{"objetos":[3009,2013,3004],"winRate":0.5799135116053304,"pickRate":0.0661318610127846,"emblema":"Assassin","hechizo":"Retribution"}],"exp":[{"objetos":[2013,3012,3004],"winRate":0.5611949887568262,"pickRate":0.010655503432318,"emblema":"Assassin","hechizo":"Flicker"},{"objetos":[2014,2013,3004],"winRate":0.5285984132980733,"pickRate":0.0226510741931785,"emblema":"Assassin","hechizo":"Flicker"},{"objetos":[2013,2014,3009],"winRate":0.5291559278350515,"pickRate":0.0106246972868343,"emblema":"Assassin","hechizo":"Flicker"}]},
+    "Franco": {"roam":[{"objetos":[2107,3109,3207],"winRate":0.4681751310078179,"pickRate":0.0191528340125754,"emblema":"Support","hechizo":"Flicker"},{"objetos":[2107,3109,3206],"winRate":0.4618157811276302,"pickRate":0.0359786011377548,"emblema":"Support","hechizo":"Flicker"},{"objetos":[2107,3109,3206],"winRate":0.4663000624310479,"pickRate":0.0272292208622373,"emblema":"Support","hechizo":"Flicker"}]},
+    "Akai": {"roam":[{"objetos":[3202,3206,3212],"winRate":0.5656387892107206,"pickRate":0.0529800661852861,"emblema":"Tank","hechizo":"Flicker"},{"objetos":[3109,3202,3206],"winRate":0.5587993581966892,"pickRate":0.0116219943274953,"emblema":"Tank","hechizo":"Petrify"},{"objetos":[2212,3206,3212],"winRate":0.5515781820070372,"pickRate":0.0350297178847634,"emblema":"Tank","hechizo":"Flicker"}]},
+    "Karina": {"jungle":[{"objetos":[2014,3106,3102],"winRate":0.5405757003866097,"pickRate":0.0247392781880316,"emblema":"Mage","hechizo":"Retribution"},{"objetos":[2014,3106,3102],"winRate":0.4980347784659362,"pickRate":0.0837283389095716,"emblema":"Mage","hechizo":"Retribution"},{"objetos":[2014,3106,3102],"winRate":0.5222499804824733,"pickRate":0.0232248320215839,"emblema":"Mage","hechizo":"Retribution"}]},
+    "Alucard": {"jungle":[{"objetos":[3009,2013,3004],"winRate":0.5782562853944065,"pickRate":0.0501026025317338,"emblema":"Assassin","hechizo":"Retribution"},{"objetos":[3009,2013,3004],"winRate":0.6067543128086434,"pickRate":0.0581180168738686,"emblema":"Assassin","hechizo":"Retribution"},{"objetos":[2013,3009,3004],"winRate":0.5225423673255318,"pickRate":0.0830704733440365,"emblema":"Assassin","hechizo":"Retribution"}]},
+    "Tigreal": {"roam":[{"objetos":[3109,3206,3203],"winRate":0.4917677540925686,"pickRate":0.0147680352303994,"emblema":"Tank","hechizo":"Flicker"},{"objetos":[3206,3109,3203],"winRate":0.506685943734532,"pickRate":0.0183656313446663,"emblema":"Tank","hechizo":"Flicker"},{"objetos":[3206,3203,3109],"winRate":0.4966396955618945,"pickRate":0.0741015285754206,"emblema":"Tank","hechizo":"Flicker"}]},
+    "Nana": {"mid":[{"objetos":[3105,3101,2112],"winRate":0.5054749467982202,"pickRate":0.0208213161295312,"emblema":"Mage","hechizo":"Flicker"},{"objetos":[3105,3101,2101],"winRate":0.3125168084473949,"pickRate":0.0284582155781631,"emblema":"Mage","hechizo":"Flameshot"},{"objetos":[3105,3101,2112],"winRate":0.5025658324197533,"pickRate":0.1289676913111991,"emblema":"Mage","hechizo":"Flameshot"}]},
+    "Alice": {"exp":[{"objetos":[3201,3204,3103],"winRate":0.5370595999593867,"pickRate":0.0081813809413448,"emblema":"Tank","hechizo":"Revitalize"},{"objetos":[3208,3204,3103],"winRate":0.5614715339512011,"pickRate":0.0131754374160493,"emblema":"Tank","hechizo":"Flicker"},{"objetos":[3201,3204,3208],"winRate":0.5508286709595693,"pickRate":0.00786904474133,"emblema":"Tank","hechizo":"Flicker"}],"jungle":[{"objetos":[3201,3204,3103],"winRate":0.6025320040419383,"pickRate":0.1033644282826993,"emblema":"Tank","hechizo":"Retribution"},{"objetos":[3201,3204,3208],"winRate":0.6028240873814315,"pickRate":0.0925796566915346,"emblema":"Tank","hechizo":"Retribution"},{"objetos":[3204,3208,3103],"winRate":0.6097136569513038,"pickRate":0.0259982782685289,"emblema":"Tank","hechizo":"Retribution"}]},
+    "Saber": {"jungle":[{"objetos":[3009,2013,3004],"winRate":0.5820576626600052,"pickRate":0.0487008324031275,"emblema":"Marksman","hechizo":"Retribution"},{"objetos":[3009,2013,3004],"winRate":0.5908817506490391,"pickRate":0.1818005939817369,"emblema":"Assassin","hechizo":"Retribution"},{"objetos":[3009,2014,2013],"winRate":0.6180038152827269,"pickRate":0.017311019193031,"emblema":"Assassin","hechizo":"Retribution"}],"roam":[{"objetos":[3009,2013,3004],"winRate":0.4570943075615973,"pickRate":0.0155220731265042,"emblema":"Marksman","hechizo":"Flicker"},{"objetos":[3009,2013,3004],"winRate":0.4460999123575811,"pickRate":0.0150473113316409,"emblema":"Assassin","hechizo":"Flicker"},{"objetos":[3007,2014,3009],"winRate":0.4840037739085685,"pickRate":0.0153756882397547,"emblema":"Assassin","hechizo":"Flicker"}]},
+    "Balmond": {"jungle":[{"objetos":[3201,3202,3210],"winRate":0.5261152315810985,"pickRate":0.0453379651025907,"emblema":"Tank","hechizo":"Retribution"},{"objetos":[2013,3208,2208],"winRate":0.5823882588392262,"pickRate":0.0179729941837651,"emblema":"Tank","hechizo":"Retribution"},{"objetos":[3201,2013,3204],"winRate":0.5451109778044391,"pickRate":0.0908514200507504,"emblema":"Tank","hechizo":"Retribution"}],"exp":[{"objetos":[3201,2013,3204],"winRate":0.4753376709828427,"pickRate":0.027586161958002,"emblema":"Tank","hechizo":"Flicker"},{"objetos":[3201,2013,3204],"winRate":0.529419164124658,"pickRate":0.0188368305976617,"emblema":"Tank","hechizo":"Flicker"},{"objetos":[3201,2013,3204],"winRate":0.5241986879100281,"pickRate":0.0158015175380554,"emblema":"Tank","hechizo":"Vengeance"}]},
+    "Miya": {"gold":[{"objetos":[3005,3003,3002],"winRate":0.5886114381230019,"pickRate":0.1042873596857048,"emblema":"Marksman","hechizo":"Inspire"},{"objetos":[3005,3003,3002],"winRate":0.5910559442558805,"pickRate":0.0678522019062569,"emblema":"Marksman","hechizo":"Inspire"},{"objetos":[2008,2006,2009],"winRate":0.6029976054728285,"pickRate":0.0841411867213845,"emblema":"Marksman","hechizo":"Inspire"}]}
   }
 }

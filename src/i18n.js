@@ -164,6 +164,26 @@ const ES = {
   'analisis.faltaMagico': 'Tu equipo pega todo físico y {yo} también. Les basta con comprar armadura.',
   'analisis.faltaFisico': 'Tu equipo pega todo mágico y {yo} también. Les basta con comprar resistencia mágica.',
 
+  // --- builds de objetos ---
+  // El winrate de una build no es causal (quien se sale de la build por defecto
+  // suele ser quien mas domina el heroe), asi que se ordena por uso y el aviso
+  // va SIEMPRE con el dato, no escondido en un tooltip.
+  'build.titulo': 'Objetos',
+  'build.deLinea': 'Build de {linea}',
+  'build.uso': '{pct}% la usa',
+  'build.wr': '{pct}% ganadas',
+  'build.emblema': 'Emblema {nombre}',
+  'build.hechizo': 'Hechizo {nombre}',
+  'build.nucleo': 'Núcleo (los 3 primeros; el resto lo eliges tú)',
+  'build.sesgo': 'El % de victorias de una build no dice que el objeto la cause: quien se sale de la build normal suele ser quien más domina al héroe. Ordenadas por uso.',
+  'build.otras': 'Otras builds',
+  'build.sinBuild': 'Todavía no hay builds de este héroe en esta línea.',
+  'build.ajusteMagica': 'De los {n} enemigos con dato, el {pct}% pega mágico y esta build no lleva defensa mágica. Plantéate {objetos}.',
+  'build.ajusteFisica': 'De los {n} enemigos con dato, el {pct}% pega físico y esta build no lleva defensa física. Plantéate {objetos}.',
+  'build.ajusteAviso': 'Esto no sale de medir builds contra este draft (ese dato no existe): sale de de qué pega cada enemigo y de cuánta defensa da cada objeto.',
+  'build.objetosEnIngles': 'Los objetos van en inglés, como en los datos del juego.',
+
+
   // --- maestría y partidas ---
   'maestria.explicacion': 'Copia partidas y winrate de tu perfil del juego. El winrate en porcentaje: 50,6 o 50.6. Por debajo de 20 partidas cuenta poco.',
   'maestria.heroe': 'Héroe',
@@ -323,6 +343,23 @@ const EN = {
   'analisis.todoMagico': 'Your team is all magic damage: one magic resist item shuts down all five. {yo} brings physical damage.',
   'analisis.faltaMagico': 'Your team is all physical damage and so is {yo}. Armour alone answers all of you.',
   'analisis.faltaFisico': 'Your team is all magic damage and so is {yo}. Magic resist alone answers all of you.',
+
+  // --- item builds ---
+  'build.titulo': 'Items',
+  'build.deLinea': '{linea} build',
+  'build.uso': '{pct}% run it',
+  'build.wr': '{pct}% win',
+  'build.emblema': '{nombre} emblem',
+  'build.hechizo': '{nombre} spell',
+  'build.nucleo': 'Core (first 3; the rest is your call)',
+  'build.sesgo': "A build's win rate does not mean the items cause it: whoever leaves the default build is usually whoever plays the hero best. Sorted by usage.",
+  'build.otras': 'Other builds',
+  'build.sinBuild': 'No builds for this hero in this lane yet.',
+  'build.ajusteMagica': 'Of the {n} enemies with data, {pct}% deal magic damage and this build has no magic defence. Consider {objetos}.',
+  'build.ajusteFisica': 'Of the {n} enemies with data, {pct}% deal physical damage and this build has no physical defence. Consider {objetos}.',
+  'build.ajusteAviso': 'This does not come from measuring builds against this draft (no such data exists): it comes from what each enemy deals and how much defence each item gives.',
+  'build.objetosEnIngles': 'Item names stay in English, like the game data.',
+
 
   'maestria.explicacion': 'Copy matches and win rate from your in-game profile. Win rate as a percentage: 50.6. Below 20 matches it barely counts.',
   'maestria.heroe': 'Hero',

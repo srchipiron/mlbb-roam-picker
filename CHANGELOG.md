@@ -8,6 +8,30 @@ que esto no se olvida.
 Criterio: `0.X.0` cuando cambia cómo decide la app o qué hace; `0.0.X` para
 correcciones.
 
+## 1.11.0
+
+**Objetos.** Cada héroe de la lista tiene ahora un botón «Objetos» que abre lo
+que compra la gente de tu rango con ese héroe **en tu línea**: los tres objetos
+del núcleo, el emblema, el hechizo de batalla, cuánta gente la usa y cuántas
+gana.
+
+- **Ordenadas por uso, no por victorias, y se dice por qué.** Una build del 3%
+  de uso sale con más victorias que la del 13%. Eso no significa que los
+  objetos sean mejores: quien se sale de la build normal suele ser quien más
+  domina al héroe, así que ese porcentaje lleva dentro al jugador. La app lo
+  pone escrito debajo en vez de venderte la build "ganadora".
+- **Y el ajuste que ninguna web de builds puede hacer: mirar tu draft.** Si
+  cuatro de los cinco enemigos pegan mágico y la build no lleva defensa mágica,
+  te lo dice y te propone los objetos que sí la dan. Sale de dos datos medidos
+  —de qué pega cada enemigo, contado de sus habilidades, y cuánta defensa da
+  cada objeto, leído del texto del juego— y va con su aviso: no es que se hayan
+  medido builds contra este draft, ese dato no existe.
+- Al lado de cada objeto sale la defensa que da, que es lo que conecta la build
+  con lo que tienes enfrente. Los nombres van en inglés, como en el juego.
+
+Si un día la descarga de builds falla, el botón simplemente no aparece y el
+resto de la app funciona igual.
+
 ## 1.10.0
 
 Repaso estadístico a "Tu maestría", que desde 1.9.0 pesa más porque las

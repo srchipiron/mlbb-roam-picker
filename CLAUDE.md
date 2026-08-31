@@ -213,6 +213,13 @@ Todos estos llegaron a producción y costaron rondas enteras de ida y vuelta:
   `mergeCatalog` (catálogo + rol de la API) y la ingesta miraba solo el catálogo,
   así que Marcel entraba en las recomendaciones sin que nadie le pidiera
   counters. Ahora la ingesta importa `mergeCatalog`. No vuelvas a duplicarlo.
+- **Quedarse con UNA ruta de objetos habiendo dos** — el descubrimiento elegía
+  `/academy/equipment/expanded` (152 objetos, con `equiptips`) y descartaba
+  `/academy/equipment` (184, sin tips). Tres builds enseñaban `#10001` en vez de
+  «Lantern of Hope». Hoy `fetchEquipo` lee la ruta elegida Y sus alternativas y
+  funde campo a campo: la primera que da cada dato manda. Mismo error de forma
+  que el de `/academy` en los counters, y por eso `alternativas` ya se guarda
+  para todas las claves, no solo para las que llevan `{id}`.
 - **Una corrida degradada commiteada por el bot de datos** — `update-data.yml`
   ejecutaba la ingesta encima de `public/data` y commiteaba lo que saliera. Salió
   una corrida con los 133 héroes SIN `lanes` y SIN `role`, y con counters de 34
@@ -224,6 +231,46 @@ Todos estos llegaron a producción y costaron rondas enteras de ida y vuelta:
   ingestas escriben a un temporal (`--out`), `scripts/comparar-ingesta.mjs`
   compara con lo guardado y solo se copia encima si no empeora. Hay una prueba
   que falla si alguien vuelve a apuntar la ingesta directa a `public/data`.
+
+## Las builds de objetos
+
+Desde 1.11.0. `src/engine/builds.js`, y conviene tener clara la diferencia entre
+sus dos mitades porque NO valen lo mismo:
+
+- `buildsDe` es DATO: las tres builds más jugadas de ese héroe en esa línea, de
+  la API, con su winrate y su cuota de uso.
+- `ajusteDefensivo` es un CONSEJO. No sale de medir builds contra este draft
+  —ese dato no existe en ninguna parte—, sale de dos hechos medidos (de qué pega
+  cada enemigo, contado de sus habilidades; cuánta defensa da cada objeto, leído
+  de `equiptips`) más una regla evidente del juego. La app lo enseña con su
+  aviso. Si algún día se junta con lo otro sin decirlo, se está mintiendo.
+
+Lo que hay medido y no conviene volver a suponer:
+
+- **El winrate de una build no es causal.** Las builds del 3% de uso salen por
+  encima de las del 13%, y el héroe entero por debajo de las tres. Quien se sale
+  de la build por defecto suele ser quien más domina el héroe: ese porcentaje
+  lleva dentro al jugador. Por eso se ordena **por uso**, nunca por winrate, y el
+  aviso va escrito junto al dato, no en un tooltip.
+- **57 de las 492 builds son indistinguibles en pantalla** (mismos objetos,
+  mismo emblema, mismo hechizo): la API las separa por un talento de emblema que
+  no descargamos. `fundirIguales` las junta, sumando el uso y **ponderando el
+  winrate por uso** (el uso es proporcional a la muestra; promediar a pelo le
+  daría a una del 0,4% el mismo peso que a una del 13%). No se juntan por
+  objetos a secas: 115 pares comparten los tres objetos y cambian el hechizo, y
+  ahí sí hay dos builds distintas.
+- **La defensa de un objeto se lee del texto del juego, no de su categoría.**
+  Tough Boots está catalogado como «Movement» y da 18 de defensa mágica. Mismo
+  criterio que el tipo de daño de los héroes.
+- `equipid` trae **tres objetos, el núcleo**, no los seis del inventario. No se
+  completa lo que la API no da.
+- Cuidado con los nombres, que se parecen a propósito: el DAÑO va en masculino
+  (`fisico`/`magico`) y la DEFENSA de un objeto en femenino (`fisica`/`magica`).
+  Leer un campo de defensa en un perfil de daño da `undefined` sin que falle nada.
+- Se piden 164 builds, no 665: solo las líneas que cada héroe juega de verdad.
+- El despliegue NO se para por quedarse sin builds -es un extra, y el botón
+  simplemente no aparece-, pero `comparar-ingesta.mjs` sí rechaza una corrida que
+  pierda builds u objetos respecto a la guardada.
 
 ## Los idiomas
 

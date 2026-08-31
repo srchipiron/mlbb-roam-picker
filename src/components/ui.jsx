@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { filtrarPorNombre } from '../engine/alias.js';
 import { recogerPerfil, exportarPerfil, leerPerfil, fundirPerfil } from '../engine/perfil.js';
 import { esPrevia, siguioConsejo } from '../engine/registro.js';
+import { buildsDe, objetosDe, ajusteDefensivo } from '../engine/builds.js';
 import { crearT } from '../i18n.js';
 
 // Traductor por defecto para los componentes que no reciben uno. La app le pasa
@@ -109,7 +110,7 @@ export function HeroSheet({ heroes, taken, stats, onPick, onClose, t = tPorDefec
 }
 
 /** Tarjeta de recomendación con la barra de desglose del score. */
-export function Pick({ result, index, stat, t = tPorDefecto }) {
+export function Pick({ result, index, stat, onBuild, t = tPorDefecto }) {
   const total = Object.values(result.contributions).reduce((a, b) => a + b, 0) || 1;
   return (
     <article className={`pick ${index === 0 ? 'top' : ''}`}>
@@ -147,6 +148,13 @@ export function Pick({ result, index, stat, t = tPorDefecto }) {
         <span className="pick-wr">
           {stat?.winRate != null ? `${(stat.winRate * 100).toFixed(1)}% WR` : t('app.sinDatos')}
         </span>
+        {/* Los objetos son lo siguiente que necesitas DESPUES de elegir, asi
+            que van detras de un toque y no ocupando la tarjeta. */}
+        {onBuild && (
+          <button className="pick-build" onClick={() => onBuild(result.hero)}>
+            {t('build.titulo')}
+          </button>
+        )}
       </div>
     </article>
   );
@@ -679,6 +687,112 @@ export function Analisis({ frases, t = tPorDefecto }) {
         <p key={f.clave} className={`frase ${f.tono}`}>{t(f.clave, f.params)}</p>
       ))}
     </section>
+  );
+}
+
+/**
+ * Los objetos de un héroe en una línea.
+ *
+ * Dos bloques que NO valen lo mismo, y la pantalla tiene que dejarlo claro:
+ *
+ *  - La build: dato de la API, lo que compra la gente en tu rango. Ordenada
+ *    por USO, no por winrate, con el aviso de por qué (quien se sale de la
+ *    build normal suele ser quien más domina el héroe, así que su winrate
+ *    lleva dentro al jugador, no solo al objeto).
+ *  - El ajuste por el draft: un consejo, no una medición. Sale de dos datos
+ *    medidos -de qué pega cada enemigo y cuánta defensa da cada objeto- más
+ *    una regla evidente del juego. Va con su aviso.
+ */
+export function Build({ hero, linea, builds, equipment, enemies, onClose, t = tPorDefecto }) {
+  const lista = useMemo(() => buildsDe(builds, hero, linea), [builds, hero, linea]);
+  const principal = lista[0] ?? null;
+  const ajuste = useMemo(
+    () => (principal ? ajusteDefensivo(principal, equipment, enemies) : null),
+    [principal, equipment, enemies],
+  );
+  const pct = (n) => (n * 100).toFixed(1);
+
+  return (
+    <div className="sheet sheet-opaca" role="dialog" aria-label={t('build.titulo')}>
+      <div className="sheet-head">
+        <strong style={{ flex: 1, alignSelf: 'center' }}>
+          {hero?.name} · {t('build.deLinea', { linea: t(`linea.${linea}`) })}
+        </strong>
+        <button className="close" onClick={onClose}>{t('app.cerrar')}</button>
+      </div>
+
+      <div className="build-cuerpo">
+        {!principal && <p className="build-vacio">{t('build.sinBuild')}</p>}
+
+        {principal && (
+          <>
+            <section className="build">
+              <p className="build-nucleo">{t('build.nucleo')}</p>
+              <ol className="build-objetos">
+                {objetosDe(equipment, principal).map((o) => (
+                  <li key={o.id}>
+                    <span className="obj-nombre">{o.nombre}</span>
+                    {(o.magica || o.fisica) && (
+                      <span className="obj-def">
+                        {o.magica ? `+${o.magica} MD` : ''}
+                        {o.magica && o.fisica ? ' · ' : ''}
+                        {o.fisica ? `+${o.fisica} PD` : ''}
+                      </span>
+                    )}
+                  </li>
+                ))}
+              </ol>
+              <p className="build-extra">
+                {principal.emblema && <span>{t('build.emblema', { nombre: principal.emblema })}</span>}
+                {principal.hechizo && <span>{t('build.hechizo', { nombre: principal.hechizo })}</span>}
+              </p>
+              <p className="build-cifras">
+                {principal.pickRate != null && <span>{t('build.uso', { pct: pct(principal.pickRate) })}</span>}
+                {principal.winRate != null && <span>{t('build.wr', { pct: pct(principal.winRate) })}</span>}
+              </p>
+            </section>
+
+            {ajuste && (
+              <section className="build-ajuste">
+                <p className="frase bad">
+                  {t(ajuste.lado === 'magica' ? 'build.ajusteMagica' : 'build.ajusteFisica', {
+                    n: ajuste.conDato,
+                    pct: Math.round((ajuste.lado === 'magica' ? ajuste.cuotaMagica : 1 - ajuste.cuotaMagica) * 100),
+                    objetos: ajuste.alternativas.map((o) => o.nombre).join(', '),
+                  })}
+                </p>
+                <p className="build-nota">{t('build.ajusteAviso')}</p>
+              </section>
+            )}
+
+            {lista.length > 1 && (
+              <section className="build-otras">
+                <p className="build-nucleo">{t('build.otras')}</p>
+                {/* El emblema y el hechizo van tambien aqui: hay builds con los
+                    mismos tres objetos que solo se diferencian en el hechizo, y
+                    sin ensenarlo se ven como la misma repetida dos veces. */}
+                {lista.slice(1).map((b, i) => (
+                  <p key={i} className="build-otra">
+                    <span>{objetosDe(equipment, b).map((o) => o.nombre).join(' + ')}</span>
+                    <span className="build-cifras">
+                      {b.emblema && <span>{t('build.emblema', { nombre: b.emblema })}</span>}
+                      {b.hechizo && <span>{t('build.hechizo', { nombre: b.hechizo })}</span>}
+                    </span>
+                    <span className="build-cifras">
+                      {b.pickRate != null && <span>{t('build.uso', { pct: pct(b.pickRate) })}</span>}
+                      {b.winRate != null && <span>{t('build.wr', { pct: pct(b.winRate) })}</span>}
+                    </span>
+                  </p>
+                ))}
+              </section>
+            )}
+
+            <p className="build-nota">{t('build.sesgo')}</p>
+          </>
+        )}
+        <p className="build-nota">{t('build.objetosEnIngles')}</p>
+      </div>
+    </div>
   );
 }
 

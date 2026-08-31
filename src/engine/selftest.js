@@ -3,6 +3,7 @@ import {
 } from './score.js';
 import { DEFAULT_WEIGHTS } from './rules.js';
 import { resumen, MINIMO_PARA_CONCLUIR } from './registro.js';
+import { coberturaBuilds } from './builds.js';
 
 /**
  * Autodiagnóstico. Se ejecuta EN EL MÓVIL, contra los datos que tiene la app en
@@ -93,6 +94,37 @@ export function runSelfTest({ catalog, meta, metaCtx, allHeroes, roamPool, maste
       `Matriz completa: ${d.media.toFixed(0)} rivales por héroe`,
       `Solo ${d.media.toFixed(0)} rivales por héroe: la descarga se ha quedado en la ruta corta`,
       true);
+  }
+
+  // Objetos y builds. Igual que con los counters: lo que importa no es que el
+  // fichero traiga builds, sino que las traiga PARA EL POOL DE TU LINEA. La
+  // pantalla de objetos diria "todavia no hay builds" sin distinguir entre
+  // "ese heroe no las tiene" y "la descarga se ha caido entera".
+  const cb = coberturaBuilds(roamPool, meta?.builds, linea);
+  if (Object.keys(meta?.builds ?? {}).length) {
+    check(cb.con >= cb.total * 0.8,
+      `Builds: ${cb.con}/${cb.total} héroes de tu línea`,
+      `Builds: solo ${cb.con} de ${cb.total} héroes de tu línea`,
+      true);
+    const objetos = Object.values(meta?.equipment ?? {});
+    const conDefensa = objetos.filter((o) => o.magica || o.fisica).length;
+    // Sin objetos con defensa medida, el ajuste por el draft enmudece SIN
+    // fallar: la pantalla sale igual y nunca propone nada.
+    check(conDefensa >= 20,
+      `Objetos: ${objetos.length} · ${conDefensa} con defensa medida`,
+      `Objetos: solo ${conDefensa} con defensa medida de ${objetos.length}: el texto del juego ha cambiado de forma`,
+      true);
+    const sinNombre = new Set();
+    for (const porLinea of Object.values(meta.builds)) {
+      for (const lista of Object.values(porLinea)) {
+        for (const b of lista) for (const id of b.objetos ?? []) if (!meta.equipment?.[id]) sinNombre.add(id);
+      }
+    }
+    if (sinNombre.size) {
+      lineas.push(`  objetos sin nombre en el catálogo: ${[...sinNombre].slice(0, 8).join(', ')}`);
+    }
+  } else {
+    lineas.push('Builds: ninguna todavía (la pantalla de objetos saldrá vacía)');
   }
 
   if (!cov.conCounters && meta?.diagnostics) {

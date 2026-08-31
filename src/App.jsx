@@ -5,7 +5,7 @@ import { apuntar, olvidar, corregir, maestriaEfectiva } from './engine/registro.
 import { analizarDraft } from './engine/analisis.js';
 import { crearT, idiomaPorDefecto, IDIOMAS } from './i18n.js';
 import { detectarRivalDeLinea, indiceDeLineas, frecuenciaDeRoles } from './engine/rival-de-linea.js';
-import { Side, HeroSheet, Pick, Legend, MasteryEditor, RankPicker, BanSuggestions, Footer, SelfTest, RegistroPartida, SelectorDeLinea, Analisis, AvisoLegal, Perfil, HistorialPartidas } from './components/ui.jsx';
+import { Side, HeroSheet, Pick, Legend, MasteryEditor, RankPicker, BanSuggestions, Footer, SelfTest, RegistroPartida, SelectorDeLinea, Analisis, AvisoLegal, Perfil, HistorialPartidas, Build } from './components/ui.jsx';
 
 // OJO: estas claves siguen diciendo 'roam-picker' aunque la app se llame ya
 // Mobile Legends Pick Assist. NO se renombran: el almacenamiento del navegador
@@ -56,6 +56,7 @@ export default function App() {
   const [verPerfil, setVerPerfil] = useState(false);
   const [verHistorial, setVerHistorial] = useState(false);
   const [test, setTest] = useState(null);
+  const [verBuild, setVerBuild] = useState(null);
 
   const saveMastery = (next) => { setMastery(next); save(MASTERY_KEY, next); };
 
@@ -363,7 +364,14 @@ export default function App() {
         )}
 
         {ranked.slice(0, 8).map((r, i) => (
-          <Pick key={r.hero.name} result={r} index={i} t={t} stat={metaCtx.stats?.[normName(r.hero.name)]} />
+          <Pick
+            key={r.hero.name}
+            result={r}
+            index={i}
+            t={t}
+            stat={metaCtx.stats?.[normName(r.hero.name)]}
+            onBuild={meta?.builds ? setVerBuild : null}
+          />
         ))}
 
         <Legend t={t} />
@@ -371,6 +379,18 @@ export default function App() {
       </main>
 
       {test && <SelfTest resultado={test} onClose={() => setTest(null)} />}
+
+      {verBuild && (
+        <Build
+          hero={verBuild}
+          linea={linea}
+          builds={meta?.builds}
+          equipment={meta?.equipment}
+          enemies={enemies}
+          onClose={() => setVerBuild(null)}
+          t={t}
+        />
+      )}
 
       {eligiendoLinea && (
         <SelectorDeLinea

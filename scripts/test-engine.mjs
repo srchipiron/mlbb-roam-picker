@@ -1481,6 +1481,233 @@ test('el encogimiento de la maestria sale de la dispersion medida', async () => 
   ok(Number.isFinite(priorDeMaestria({})), 'sin datos deberia dar un prior por defecto');
 });
 
+test('las builds se ordenan por USO, no por winrate', async () => {
+  const { buildsDe } = await import('../src/engine/builds.js');
+
+  // Esto no es una preferencia estetica. El winrate de una build lleva dentro
+  // a QUIEN la compra: el que se sale de la build normal suele ser el que mas
+  // domina el heroe. Se ve en los datos de verdad -las builds del 3% de uso
+  // salen por encima de las del 13%-, asi que ordenar por winrate seria
+  // recomendar el sesgo del jugador como si fuera el objeto.
+  const builds = {
+    Paquito: {
+      exp: [
+        { objetos: [1, 2, 3], pickRate: 0.03, winRate: 0.60 },
+        { objetos: [4, 5, 6], pickRate: 0.13, winRate: 0.56 },
+      ],
+    },
+  };
+  const lista = buildsDe(builds, { name: 'Paquito' }, 'exp');
+  eq(lista[0].pickRate, 0.13, 'la primera build no es la mas jugada');
+  ok(lista[0].winRate < lista[1].winRate, 'la prueba no esta midiendo lo que cree');
+});
+
+test('dos builds que se ven iguales en pantalla se juntan en una', async () => {
+  const { buildsDe } = await import('../src/engine/builds.js');
+
+  // La API separa builds que solo se diferencian en un talento del emblema, y
+  // los talentos no se descargan: en pantalla salen los MISMOS tres objetos
+  // dos veces con dos porcentajes distintos. Parece un fallo y ademas miente,
+  // porque esa build se usa la suma de las dos.
+  const builds = {
+    Rafaela: {
+      roam: [
+        { objetos: [1, 2, 3], pickRate: 0.04, winRate: 0.60, emblema: 'Support', hechizo: 'Purify' },
+        { objetos: [1, 2, 3], pickRate: 0.02, winRate: 0.66, emblema: 'Support', hechizo: 'Purify' },
+        // Mismos objetos, OTRO hechizo: son dos builds distintas y la app las
+        // ensena como tales. Juntarlas seria perder informacion de verdad.
+        { objetos: [1, 2, 3], pickRate: 0.03, winRate: 0.55, emblema: 'Support', hechizo: 'Revitalize' },
+      ],
+    },
+  };
+  const lista = buildsDe(builds, { name: 'Rafaela' }, 'roam');
+  eq(lista.length, 2, 'no se han juntado las dos builds indistinguibles');
+  const [junta] = lista;
+  ok(Math.abs(junta.pickRate - 0.06) < 1e-9, `el uso deberia sumarse: ${junta.pickRate}`);
+
+  // Y el winrate junto, PONDERADO por uso: (0.60*0.04 + 0.66*0.02)/0.06.
+  ok(Math.abs(junta.winRate - 0.62) < 1e-9,
+    `el winrate junto deberia ir ponderado por uso, no promediado: ${junta.winRate}`);
+  ok(lista.some((b) => b.hechizo === 'Revitalize'), 'se ha perdido la build del otro hechizo');
+});
+
+test('las builds se encuentran aunque el nombre se escriba distinto', async () => {
+  const { buildsDe } = await import('../src/engine/builds.js');
+
+  // El fallo invisible de siempre: la API escribe "X.Borg" y el catalogo
+  // "X Borg". Sin normalizar, ese heroe se queda sin build y nadie se entera
+  // porque la pantalla simplemente dice "todavia no hay builds".
+  const builds = { 'X.Borg': { exp: [{ objetos: [1], pickRate: 0.2 }] } };
+  eq(buildsDe(builds, { name: 'X Borg' }, 'exp').length, 1, 'no encuentra la build por nombre normalizado');
+  eq(buildsDe(builds, 'X.Borg', 'exp').length, 1, 'no encuentra la build por la clave cruda');
+  eq(buildsDe(builds, { name: 'Layla' }, 'exp').length, 0, 'se inventa una build de otro heroe');
+  eq(buildsDe(builds, { name: 'X.Borg' }, 'roam').length, 0, 'devuelve la build de otra linea');
+});
+
+test('la amenaza enemiga se calla cuando no sabe y no reparte lo que no tiene', async () => {
+  const { amenazaEnemiga } = await import('../src/engine/builds.js');
+
+  const fis = (n) => ({ name: n, damage: { fisico: 6, magico: 0 } });
+  const mag = (n) => ({ name: n, damage: { fisico: 0, magico: 6 } });
+  const mix = (n) => ({ name: n, damage: { fisico: 5, magico: 5 } });
+  const sin = (n) => ({ name: n });
+
+  // Con un solo enemigo con dato no se puede decir de que pega el equipo.
+  eq(amenazaEnemiga([mag('A')]), null, 'se moja con un solo enemigo');
+  eq(amenazaEnemiga([]), null, 'se moja sin enemigos');
+
+  // Un mixto amenaza por los dos lados: medio a cada uno.
+  const m = amenazaEnemiga([mag('A'), mix('B')]);
+  eq(m.magico, 1.5, 'el mixto no cuenta medio al lado magico');
+  eq(m.fisico, 0.5, 'el mixto no cuenta medio al lado fisico');
+
+  // Y los que no tienen dato NO se reparten a medias: eso seria inventarse la
+  // mitad de la respuesta. Se cuentan aparte y ya.
+  const s = amenazaEnemiga([mag('A'), mag('B'), sin('C')]);
+  eq(s.cuotaMagica, 1, 'el heroe sin dato se ha colado en el reparto');
+  eq(s.sinDato, 1, 'no se esta contando a quien falta el dato');
+  eq(amenazaEnemiga([fis('A'), fis('B')]).cuotaMagica, 0, 'un equipo todo fisico no sale a 0 de cuota magica');
+});
+
+test('el ajuste defensivo solo habla cuando el desequilibrio es claro y falta el objeto', async () => {
+  const { ajusteDefensivo, DESEQUILIBRIO } = await import('../src/engine/builds.js');
+
+  const mag = (n) => ({ name: n, damage: { fisico: 0, magico: 6 } });
+  const fis = (n) => ({ name: n, damage: { fisico: 6, magico: 0 } });
+  const equipment = {
+    1: { nombre: 'Blade Armor', fisica: 80 },
+    2: { nombre: "Athena's Shield", magica: 48 },
+    3: { nombre: 'Hunter Strike' },
+    4: { nombre: 'Radiant Armor', magica: 40 },
+  };
+  const buildSinDefensa = { objetos: [3] };
+
+  // 1. Equipo enemigo repartido: no hay nada que decir.
+  eq(ajusteDefensivo(buildSinDefensa, equipment, [mag('A'), mag('B'), fis('C'), fis('D')]), null,
+    'aconseja con el dano enemigo repartido');
+
+  // 2. Cuatro de cinco magicos y la build sin defensa magica: ahi si.
+  const a = ajusteDefensivo(buildSinDefensa, equipment, [mag('A'), mag('B'), mag('C'), mag('D'), fis('E')]);
+  ok(a && a.lado === 'magica', 'no detecta un equipo enemigo mayoritariamente magico');
+  ok(a.cuotaMagica >= DESEQUILIBRIO, 'ha hablado por debajo del umbral');
+
+  // 3. Nunca propone un objeto del lado equivocado. Comprar Blade Armor contra
+  //    un equipo magico es cambiar de objeto para nada.
+  ok(a.alternativas.length, 'no propone ningun objeto');
+  for (const o of a.alternativas) {
+    ok((o.magica ?? 0) > 0, `propone ${o.nombre}, que no da defensa magica`);
+    ok((o.magica ?? 0) >= (o.fisica ?? 0), `propone ${o.nombre}, que da mas defensa del otro lado`);
+  }
+
+  // 4. Si la build YA lleva defensa de ese lado, se calla. Una app que siempre
+  //    tiene un consejo deja de leerse.
+  eq(ajusteDefensivo({ objetos: [2, 3] }, equipment, [mag('A'), mag('B'), mag('C'), mag('D'), fis('E')]), null,
+    'aconseja defensa magica a una build que ya lleva Athena');
+
+  // 5. Sin enemigos con dato, silencio.
+  eq(ajusteDefensivo(buildSinDefensa, equipment, [{ name: 'X' }]), null, 'aconseja sin datos de dano enemigo');
+});
+
+test('la defensa de cada objeto sale del texto del juego, no de su categoria', async () => {
+  const meta = JSON.parse(readFileSync(resolve(ROOT, 'public/data/roam-meta.json'), 'utf8'));
+  const eq5 = meta.equipment ?? {};
+  if (!Object.keys(eq5).length) return; // todavia sin datos de objetos
+
+  const porNombre = Object.fromEntries(Object.values(eq5).map((o) => [o.nombre, o]));
+
+  // Objetos de diseno publico, con su defensa conocida. Si la API cambia el
+  // formato de `equiptips`, esto se entera: sin ellos el ajuste defensivo
+  // seguiria funcionando en silencio SIN proponer nunca nada.
+  ok((porNombre["Athena's Shield"]?.magica ?? 0) > 0, "Athena's Shield sin defensa magica");
+  ok(!(porNombre["Athena's Shield"]?.fisica > 0), "Athena's Shield con defensa fisica");
+  ok((porNombre['Blade Armor']?.fisica ?? 0) > 0, 'Blade Armor sin defensa fisica');
+  ok(!(porNombre['Blade Armor']?.magica > 0), 'Blade Armor con defensa magica');
+  ok((porNombre['Dominance Ice']?.magica ?? 0) > 0 && (porNombre['Dominance Ice']?.fisica ?? 0) > 0,
+    'Dominance Ice deberia dar las dos defensas');
+
+  // Y el caso que demuestra por que NO vale el tipo del objeto: Tough Boots
+  // esta catalogado como "Movement" y da 18 de defensa magica.
+  const tough = porNombre['Tough Boots'];
+  if (tough) ok((tough.magica ?? 0) > 0, 'Tough Boots sin defensa magica: se esta mirando el tipo, no el texto');
+
+  const conDefensa = Object.values(eq5).filter((o) => o.magica || o.fisica).length;
+  ok(conDefensa >= 20, `solo ${conDefensa} objetos con defensa medida: el texto ha cambiado de forma`);
+});
+
+test('hay builds para los heroes que de verdad se recomiendan', async () => {
+  const { buildsDe, coberturaBuilds } = await import('../src/engine/builds.js');
+  const { poolDeLinea, LINEAS } = await import('../src/engine/score.js');
+  const { indiceDeLineas } = await import('../src/engine/rival-de-linea.js');
+
+  const meta = JSON.parse(readFileSync(resolve(ROOT, 'public/data/roam-meta.json'), 'utf8'));
+  if (!meta.builds || !Object.keys(meta.builds).length) return; // todavia sin builds
+
+  // Lo que importa no es que el fichero tenga builds, sino que las tenga PARA
+  // EL POOL DE CADA LINEA. Es el mismo fallo que costo la matriz de counters:
+  // 34 heroes con datos de 133 y la app recomendando a ciegas.
+  const todos = mergeCatalog(cat.heroes, meta.heroes ?? []);
+  const lineas = indiceDeLineas(meta.heroes);
+  for (const linea of LINEAS) {
+    const pool = poolDeLinea(todos, lineas, linea);
+    if (!pool.length) continue;
+    const { total, con } = coberturaBuilds(pool, meta.builds, linea);
+    ok(con / total >= 0.8, `${linea}: solo ${con} de ${total} heroes del pool tienen build`);
+  }
+
+  // Y las builds tienen que traer objetos que estemos en condiciones de
+  // nombrar: un id sin nombre sale en pantalla como "#3009".
+  const primera = buildsDe(meta.builds, { name: Object.keys(meta.builds)[0] },
+    Object.keys(Object.values(meta.builds)[0])[0])[0];
+  ok(primera?.objetos?.length, 'la primera build no trae objetos');
+  for (const id of primera.objetos) {
+    ok(meta.equipment?.[id]?.nombre, `el objeto ${id} no tiene nombre en el catalogo`);
+  }
+});
+
+test('las builds sobreviven al guardado compacto', async () => {
+  const { serializar } = await import('./ingest.mjs');
+
+  const datos = {
+    generatedAt: '2026-01-01T00:00:00.000Z',
+    counters: {},
+    synergies: {},
+    equipment: { 3009: { nombre: 'Hunter Strike' } },
+    builds: {
+      Paquito: {
+        exp: [{ objetos: [3009, 2014, 3001], pickRate: 0.13, winRate: 0.5671, emblema: 'Assassin' }],
+        jungle: [{ objetos: [3009], pickRate: 0.2, winRate: 0.51 }],
+      },
+    },
+  };
+  const vuelta = JSON.parse(serializar(datos));
+  eq(vuelta.builds.Paquito.exp[0].objetos.length, 3, 'se pierden objetos al guardar');
+  eq(vuelta.builds.Paquito.exp[0].emblema, 'Assassin', 'se pierde el emblema al guardar');
+  eq(Object.keys(vuelta.builds.Paquito).length, 2, 'se pierde una linea al guardar');
+  eq(vuelta.equipment['3009'].nombre, 'Hunter Strike', 'se pierde el catalogo de objetos');
+});
+
+test('una corrida que pierde builds no pasa el filtro', async () => {
+  const { comparar } = await import('./comparar-ingesta.mjs');
+
+  const tres = (n) => Array.from({ length: n }, () => ({ objetos: [1, 2, 3] }));
+  const base = {
+    heroes: [{ name: 'A', lanes: ['exp'], role: 'fighter', damage: { fisico: 3 } }],
+    stats: { A: {} }, counters: { A: { B: 0.5 } }, synergies: { A: { B: 0.5 } },
+    equipment: { 1: { nombre: 'X' } },
+    builds: { A: { exp: tres(3) } },
+  };
+  eq(comparar(base, base).peores.length, 0, 'una corrida identica se rechaza');
+
+  // El caso que hay que cazar: MISMOS heroes con build, una build cada uno en
+  // vez de tres. Contando heroes esto pasaba.
+  const pobre = { ...base, builds: { A: { exp: tres(1) } } };
+  ok(comparar(pobre, base).peores.some((p) => p.clave === 'builds'),
+    'una corrida con un tercio de las builds pasa el filtro');
+
+  ok(comparar({ ...base, equipment: {} }, base).peores.some((p) => p.clave === 'objetos'),
+    'una corrida sin catalogo de objetos pasa el filtro');
+});
+
 await Promise.all(pendientes); // se esperan de verdad, sin plazos inventados
 
 console.log(`\n${pasadas} pruebas correctas, ${fallos} fallos.`);
