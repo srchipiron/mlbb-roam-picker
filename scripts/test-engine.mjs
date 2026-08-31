@@ -1831,6 +1831,63 @@ test('el umbral de "ganas el cruce" sale de la distribucion, no de una intuicion
   ok(Math.abs(porEncima - porDebajo) < 0.03, 'los dos umbrales no cubren la misma cola');
 });
 
+test('el veredicto no canta victoria antes de tiempo', async () => {
+  const { resumen } = await import('../src/engine/registro.js');
+
+  // El caso real de Javi: 11 partidas siguiendo la app al 73% contra un 51,3%
+  // histórico. Son +21 puntos, que suena a demostracion y NO lo es: el margen
+  // es de ±29. Si esto se ensena como "la app te sube 21 puntos", la siguiente
+  // racha lo desmiente y con razon.
+  const maestria = { A: { games: 10535, winRate: 0.513 } };
+  const partidas = [
+    ...Array.from({ length: 8 }, (_, i) => ({ t: i, pick: 'A', recomendados: ['A'], gane: true })),
+    ...Array.from({ length: 3 }, (_, i) => ({ t: 100 + i, pick: 'A', recomendados: ['A'], gane: false })),
+  ];
+  const r = resumen(partidas, maestria);
+  ok(r.contraReferencia, 'no calcula la comparacion con 11 partidas');
+  ok(r.contraReferencia.dif > 0.15, 'la prueba no esta midiendo el caso que cree');
+  ok(!r.contraReferencia.seVe,
+    `da por buena una diferencia de ${(r.contraReferencia.dif * 100).toFixed(1)} puntos con margen de ${(r.contraReferencia.margen * 100).toFixed(1)}`);
+  ok(r.contraReferencia.faltan > 0, 'no dice cuantas partidas faltan');
+
+  // Y al reves: con muestra de sobra y una diferencia grande, SI se afirma.
+  // Si no, el veredicto seria un "no se sabe" perpetuo, que tampoco sirve.
+  const muchas = Array.from({ length: 400 }, (_, i) => ({
+    t: i, pick: 'A', recomendados: ['A'], gane: i % 100 < 70,
+  }));
+  const claro = resumen(muchas, maestria);
+  ok(claro.contraReferencia.seVe,
+    'con 400 partidas al 70% contra un 51% sigue diciendo que no se sabe');
+
+  // Una diferencia pequena con muestra grande tampoco se canta.
+  const rozando = Array.from({ length: 400 }, (_, i) => ({
+    t: i, pick: 'A', recomendados: ['A'], gane: i % 100 < 53,
+  }));
+  ok(!resumen(rozando, maestria).contraReferencia.seVe,
+    'canta victoria por dos puntos de diferencia');
+
+  // El margen SIEMPRE viaja con la diferencia: quien pinte esto no puede
+  // ensenar una sin la otra por descuido.
+  ok(Number.isFinite(r.contraReferencia.margen) && r.contraReferencia.margen > 0,
+    'la diferencia viene sin margen: el numero solo es publicidad');
+});
+
+test('la pantalla del veredicto ensena el margen y la trampa, no solo el numero', async () => {
+  const ui = readFileSync(resolve(ROOT, 'src/components/ui.jsx'), 'utf8');
+  const { CLAVES } = await import('../src/i18n.js');
+
+  // Tres cosas que no pueden desaparecer de esa pantalla sin que deje de ser
+  // honesta: el margen al lado de la diferencia, el "todavia no se sabe"
+  // mientras no se distinga, y el aviso de que no esta aleatorizado.
+  for (const clave of ['veredicto.dif', 'veredicto.noSeVe', 'veredicto.trampa']) {
+    ok(ui.includes(clave), `la pantalla ya no usa ${clave}`);
+    ok(CLAVES.includes(clave), `${clave} no existe en los idiomas`);
+  }
+  // Y que el margen se pinte en la MISMA frase que la diferencia.
+  ok(/veredicto\.dif[\s\S]{0,260}margen/.test(ui),
+    'el margen se ha separado de la diferencia: el numero solo es publicidad');
+});
+
 test('el titular del diagnostico no se contradice ni escribe mal el plural', async () => {
   const { titular } = await import('../src/engine/selftest.js');
 

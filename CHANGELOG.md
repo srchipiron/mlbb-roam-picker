@@ -8,6 +8,23 @@ que esto no se olvida.
 Criterio: `0.X.0` cuando cambia cómo decide la app o qué hace; `0.0.X` para
 correcciones.
 
+## 1.17.0
+
+**«¿Te está funcionando?»**, dentro de tus partidas. Es la única prueba que
+significa algo, así que se enseña con las tres cosas que la hacen honesta:
+
+- Tu winrate siguiendo la app, tu winrate de siempre, y **la diferencia con su
+  margen al lado**. Hoy, con tus 11 partidas: +21,4 puntos ± 29,5.
+- **Mientras el margen se coma la diferencia, la respuesta es «todavía no se
+  sabe»**, no «parece que sí». Y te dice cuántas partidas faltan.
+- Y la trampa, escrita: tú eliges cuándo hacer caso, así que esto no es un
+  experimento controlado. Es la mejor señal que se puede sacar sin pedirte que
+  ignores la app a propósito, pero no es una prueba.
+
+Un 73% en once partidas es exactamente lo que parecería una racha normal. Si
+algún día enseñas esto para convencer a alguien, enséñalo entero: el número sin
+el margen es publicidad.
+
 ## 1.16.0
 
 **Los motivos de cada tarjeta ahora están respaldados por el dato.** La

@@ -484,6 +484,12 @@ y el botón Diagnóstico mentía sobre los rangos. No le quites el `--out`.
   y se deduplica al fundir perfiles. `apuntar` desempata los instantes repetidos
   porque dos toques rápidos caían en el mismo milisegundo y borrar una se
   llevaba las dos.
+- Desde 1.17.0 la comparación tiene pantalla propia (`Veredicto`, dentro de
+  «Partidas»). Tres reglas que NO son negociables y tienen prueba: el margen va
+  en la misma frase que la diferencia, no se afirma nada mientras la diferencia
+  quepa en el margen, y se dice que no está aleatorizado. Si alguna vez se saca
+  de la app para enseñársela a alguien, se saca entera: el número sin el margen
+  es publicidad, y con 11 partidas el margen es ±29 puntos.
 - El registro de partidas existe desde 0.8.0 (botón "Apuntar partida"). La
   comparación "siguiendo la app contra por libre" es la limpia en teoría y la
   inalcanzable en la práctica: la segunda rama solo crece si Javi ignora la app
