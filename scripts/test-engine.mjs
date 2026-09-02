@@ -1037,6 +1037,22 @@ test('los workflows que publican datos pasan por el guardarrail', () => {
   ok(/h > \d+\)/.test(deploy), 'deploy.yml ya no comprueba la antiguedad de los datos');
   ok(/cruces < \d+/.test(deploy), 'deploy.yml ya no comprueba que haya matriz de counters');
 
+  // El despliegue NO vuelve a descargar si el repositorio tiene datos
+  // recientes: el bot ya lo hace dos veces al dia. Sin esto cada push de
+  // codigo costaba diez minutos y, con cancel-in-progress, cada push
+  // reiniciaba la descarga del anterior: cinco commits seguidos dejaron la app
+  // 25 minutos por detras. Y el umbral de "reciente" tiene que quedar por
+  // debajo del de "rancio" (72 h), o se publicaria sin descargar algo que
+  // luego el propio despliegue rechaza.
+  const pasoIngesta = deploy.slice(deploy.indexOf('name: Ingesta'), deploy.indexOf('scripts/ingest.mjs'));
+  ok(/if:\s*steps\.frescura\.outputs\.fresca/.test(pasoIngesta),
+    'deploy.yml descarga datos en cada push aunque el repositorio los tenga recientes');
+  const umbral = deploy.match(/fresca=.*?\(h < (\d+)\)/)?.[1];
+  ok(umbral, 'no se ve el umbral de frescura');
+  ok(Number(umbral) < 72, `frescura ${umbral} h no es menor que el limite de rancio (72 h)`);
+  ok(/outcome }}"? = "skipped"/.test(deploy),
+    'el paso de elegir datos no distingue "ingesta omitida" de "ingesta fallida": avisaria de un fallo que no existe');
+
   // Y con tope de tiempo en la ingesta. "Fallar" lo cubre continue-on-error,
   // "colgarse" no: ~570 peticiones con 15 s de timeout son 140 minutos con la
   // API a medias, y el despliegue se quedaba ahi sabiendo publicar con los
