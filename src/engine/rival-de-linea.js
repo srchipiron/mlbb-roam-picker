@@ -41,6 +41,27 @@ export function frecuenciaDeRoles(apiHeroes = []) {
 }
 
 /**
+ * Cuánto pesa que el rol del héroe sea típico de la línea, frente a que la API
+ * diga que juega ahí (0.6 + 0.25/líneas).
+ *
+ * Medido sobre drafts con la línea de cada enemigo conocida, 800 por caso y
+ * dos semillas, moviendo cada constante de esta función. Tres están en meseta
+ * (±0,2 puntos: ruido). Esta es la única que mueve algo, y de forma monótona:
+ *
+ *   rol   acierta 5en   se equivoca 5en   acierta 3en   se equivoca 3en
+ *   0.30     94,4%          1,3-1,5%          87,3%          2,7%
+ *   0.15     94,4%          0,7-0,9%          86,1%          0,5-0,6%
+ *   0.10     93,5%          0,0%              85,8%          0,0%
+ *
+ * Se elige 0.10: cero rivales equivocados en 1.600 drafts a cambio de 1-1,5
+ * puntos de cobertura. Un rival mal nombrado dobla su cruce y sale en el
+ * análisis como un hecho; callarse no cuesta nada. Y el rol siempre fue la
+ * señal débil: se equivoca con Gusion, Hylos, Natan y Kimmy. Lo que decide es
+ * la lista de líneas de la API, que es el dato.
+ */
+const ROL_TIPICO = 0.10;
+
+/**
  * Probabilidad aproximada de que un héroe sea el de esa línea en su equipo.
  * No pretende ser exacta: solo tiene que ORDENAR bien a cinco candidatos.
  */
@@ -61,7 +82,7 @@ export function probabilidadDeLinea(hero, info, linea, frecuencias = {}) {
   const frec = frecuencias[linea] ?? {};
   const suya = frec[rol] ?? 0;
   const maxima = Math.max(0, ...Object.values(frec));
-  if (maxima > 0) p += (suya / maxima) * 0.3 - (suya === 0 ? 0.25 : 0);
+  if (maxima > 0) p += (suya / maxima) * ROL_TIPICO - (suya === 0 ? 0.25 : 0);
 
   // 3. Respaldo para cuando NO hay datos de la API todavía. Solo sirve para
   //    roam, porque el catálogo escrito a mano es lo único que marca quién

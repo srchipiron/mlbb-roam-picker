@@ -8,6 +8,16 @@ que esto no se olvida.
 Criterio: `0.X.0` cuando cambia cómo decide la app o qué hace; `0.0.X` para
 correcciones.
 
+## 1.26.0
+
+**Cero rivales equivocados.** Al deducir quién es tu rival de línea, el peso de
+«este rol es típico de esta línea» era la única de sus constantes que no estaba
+en meseta al medirla: bajándolo, los rivales mal nombrados pasan de un 1,3–2,7%
+a **0 en 1.600 drafts**, a cambio de callarse un punto más. Un rival mal
+nombrado dobla su cruce y sale en el análisis como si fuera un hecho; callarse
+no cuesta nada. Lo que decide ahora es casi solo en qué líneas dice la API que
+se juega cada héroe, que es el dato.
+
 ## 1.25.0
 
 **Publicar un cambio de código pasa de doce minutos a dos.** El despliegue
