@@ -8,6 +8,29 @@ que esto no se olvida.
 Criterio: `0.X.0` cuando cambia cómo decide la app o qué hace; `0.0.X` para
 correcciones.
 
+## 1.21.0
+
+**Tu rival de línea se deduce mirando el draft entero, no a cada enemigo por
+separado.** Es la primera vez que se mide cómo de bien lo hacía, y hacía falta:
+su cruce pesa el doble y de él sale la frase principal del análisis.
+
+Antes miraba a cada enemigo solo: «¿juega esta línea?». Ahora reparte a los
+cinco entre las cinco líneas a la vez y se queda con el reparto que mejor
+encaja, que es como lo lee cualquiera: si la jungla ya está cogida, el que juega
+exp o jungla va a la exp.
+
+Medido contra 2.000 drafts con la línea de cada enemigo conocida:
+
+- **Draft completo**: acierta el rival de exp el **88%** (antes 60%), de jungla
+  el **91%** (antes 69%), de roam el **94%** (antes 78%). Y con menos errores.
+- **Draft a medias** (2-3 enemigos): antes **se equivocaba del 10% al 21%**,
+  porque nombraba a un rival que todavía no había salido —te ponía al mid como
+  si fuera tu exp— y le doblaba el cruce. Ahora del 4% al 6%, y en su lugar se
+  calla, que es lo correcto cuando tu rival aún no está.
+
+Cambia el número 1 en el **3%** de los drafts, casi todos a medias: son los
+casos en que antes doblaba el cruce equivocado.
+
 ## 1.20.0
 
 **Barrido de todas las constantes del motor, buscando las gemelas del fallo
