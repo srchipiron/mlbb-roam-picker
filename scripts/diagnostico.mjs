@@ -53,6 +53,8 @@ async function traer(nombre) {
 
 const catalog = await traer('heroes.json');
 const meta = await traer('roam-meta.json');
+// Las partidas profesionales son un extra: sin fichero, la sección lo dice.
+const pro = await traer('pro.json').catch(() => null);
 
 const allHeroes = mergeCatalog(catalog.heroes, meta.heroes);
 const indiceLineas = indiceDeLineas(meta.heroes);
@@ -85,6 +87,7 @@ for (const linea of LINEAS) {
   // vendrían con avisos y dejaríamos de leerlos.
   const r = runSelfTest({
     historial: historialPrevio,
+    pro,
     catalog, meta, metaCtx, allHeroes, roamPool,
     mastery: {},
     partidas: [],
