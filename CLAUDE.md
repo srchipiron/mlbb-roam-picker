@@ -98,6 +98,14 @@ ninguna constante.
   valor viejo encogía a los héroes raros diez veces más de lo que el dato
   justifica. El diagnóstico vigila las dos cosas y avisa si cambian.
 
+Dos constantes que se midieron y se dejaron como estaban, para no volver a
+medirlas: el umbral de «tu héroe está N puntos por encima» (`>= 0.02` en
+`analisis.js`) lo supera el 63% de los pares y la σ del winrate global entre
+héroes es ≈3 puntos, así que 2 puntos es una diferencia real y no ruido; y el
+margen de empate (`empatados`, 0.015) declara empate en el 21% de los drafts
+—p25 de la distancia nº1–nº2 es 0.017—, que es una decisión de cuántas veces
+decir «está reñido», no una calibración contra una distribución.
+
 ## Errores ya cometidos, para no repetirlos
 
 Todos estos llegaron a producción y costaron rondas enteras de ida y vuelta:

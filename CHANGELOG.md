@@ -8,6 +8,16 @@ que esto no se olvida.
 Criterio: `0.X.0` cuando cambia cómo decide la app o qué hace; `0.0.X` para
 correcciones.
 
+## 1.23.0
+
+**El diagnóstico lleva ahora el draft que tienes delante, con nombres.** Desde
+que los huecos del draft enseñan la cara y no el nombre, una captura de pantalla
+ya no dice quién estaba enfrente: para investigar la derrota con Minotauro hubo
+que reconstruir el draft a medias. Ahora, cuando algo salga raro, con pegar el
+diagnóstico basta: línea, enemigos, tu equipo, baneos, quién es tu rival (y si lo
+marcaste tú o lo dedujo la app), los tres primeros con su nota y sus motivos, y
+lo que dijo el análisis.
+
 ## 1.22.0
 
 **«Lo llevas al X%» se decide ahora con lo que la app cree de verdad, no con el

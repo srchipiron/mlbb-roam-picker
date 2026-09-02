@@ -254,6 +254,10 @@ export default function App() {
       setTest(runSelfTest({
         catalog, meta, metaCtx, allHeroes, roamPool, mastery: maestriaUsada, partidas,
         linea,
+        // El draft que tienes delante, con nombres: es lo que hace falta para
+        // reproducir una partida, y la captura ya no lo dice desde que los
+        // huecos ensenan caras.
+        draft: { enemies, allies, bans, rival: enemyRoamEfectivo, marcado: !!enemyRoam, ranked, analisis },
         env: leerEntorno({
           version: __APP_VERSION__, buildTime: __BUILD_TIME__, rango: activeRank, publicada,
         }),

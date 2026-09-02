@@ -31,7 +31,7 @@ const OK = 'OK  ';
 const MAL = 'FALLO';
 const AVISO = 'AVISO';
 
-export function runSelfTest({ catalog, meta, metaCtx, allHeroes, roamPool, mastery, partidas = [], linea = 'roam', env = {} }) {
+export function runSelfTest({ catalog, meta, metaCtx, allHeroes, roamPool, mastery, partidas = [], linea = 'roam', env = {}, draft = null }) {
   const lineas = [];
   let fallos = 0;
   let avisos = 0;
@@ -63,6 +63,30 @@ export function runSelfTest({ catalog, meta, metaCtx, allHeroes, roamPool, maste
       `Es la última publicada (${env.versionPublicada})`,
       `Estás usando la ${env.version} y la publicada es la ${env.versionPublicada}: cierra la app y vuelve a abrirla`,
       true);
+  }
+
+  // ---------- el draft que tienes delante ----------
+  // Va aqui, al principio, porque es lo que hace falta para reproducir una
+  // partida. Desde que los huecos del draft ensenan la cara y no el nombre,
+  // una captura de pantalla no dice quien estaba enfrente: hubo que
+  // reconstruir un draft a medias para investigar una derrota. Con esto, pegar
+  // el diagnostico basta.
+  seccion('DRAFT ACTUAL');
+  if (draft && (draft.enemies?.length || draft.allies?.length)) {
+    const nombres = (lista) => (lista?.length ? lista.map((h) => h.name).join(', ') : '(nadie)');
+    lineas.push(`Línea: ${linea} · rango: ${env.rango ?? '?'}`);
+    lineas.push(`Enemigos: ${nombres(draft.enemies)}`);
+    lineas.push(`Tu equipo: ${nombres(draft.allies)}`);
+    if (draft.bans?.length) lineas.push(`Baneados: ${nombres(draft.bans)}`);
+    lineas.push(`Tu rival: ${draft.rival ?? '(sin detectar)'}${draft.marcado ? ' (marcado a mano)' : draft.rival ? ' (deducido)' : ''}`);
+    for (const [i, r] of (draft.ranked ?? []).slice(0, 3).entries()) {
+      const motivos = (r.reasons ?? []).map((m) => m.clave.replace(/^regla\.|^necesidad\./, '')
+        + (m.params?.e ? `:${m.params.e}` : m.params?.a ? `:${m.params.a}` : '')).join(' ');
+      lineas.push(`  ${i + 1}. ${r.hero.name} ${Math.round(r.score * 100)}${motivos ? ` · ${motivos}` : ''}`);
+    }
+    for (const f of draft.analisis ?? []) lineas.push(`  > ${f.clave.replace(/^analisis\./, '')} ${JSON.stringify(f.params ?? {})}`);
+  } else {
+    lineas.push('(sin draft: no hay ningún héroe elegido)');
   }
 
   // ---------- datos ----------
