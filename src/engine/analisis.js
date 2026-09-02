@@ -1,4 +1,5 @@
 import { normName, matchup, perfilDeDano, tapaElHueco, CRUCE_MALO } from './score.js';
+import { CUOTA_ROBUSTA } from './robustez.js';
 import { TEAM_NEEDS } from './rules.js';
 
 /**
@@ -34,10 +35,22 @@ const lookup = (map, name) => (map ? map[normName(name)] ?? map[name] : undefine
  */
 export function analizarDraft({
   eleccion, ranked = [], enemies = [], allies = [], meta = {},
-  rivalLinea = null, linea = 'roam', empate = [],
+  rivalLinea = null, linea = 'roam', empate = [], robustez = null,
 }) {
   const salida = [];
   const top = eleccion ?? ranked[0];
+
+  // 0. ¿Aguanta el nº1 lo que falta por salir? Solo con draft a medias y solo
+  //    si hay simulación: la cuota de finales en que sigue siendo nº1 está
+  //    medida como predictor (ver robustez.js). Va la primera porque es la
+  //    única frase que habla del futuro del draft y no de lo que ya se ve.
+  if (top && robustez?.lineasAbiertas?.length && robustez.cuota) {
+    const cuota = robustez.cuota[top.hero.name] ?? 0;
+    const pct = Math.round(cuota * 100);
+    salida.push(cuota >= CUOTA_ROBUSTA
+      ? { tono: 'bien', clave: 'analisis.pickRobusto', params: { yo: top.hero.name, pct, faltan: robustez.lineasAbiertas.length } }
+      : { tono: 'duda', clave: 'analisis.pickFragil', params: { yo: top.hero.name, pct, faltan: robustez.lineasAbiertas.length } });
+  }
   if (!top) return salida;
 
   const hero = top.hero ?? top;

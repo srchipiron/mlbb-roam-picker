@@ -69,6 +69,14 @@ const metaCtx = {
 let fallosTotales = 0;
 const partes = [];
 
+// Las corridas anteriores, para que el informe compare con su propio pasado
+// igual que hace la app en el movil.
+let historialPrevio = null;
+try {
+  historialPrevio = readFileSync(resolve(ROOT, 'historial/salud.jsonl'), 'utf8')
+    .split('\n').filter(Boolean).slice(-40).map((l) => JSON.parse(l));
+} catch { /* sin historial: la seccion lo dice */ }
+
 for (const linea of LINEAS) {
   const roamPool = poolDeLinea(allHeroes, indiceLineas, linea);
 
@@ -76,6 +84,7 @@ for (const linea of LINEAS) {
   // desde aquí. Se apagan a propósito: si fueran avisos, todos los informes
   // vendrían con avisos y dejaríamos de leerlos.
   const r = runSelfTest({
+    historial: historialPrevio,
     catalog, meta, metaCtx, allHeroes, roamPool,
     mastery: {},
     partidas: [],

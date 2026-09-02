@@ -4,7 +4,8 @@ import { runSelfTest, leerEntorno } from './engine/selftest.js';
 import { apuntar, olvidar, corregir, maestriaEfectiva } from './engine/registro.js';
 import { analizarDraft } from './engine/analisis.js';
 import { crearT, idiomaPorDefecto, IDIOMAS } from './i18n.js';
-import { detectarRivalDeLinea, indiceDeLineas, frecuenciaDeRoles } from './engine/rival-de-linea.js';
+import { detectarRivalDeLinea, indiceDeLineas, frecuenciaDeRoles, lineasOcupadas } from './engine/rival-de-linea.js';
+import { simularFinales } from './engine/robustez.js';
 import { Side, HeroSheet, Pick, Legend, MasteryEditor, RankPicker, BanSuggestions, Footer, SelfTest, RegistroPartida, SelectorDeLinea, Analisis, AvisoLegal, Perfil, HistorialPartidas, Build } from './components/ui.jsx';
 
 // OJO: estas claves siguen diciendo 'roam-picker' aunque la app se llame ya
@@ -224,12 +225,25 @@ export default function App() {
 
   // Dos o tres frases sobre lo que NO se ve en las tarjetas: si ganas tu cruce,
   // quién te va a doler y si estás eligiendo a ciegas.
+  // ¿Aguanta el nº1 lo que falta por salir? Solo con draft a medias. Son 60
+  // rankings más por cambio de draft: unos milisegundos.
+  const robustez = useMemo(() => {
+    if (!enemies.length || enemies.length >= 5 || !roamPool.length) return null;
+    const ocupadas = new Set(lineasOcupadas(enemies, lineas, frecuencias));
+    const abiertas = LINEAS.filter((l) => !ocupadas.has(l));
+    const poolsPorLinea = Object.fromEntries(LINEAS.map((l) => [l, poolDeLinea(allHeroes, lineas, l)]));
+    return simularFinales({
+      pool: roamPool, enemies, allies, lineasAbiertas: abiertas, poolsPorLinea,
+      ctx: { meta: metaCtx, mastery: maestriaUsada, enemyRoam: enemyRoamEfectivo },
+    });
+  }, [enemies, allies, roamPool, allHeroes, lineas, frecuencias, metaCtx, maestriaUsada, enemyRoamEfectivo]);
+
   const analisis = useMemo(
     () => analizarDraft({
       ranked, enemies, allies, meta: metaCtx,
-      rivalLinea: enemyRoamEfectivo, linea, empate,
+      rivalLinea: enemyRoamEfectivo, linea, empate, robustez,
     }),
-    [ranked, enemies, allies, metaCtx, enemyRoamEfectivo, linea, empate],
+    [ranked, enemies, allies, metaCtx, enemyRoamEfectivo, linea, empate, robustez],
   );
 
   const banIdeas = useMemo(
@@ -246,10 +260,16 @@ export default function App() {
       // datos de hoy y el diagnóstico decía "todo correcto" sin poder saberlo.
       // Si no se puede preguntar (sin cobertura), se sigue igual: es un extra.
       let publicada = null;
+      let historial = null;
       try {
         const res = await fetch(`./version.json?t=${Date.now()}`, { cache: 'no-store' });
         if (res.ok) publicada = await res.json();
       } catch { /* sin red: el resto del diagnóstico sigue valiendo */ }
+      try {
+        // Las últimas corridas de la vigilancia, para compararse con su pasado.
+        const res = await fetch(`./historial.json?t=${Date.now()}`, { cache: 'no-store' });
+        if (res.ok) historial = await res.json();
+      } catch { /* sin red: la sección de historial lo dice */ }
 
       setTest(runSelfTest({
         catalog, meta, metaCtx, allHeroes, roamPool, mastery: maestriaUsada, partidas,
@@ -257,7 +277,8 @@ export default function App() {
         // El draft que tienes delante, con nombres: es lo que hace falta para
         // reproducir una partida, y la captura ya no lo dice desde que los
         // huecos ensenan caras.
-        draft: { enemies, allies, bans, rival: enemyRoamEfectivo, marcado: !!enemyRoam, ranked, analisis },
+        draft: { enemies, allies, bans, rival: enemyRoamEfectivo, marcado: !!enemyRoam, ranked, analisis, robustez },
+        historial,
         env: leerEntorno({
           version: __APP_VERSION__, buildTime: __BUILD_TIME__, rango: activeRank, publicada,
         }),
