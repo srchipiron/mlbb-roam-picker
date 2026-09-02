@@ -39,7 +39,13 @@ jobs:
           cp /tmp/pro.json public/data/pro.json
 
       - name: Medir el motor contra las partidas
-        run: node scripts/medir-pro.mjs || true
+        # La medida va DENTRO de pro.json: así el diagnóstico del móvil la
+        # enseña. Si hay menos de 30 partidas no escribe nada y no pasa nada.
+        run: |
+          node scripts/medir-pro.mjs --json /tmp/medicion.json || true
+          if [ -f /tmp/medicion.json ]; then
+            node -e "const fs=require('fs');const p=JSON.parse(fs.readFileSync('public/data/pro.json'));p.medicion=JSON.parse(fs.readFileSync('/tmp/medicion.json'));fs.writeFileSync('public/data/pro.json',JSON.stringify(p))"
+          fi
 
       - name: Commit si hay cambios
         run: |
@@ -47,4 +53,7 @@ jobs:
           git config user.email "meta-bot@users.noreply.github.com"
           git add historial/pro-partidas.jsonl public/data/pro.json
           git diff --staged --quiet || git commit -m "datos: partidas profesionales $(date -u +%Y-%m-%d)"
+          # Otro bot (o un push de código) puede haber movido main mientras
+          # se leía Liquipedia: la primera corrida se perdió por eso.
+          git pull --rebase origin main
           git push

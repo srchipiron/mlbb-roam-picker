@@ -8,6 +8,17 @@ que esto no se olvida.
 Criterio: `0.X.0` cuando cambia cómo decide la app o qué hace; `0.0.X` para
 correcciones.
 
+## 1.29.1
+
+- El bot de partidas profesionales reconoce once abreviaturas más de
+  Liquipedia (`guin`, `yz`, `melis`, `paq`...) que descartaban 71 de las
+  304 partidas recientes, y ya no pierde su corrida si alguien sube código
+  mientras lee.
+- La medida del motor contra las partidas profesionales viaja dentro de los
+  datos y el diagnóstico la enseña: con 233 partidas de 2026, la estimación
+  acierta el 57,5% (AUC 0,61) y su escala sale algo optimista (pendiente
+  0,62 ± 0,23). Con ese margen todavía no se toca.
+
 ## 1.29.0
 
 - **Partidas profesionales de verdad, con resultado.** Un bot semanal lee de

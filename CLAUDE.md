@@ -393,6 +393,19 @@ aquí: pidiéndole datos, no leyendo su README.
   poco ahí; en solo queue de Javi no tiene por qué ser igual. **No toques la
   escala de `estimacion.js` por esto**: hacen falta miles de partidas de la
   misma época (`--dias 120`) y `medir-pro.mjs` corre en cada corrida del bot.
+- **Lo medido con 233 partidas de 2026 (misma época que los datos), primera
+  corrida del bot**: modelo completo acierto 57,5%, AUC 0.61, Brier 0.244,
+  pendiente 0.62 ± 0.23; solo héroes AUC 0.60 (pendiente 0.75 ± 0.28); solo
+  cruces AUC 0.51; parejas 0.54; lado azul 52%. O sea: CON datos de la
+  misma época el modelo sí distingue (0.61 es lo que consiguen los
+  predictores de draft en MOBA), el término de héroes es el que manda y la
+  escala parece algo optimista (habría que multiplicar el log-odds por
+  ~0.6), pero con ±0.23 no se toca todavía: la medida se guarda en
+  `pro.json.medicion` en cada corrida y el diagnóstico la enseña. Cuando el
+  ± baje de 0.1 y la pendiente siga por debajo de 0.8, se calibra con ese
+  factor y se documenta aquí. Y ojo con lo contrario: con 164 partidas de
+  un año antes salía lo opuesto (cruces con señal, héroes sin ella), así
+  que la época de la muestra decide, no el tamaño.
 - Es incremental y monótona: funde por `claveDe` y `pro.yml` rechaza una
   corrida con menos partidas que las guardadas. `pro.json` es un EXTRA para
   la app (la línea «Pro» de las tarjetas): sin él, la app funciona igual.

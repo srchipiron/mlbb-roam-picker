@@ -372,6 +372,21 @@ export function runSelfTest({ catalog, meta, metaCtx, allHeroes, roamPool, maste
     const edadDias = pro.generatedAt ? (Date.now() - Date.parse(pro.generatedAt)) / 86400e3 : null;
     if (edadDias != null) lineas.push(`Corrida de hace ${edadDias.toFixed(1)} días · ${pro.peticiones ?? '?'} peticiones · ${(pro.errores ?? []).length} errores`);
     for (const e of (pro.errores ?? []).slice(0, 3)) lineas.push(`  ${e}`);
+    // La medida del motor contra esas partidas (medir-pro.mjs, en el bot):
+    // es lo único que dice si la probabilidad estimada se parece a algo.
+    const m = pro.medicion;
+    if (m?.terminos?.modelo) {
+      const t = m.terminos;
+      const f = (r) => `AUC ${r.auc?.toFixed(2)} · pendiente ${r.pendiente?.toFixed(2)} ± ${r.errorPendiente?.toFixed(2)}`;
+      lineas.push(`Estimación contra ${m.usables} partidas pro desde ${m.desde}: acierto ${Math.round(t.modelo.acierto * 100)}% · ${f(t.modelo)}`);
+      lineas.push(`  héroes ${f(t.heroes)} · cruces ${f(t.cruces)} · parejas ${f(t.parejas)} · lado azul ${Math.round((m.azul ?? 0.5) * 100)}%`);
+      // Con muestra, el modelo tiene que distinguir algo: AUC por debajo de
+      // 0.5 es que ordena al revés, y eso sí sería un fallo del motor.
+      if (m.usables >= 200) {
+        check(t.modelo.auc >= 0.5, 'La estimación ordena las partidas pro en el sentido correcto',
+          `La estimación ordena las partidas pro AL REVÉS (AUC ${t.modelo.auc?.toFixed(2)} en ${m.usables}): revisar estimacion.js`, true);
+      }
+    }
     // Un slug que no se reconoce descarta partidas en silencio: que se vea.
     const sinMapear = Object.entries(pro.sinMapear ?? {});
     check(!sinMapear.length, 'Todos los nombres de Liquipedia se reconocen',

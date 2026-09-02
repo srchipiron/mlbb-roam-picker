@@ -77,6 +77,19 @@ export const ALIAS = {
   popol: 'Popol and Kupa',
   'popol and kupa': 'Popol and Kupa',
   ysm: 'Yi Sun-shin',
+  // Vistos en la primera corrida del bot (233 partidas de 2026): descartaban
+  // 71 partidas. Ninguno es ambiguo en el catálogo de 133.
+  lapu: 'Lapu-Lapu',
+  guin: 'Guinevere',
+  yz: 'Yu Zhong',
+  melis: 'Melissa',
+  leo: 'Leomord',
+  rafa: 'Rafaela',
+  phove: 'Phoveus',
+  paq: 'Paquito',
+  nova: 'Novaria',
+  mathil: 'Mathilda',
+  khu: 'Khufra',
 };
 
 const dormir = (ms) => new Promise((r) => setTimeout(r, ms));

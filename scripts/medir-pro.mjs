@@ -8,6 +8,7 @@
  *
  *   node scripts/medir-pro.mjs                 partidas de los últimos 120 días
  *   node scripts/medir-pro.mjs --dias 400      más partidas, de otro parche
+ *   node scripts/medir-pro.mjs --json /tmp/m.json   además, el resumen en JSON (lo funde pro.yml en pro.json)
  *
  * QUÉ SE MIDE, y por qué cada cosa:
  *  - Acierto: el equipo con más de 50% ganó. Es lo que la gente entiende.
@@ -109,17 +110,24 @@ async function main() {
 
   const est = (p) => estimarVictoria({ allies: p.equipos[0].slice(1), yo: p.equipos[0][0], enemies: p.equipos[1], meta: M });
   const filas = usables.map((p) => ({ e: est(p), y: p.ganador === 1 ? 1 : 0 }));
-  const linea = (nombre, f) => {
+  const resumen = { desde, partidas: recientes.length, usables: usables.length, datosDe: meta.generatedAt ?? null, terminos: {} };
+  const linea = (clave, nombre, f) => {
     const r = evaluar(filas.map((x) => ({ L: f(x.e), y: x.y })));
+    resumen.terminos[clave] = { acierto: r.acierto, auc: r.auc, brier: r.brier, pendiente: r.pendiente, errorPendiente: r.errorPendiente };
     console.log(`${nombre.padEnd(18)} acierto ${(r.acierto * 100).toFixed(1)}% · AUC ${r.auc?.toFixed(3)} · Brier ${r.brier.toFixed(4)} · pendiente ${r.pendiente.toFixed(2)} ± ${r.errorPendiente?.toFixed(2)}`);
   };
-  linea('modelo completo', (e) => e.logOdds);
-  linea('solo héroes', (e) => e.terminos.heroes);
-  linea('solo cruces', (e) => e.terminos.cruces);
-  linea('solo parejas', (e) => e.terminos.parejas);
-  linea('cruces + parejas', (e) => e.terminos.cruces + e.terminos.parejas);
+  linea('modelo', 'modelo completo', (e) => e.logOdds);
+  linea('heroes', 'solo héroes', (e) => e.terminos.heroes);
+  linea('cruces', 'solo cruces', (e) => e.terminos.cruces);
+  linea('parejas', 'solo parejas', (e) => e.terminos.parejas);
   const azul = usables.filter((p) => (p.lado1 === 'blue') === (p.ganador === 1)).length;
+  resumen.azul = azul / usables.length;
   console.log(`Gana el lado azul: ${(azul / usables.length * 100).toFixed(1)}% (n=${usables.length})`);
+  const json = args[args.indexOf('--json') + 1];
+  if (args.includes('--json') && json) {
+    const { writeFile } = await import('node:fs/promises');
+    await writeFile(json, JSON.stringify(resumen));
+  }
 }
 
 const ejecutadoDirectamente = process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url);
