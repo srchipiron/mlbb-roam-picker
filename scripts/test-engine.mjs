@@ -139,6 +139,126 @@ test('se deduce el rival de TU línea, y se calla si hay duda', async () => {
     'sin datos de líneas se inventa un mid');
 });
 
+test('la robustez del pick: determinista, suma uno y predice si aguanta', async () => {
+  const { simularFinales, CUOTA_ROBUSTA } = await import('../src/engine/robustez.js');
+  const { indiceDeLineas, frecuenciaDeRoles, lineasOcupadas } = await import('../src/engine/rival-de-linea.js');
+  const { poolDeLinea, LINEAS, rankRoamers, indexByName } = await import('../src/engine/score.js');
+  const meta = JSON.parse(readFileSync(resolve(ROOT, 'public/data/roam-meta.json'), 'utf8'));
+  if (!(meta.heroes ?? []).length || !meta.counters) return;
+  const todos = mergeCatalog(cat.heroes, meta.heroes);
+  const idx = indiceDeLineas(meta.heroes);
+  const fr = frecuenciaDeRoles(meta.heroes);
+  const M = { stats: indexByName(meta.stats), counters: indexByName(meta.counters, 2), synergies: indexByName(meta.synergies, 2), patchAvgWinRate: meta.patchAvgWinRate };
+  const pools = Object.fromEntries(LINEAS.map((l) => [l, poolDeLinea(todos, idx, l)]));
+  if (LINEAS.some((l) => pools[l].length < 10)) return;
+
+  // 1. Con el mismo draft, la misma cuota: sin esto el numero bailaria entre
+  //    dos aperturas del diagnostico y no se podria probar nada.
+  const en = [pools.mid[0], pools.gold[1]];
+  const abiertas = LINEAS.filter((l) => !new Set(lineasOcupadas(en, idx, fr)).has(l));
+  const args = { pool: pools.roam, enemies: en, lineasAbiertas: abiertas, poolsPorLinea: pools, ctx: { meta: M, mastery: {} } };
+  const r1 = simularFinales(args);
+  const r2 = simularFinales(args);
+  ok(r1 && r2 && JSON.stringify(r1.cuota) === JSON.stringify(r2.cuota), 'la simulacion no es determinista');
+  const suma = Object.values(r1.cuota).reduce((a, b) => a + b, 0);
+  ok(Math.abs(suma - 1) < 1e-9, `las cuotas suman ${suma}, no 1`);
+  ok(abiertas.length === 3 && r1.lineasAbiertas.length === 3, `con dos enemigos deberian quedar tres lineas abiertas: ${abiertas}`);
+
+  // 2. Con el draft completo no hay nada que simular.
+  eq(simularFinales({ ...args, enemies: LINEAS.map((l) => pools[l][2]), lineasAbiertas: [] }), null,
+    'simula finales con el draft ya completo');
+
+  // 3. Lo que importa: la cuota PREDICE si el nº1 aguanta hasta el final. Medido
+  //    con 3 enemigos vistos: si la cuota >= 0.5 aguanta el 59%, si no el 27%.
+  //    Aqui se exige que la razon entre ambos sea al menos 1,5 sobre 150
+  //    drafts, que deja holgura y sigue cazando una simulacion rota (razon 1).
+  let semilla = 5;
+  const r = () => (semilla = (semilla * 1103515245 + 12345) % 2147483648) / 2147483648;
+  const pr = (h) => M.stats[normName(h.name)]?.pickRate ?? 0.001;
+  const muestra = (pool, excl) => { const c = pool.filter((h) => !excl.has(h.name)); const t = c.reduce((a, h) => a + pr(h), 0); let x = r() * t; for (const h of c) { x -= pr(h); if (x <= 0) return h; } return c[c.length - 1]; };
+  let robustos = 0; let robustosAguantan = 0; let fragiles = 0; let fragilesAguantan = 0;
+  for (let d = 0; d < 150; d++) {
+    const real = {}; const u = new Set();
+    for (const l of LINEAS) { real[l] = muestra(pools[l], u); u.add(real[l].name); }
+    const orden = [...LINEAS].sort(() => r() - 0.5);
+    const vistos = orden.slice(0, 3).map((l) => real[l]);
+    const ab = orden.slice(3);
+    const P = rankRoamers(pools.roam, { enemies: vistos, allies: [], meta: M, mastery: {} })[0].hero.name;
+    const T = rankRoamers(pools.roam, { enemies: LINEAS.map((l) => real[l]), allies: [], meta: M, mastery: {} })[0].hero.name;
+    const sim = simularFinales({ pool: pools.roam, enemies: vistos, lineasAbiertas: ab, poolsPorLinea: pools, ctx: { meta: M, mastery: {} }, n: 40, semilla: d + 1 });
+    const cuota = sim?.cuota?.[P] ?? 0;
+    if (cuota >= CUOTA_ROBUSTA) { robustos++; if (P === T) robustosAguantan++; } else { fragiles++; if (P === T) fragilesAguantan++; }
+  }
+  ok(robustos >= 10 && fragiles >= 10, `muestra desequilibrada: ${robustos} robustos, ${fragiles} fragiles`);
+  const tasaR = robustosAguantan / robustos; const tasaF = fragilesAguantan / fragiles;
+  ok(tasaR >= tasaF * 1.5,
+    `la cuota no predice: los "robustos" aguantan el ${(tasaR * 100).toFixed(0)}% y los "fragiles" el ${(tasaF * 100).toFixed(0)}%`);
+});
+
+test('el analisis dice si el pick aguanta lo que falta, y se calla con el draft completo', async () => {
+  const { analizarDraft } = await import('../src/engine/analisis.js');
+  const yo = { name: 'Khufra', tags: [], roam: true };
+  const ranked = [{ hero: yo, score: 0.7 }, { hero: { name: 'Atlas', tags: [] }, score: 0.6 }];
+  const base = { ranked, enemies: [{ name: 'Fanny', tags: [] }], allies: [], empate: [], linea: 'roam', meta: { counters: {} } };
+
+  const seguro = analizarDraft({ ...base, robustez: { cuota: { Khufra: 0.7, Atlas: 0.3 }, lineasAbiertas: ['mid', 'gold', 'exp', 'jungle'], n: 60 } });
+  ok(seguro.some((f) => f.clave === 'analisis.pickRobusto' && f.params.pct === 70), `no dice que es seguro: ${JSON.stringify(seguro)}`);
+  const fragil = analizarDraft({ ...base, robustez: { cuota: { Khufra: 0.2, Atlas: 0.5 }, lineasAbiertas: ['mid'], n: 60 } });
+  ok(fragil.some((f) => f.clave === 'analisis.pickFragil' && f.params.faltan === 1), `no avisa de que es fragil: ${JSON.stringify(fragil)}`);
+  // Sin lineas abiertas (draft completo) o sin simulacion, ni una cosa ni otra.
+  for (const rb of [null, { cuota: { Khufra: 1 }, lineasAbiertas: [], n: 60 }]) {
+    const nada = analizarDraft({ ...base, robustez: rb });
+    ok(!nada.some((f) => /pickRobusto|pickFragil/.test(f.clave)), 'habla de finales con el draft completo');
+  }
+});
+
+test('el diagnostico detecta datos imposibles y caidas frente a su propio historial', async () => {
+  const { runSelfTest } = await import('../src/engine/selftest.js');
+  const env = { version: '1.0', buildTime: null, rango: 'glory', width: 412, height: 915, standalone: false, storage: true, sw: 'activo', sinDatosPersonales: true };
+  const filaOK = (n) => Object.fromEntries(Array.from({ length: 30 }, (_, i) => [`H${i}`, 0.5 + ((n + i) % 7 - 3) / 100]));
+  const meta = {
+    generatedAt: new Date().toISOString(), heroes: [{ name: 'A' }],
+    stats: { A: { winRate: 0.52, pickRate: 0.5, banRate: 0.1 }, B: { winRate: 0.49, pickRate: 0.5, banRate: 0.2 } },
+    counters: { A: filaOK(1), B: filaOK(2) }, synergies: {},
+  };
+  const base = { catalog: { heroes: cat.heroes }, metaCtx: { stats: {}, counters: indexByName(meta.counters, 2), synergies: {} },
+    allHeroes: all, roamPool: pool, mastery: {}, partidas: [], linea: 'roam', env };
+  const avisosDe = (m, hist) => runSelfTest({ ...base, meta: m, historial: hist }).texto.split('\n').filter((l) => /^\[AVISO\]/.test(l));
+
+  // Datos sanos: ninguno de los avisos nuevos.
+  const limpio = avisosDe(meta, null);
+  ok(!limpio.some((l) => /imposible|planas|suman/.test(l)), `avisa con datos sanos: ${limpio.join(' | ')}`);
+
+  // Un winrate del 90%, una cuota que no suma, una fila plana: cada uno se ve.
+  ok(avisosDe({ ...meta, stats: { ...meta.stats, A: { ...meta.stats.A, winRate: 0.9 } } }, null).some((l) => /imposibles/.test(l)), 'no ve un winrate del 90%');
+  ok(avisosDe({ ...meta, stats: { A: { winRate: 0.5, pickRate: 3 }, B: { winRate: 0.5, pickRate: 3 } } }, null).some((l) => /suman/.test(l)), 'no ve cuotas de pick que no suman uno');
+  const plana = Object.fromEntries(Array.from({ length: 30 }, (_, i) => [`H${i}`, 0.5]));
+  ok(runSelfTest({ ...base, meta: { ...meta, counters: { A: plana, B: filaOK(2) } }, metaCtx: { ...base.metaCtx, counters: indexByName({ A: plana, B: filaOK(2) }, 2) } })
+    .texto.includes('planas'), 'no ve una fila de counters plana');
+
+  // Historial: una caida del 30% en cruces frente a una serie estable, avisa;
+  // el valor de siempre, no.
+  const serie = Array.from({ length: 10 }, (_, i) => ({ fecha: `2026-08-${10 + i}T00:00`, fallos: 0, cruces: 60 + (i % 2), sinergias: 0, objetos: 0, builds: 0, heroes: 1, pools: { roam: pool.length } }));
+  ok(!avisosDe(meta, serie).some((l) => /cruces ha CAÍDO/.test(l)), 'avisa de caida con el valor de siempre');
+  const menos = { ...meta, counters: { A: Object.fromEntries(Object.entries(filaOK(1)).slice(0, 12)), B: Object.fromEntries(Object.entries(filaOK(2)).slice(0, 12)) } };
+  ok(avisosDe(menos, serie).some((l) => /cruces ha CAÍDO/.test(l)), 'no ve una caida del 60% de cruces frente a su historial');
+  // Con menos de cuatro corridas no hay serie y no se inventa ninguna.
+  ok(runSelfTest({ ...base, meta, historial: serie.slice(0, 2) }).texto.includes('aún no hay serie'), 'con dos corridas se cree que tiene serie');
+
+  // El draft: el diagnostico dice POR QUE gana el nº1 (el componente que mas
+  // lo separa del nº2, con su signo) y si el pick aguanta lo que falta por
+  // salir. Sin eso, una recomendacion solo se puede creer, no discutir.
+  const ranked = [
+    { hero: { name: 'A' }, score: 0.70, contributions: { meta: 0.10, counter: 0.30, synergy: 0.10, comp: 0.05, mastery: 0.15 } },
+    { hero: { name: 'B' }, score: 0.62, contributions: { meta: 0.12, counter: 0.18, synergy: 0.11, comp: 0.05, mastery: 0.16 } },
+  ];
+  const robustez = { cuota: { A: 0.7, B: 0.3 }, lider: 'A', cuotaLider: 0.7, n: 10, lineasAbiertas: ['mid', 'gold'] };
+  const conDraft = runSelfTest({ ...base, meta, draft: { picks: [{ name: 'A' }], enemies: [{ name: 'B' }], ranked, analisis: [], robustez } }).texto;
+  ok(/Por qué A y no B: 8\.0 puntos de margen · lo decide counter \(\+12\.0\)/.test(conDraft), `no explica por que gana el nº1: ${conDraft.split('\n').find((l) => l.startsWith('Por qué'))}`);
+  ok(/Líneas enemigas abiertas: mid, gold · en 10 finales plausibles, nº1: A 70%/.test(conDraft), 'no dice si el pick aguanta lo que falta');
+  ok(/A aguanta el 70%: pick seguro/.test(conDraft), 'no califica el pick por su cuota');
+});
+
 test('el rival se deduce por eliminacion, y acierta lo que se midio', async () => {
   const { detectarRivalDeLinea, indiceDeLineas, frecuenciaDeRoles } =
     await import('../src/engine/rival-de-linea.js');

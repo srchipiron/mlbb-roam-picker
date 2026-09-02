@@ -8,6 +8,34 @@ que esto no se olvida.
 Criterio: `0.X.0` cuando cambia cómo decide la app o qué hace; `0.0.X` para
 correcciones.
 
+## 1.27.0
+
+**La app razona sobre los enemigos que todavía no han salido, y el diagnóstico
+se compara con su propio pasado.**
+
+- **«Pick seguro» o «depende de lo que saquen».** Con el draft a medias, la app
+  sabe por qué líneas van a salir los que faltan (por eliminación) y quién se
+  juega en cada una y cuánto. Simula 60 finales de draft plausibles y te dice en
+  qué fracción de ellos tu nº1 sigue siéndolo. Está medido que eso predice: con
+  dos enemigos vistos, si aguanta al menos la mitad de los finales sobrevive al
+  draft completo el 58% de las veces; si no, el 27%. Con tres, 59% frente a 27%.
+  Y con uno visto casi nada es seguro, que es la verdad: espera si puedes.
+  **No cambia la recomendación** —medido, ordenar por la simulación solo ayuda
+  con un enemigo visto y con dos o tres no aporta nada— la explica.
+- **El diagnóstico te dice por qué gana el nº1 y no el nº2**: el margen en
+  puntos y qué componente lo decide (contra Khufra, «lo decide counter +4,1,
+  luego meta +1,2»). Es lo que hace falta para discutir una recomendación en vez
+  de creérsela.
+- **Detecta datos imposibles**: un winrate del 90%, cuotas de pick que no
+  suman uno, tasas de ban por encima del 100%, filas de counters planas. La
+  descarga conserva lo anterior cuando un endpoint falla, así que una API rota
+  no se nota en la forma del fichero: se nota en los valores.
+- **Y se compara con su propio historial**: las últimas corridas de la
+  vigilancia viajan con la app, y el diagnóstico avisa si cruces, sinergias,
+  objetos, builds o el pool de tu línea han caído respecto a la mediana de la
+  serie. La holgura sale de la dispersión de la propia serie, no de un número
+  puesto a mano.
+
 ## 1.26.0
 
 **Cero rivales equivocados.** Al deducir quién es tu rival de línea, el peso de

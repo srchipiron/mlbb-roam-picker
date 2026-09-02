@@ -31,7 +31,7 @@ const OK = 'OK  ';
 const MAL = 'FALLO';
 const AVISO = 'AVISO';
 
-export function runSelfTest({ catalog, meta, metaCtx, allHeroes, roamPool, mastery, partidas = [], linea = 'roam', env = {}, draft = null }) {
+export function runSelfTest({ catalog, meta, metaCtx, allHeroes, roamPool, mastery, partidas = [], linea = 'roam', env = {}, draft = null, historial = null }) {
   const lineas = [];
   let fallos = 0;
   let avisos = 0;
@@ -85,6 +85,25 @@ export function runSelfTest({ catalog, meta, metaCtx, allHeroes, roamPool, maste
       lineas.push(`  ${i + 1}. ${r.hero.name} ${Math.round(r.score * 100)}${motivos ? ` · ${motivos}` : ''}`);
     }
     for (const f of draft.analisis ?? []) lineas.push(`  > ${f.clave.replace(/^analisis\./, '')} ${JSON.stringify(f.params ?? {})}`);
+
+    // Por qué gana el nº1: qué componente lo separa del nº2, y por cuánto. Es
+    // lo que hace falta para discutir una recomendación en vez de creérsela.
+    const [a, b] = draft.ranked ?? [];
+    if (a?.contributions && b?.contributions) {
+      const dif = Object.entries(a.contributions).map(([k, v]) => [k, v - (b.contributions[k] ?? 0)])
+        .sort((x, y) => Math.abs(y[1]) - Math.abs(x[1]));
+      const margen = ((a.score - b.score) * 100).toFixed(1);
+      lineas.push(`Por qué ${a.hero.name} y no ${b.hero.name}: ${margen} puntos de margen · lo decide ${dif[0][0]} (${(dif[0][1] * 100 >= 0 ? '+' : '')}${(dif[0][1] * 100).toFixed(1)})`
+        + (dif[1] ? `, luego ${dif[1][0]} (${(dif[1][1] * 100 >= 0 ? '+' : '')}${(dif[1][1] * 100).toFixed(1)})` : ''));
+    }
+    // Y si aguanta lo que falta por salir (ver robustez.js).
+    if (draft.robustez?.lineasAbiertas?.length && a) {
+      const r = draft.robustez;
+      const top3 = Object.entries(r.cuota).sort((x, y) => y[1] - x[1]).slice(0, 3)
+        .map(([n, c]) => `${n} ${Math.round(c * 100)}%`).join(' · ');
+      lineas.push(`Líneas enemigas abiertas: ${r.lineasAbiertas.join(', ')} · en ${r.n} finales plausibles, nº1: ${top3}`);
+      lineas.push(`  ${a.hero.name} aguanta el ${Math.round((r.cuota[a.hero.name] ?? 0) * 100)}%: ${(r.cuota[a.hero.name] ?? 0) >= 0.5 ? 'pick seguro' : 'depende de lo que saquen'}`);
+    }
   } else {
     lineas.push('(sin draft: no hay ningún héroe elegido)');
   }
@@ -112,6 +131,31 @@ export function runSelfTest({ catalog, meta, metaCtx, allHeroes, roamPool, maste
   }
     lineas.push(`Ventana: ${meta.days ?? '?'} días · héroes con estadísticas: ${meta.heroCount ?? 0}`);
     lineas.push(`API: ${meta.diagnostics?.base ?? 'desconocida'}`);
+
+    // Datos que no pueden ser: un winrate del 90%, cuotas de pick que no
+    // suman uno, un ban por encima del 100%, una fila de counters plana. La
+    // ingesta conserva lo anterior cuando un endpoint falla, así que una API
+    // rota no se nota en la forma del fichero: se nota en los VALORES.
+    const st = Object.entries(meta.stats ?? {});
+    if (st.length) {
+      const raros = st.filter(([, v]) => v?.winRate != null && (v.winRate < 0.35 || v.winRate > 0.65)).map(([n]) => n);
+      check(!raros.length, 'Winrates dentro de lo posible (35-65%)',
+        `Winrates imposibles: ${raros.slice(0, 5).join(', ')} (¿API rota?)`, true);
+      const sumaPick = st.reduce((acc, [, v]) => acc + (v?.pickRate ?? 0), 0);
+      check(Math.abs(sumaPick - 1) < 0.05, `Cuotas de pick suman ${sumaPick.toFixed(3)}`,
+        `Cuotas de pick suman ${sumaPick.toFixed(3)}, no 1: pickRate ya no es cuota y PICKRATE_FIABLE está mal calibrado`, true);
+      const banMal = st.filter(([, v]) => v?.banRate > 1 || v?.banRate < 0).map(([n]) => n);
+      check(!banMal.length, 'Tasas de ban dentro de 0-100%', `Tasas de ban imposibles: ${banMal.slice(0, 5).join(', ')}`, true);
+    }
+    const filas = Object.entries(metaCtx.counters ?? {});
+    if (filas.length) {
+      const planas = filas.filter(([, fila]) => {
+        const v = Object.values(fila ?? {}).filter((x) => typeof x === 'number');
+        return v.length > 20 && v.every((x) => Math.abs(x - 0.5) < 1e-6);
+      }).map(([n]) => n);
+      check(!planas.length, 'Ninguna fila de counters plana',
+        `Filas de counters planas (todo 0.5): ${planas.slice(0, 5).join(', ')}`, true);
+    }
 
     for (const [r, v] of Object.entries(meta.diagnostics?.rangos ?? {})) {
       if (String(v).startsWith('fallo')) add(AVISO, `Rango ${r}: ${v}`);
@@ -262,6 +306,47 @@ export function runSelfTest({ catalog, meta, metaCtx, allHeroes, roamPool, maste
   }
 
   // ---------- motor ----------
+  // ---------- historial ----------
+  // La app comparada con SU propio pasado. Un umbral solo salta cuando ya es
+  // tarde; una serie enseña la pendiente. Se compara contra la mediana de las
+  // últimas corridas, y la holgura sale de la dispersión de la propia serie
+  // (MAD), no de un número puesto a mano: si la serie es estable, cualquier
+  // desvío pequeño ya es noticia; si baila, hace falta más para avisar.
+  seccion('HISTORIAL');
+  const filasHist = Array.isArray(historial) ? historial.filter((f) => f && typeof f === 'object') : [];
+  if (filasHist.length >= 4 && meta) {
+    const pares = (m) => Object.values(m ?? {}).reduce((acc, fila) => acc + Object.keys(fila ?? {}).length, 0);
+    const hoy = {
+      cruces: pares(meta.counters), sinergias: pares(meta.synergies),
+      objetos: Object.keys(meta.equipment ?? {}).length,
+      builds: Object.values(meta.builds ?? {}).reduce((acc, p) => acc + Object.values(p ?? {}).reduce((m, l) => m + (l?.length ?? 0), 0), 0),
+      heroes: (meta.heroes ?? []).length,
+      [`pool ${linea}`]: roamPool.length,
+    };
+    const ultimas = filasHist.slice(-30);
+    lineas.push(`${ultimas.length} corridas anteriores (última ${ultimas[ultimas.length - 1].fecha?.slice(0, 16) ?? '?'})`);
+    for (const [clave, valor] of Object.entries(hoy)) {
+      const serie = ultimas.map((f) => (clave.startsWith('pool ') ? f.pools?.[linea] : f[clave])).filter((x) => typeof x === 'number');
+      if (serie.length < 4) continue;
+      const orden = [...serie].sort((x, y) => x - y);
+      const mediana = orden[Math.floor(orden.length / 2)];
+      const desv = serie.map((x) => Math.abs(x - mediana)).sort((x, y) => x - y);
+      const mad = desv[Math.floor(desv.length / 2)];
+      // Holgura: 3 MAD, y nunca menos del 2% de la mediana, para que una serie
+      // clavada (MAD 0) no chille por un cruce de más o de menos.
+      const holgura = Math.max(3 * mad, mediana * 0.02);
+      const cae = mediana - valor > holgura;
+      check(!cae,
+        `${clave}: ${valor} (mediana de la serie ${mediana})`,
+        `${clave} ha CAÍDO: ${valor} frente a una mediana de ${mediana} (±${Math.round(holgura)})`,
+        true);
+    }
+    const conFallos = ultimas.filter((f) => f.fallos > 0).length;
+    if (conFallos) lineas.push(`Corridas con fallos en la serie: ${conFallos} de ${ultimas.length}`);
+  } else {
+    lineas.push(filasHist.length ? `Solo ${filasHist.length} corridas: aún no hay serie` : '(sin historial a mano)');
+  }
+
   seccion('MOTOR');
   const by = new Map(allHeroes.map((h) => [h.name, h]));
   const H = (n) => by.get(n);

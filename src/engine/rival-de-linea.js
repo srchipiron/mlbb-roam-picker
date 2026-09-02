@@ -156,6 +156,31 @@ function combinaciones(arr, k) {
  * mejor reparto le gane por `margen` al mejor reparto que ponga a OTRO en tu
  * línea, que es la pregunta exacta y no una aproximación por cabeza.
  */
+/**
+ * Qué líneas ocupan ya los enemigos elegidos, según el mejor reparto conjunto.
+ *
+ * Es el mismo reparto que usa `detectarRivalDeLinea`, expuesto para saber qué
+ * líneas quedan ABIERTAS: por ellas van a salir los enemigos que faltan, y eso
+ * es lo que permite simular finales de draft plausibles en vez de finales al
+ * azar. Sin enemigos, ninguna está ocupada.
+ */
+export function lineasOcupadas(enemies, heroInfo = new Map(), frecuencias = {}) {
+  if (!enemies?.length) return [];
+  const P = enemies.map((h) => {
+    const info = heroInfo.get(normName(h.name));
+    return Object.fromEntries(LINEAS.map((l) => [l, probabilidadDeLinea(h, info, l, frecuencias)]));
+  });
+  const n = Math.min(enemies.length, LINEAS.length);
+  let mejor = null;
+  for (const lineas of combinaciones(LINEAS, n)) {
+    for (const perm of permutaciones(lineas)) {
+      const total = perm.reduce((acc, l, i) => acc + P[i][l], 0);
+      if (!mejor || total > mejor.total) mejor = { total, perm };
+    }
+  }
+  return mejor ? [...mejor.perm] : [];
+}
+
 export function detectarRivalDeLinea(enemies, heroInfo = new Map(), linea = 'roam', frecuencias = {}, margen = MARGEN_PARA_HABLAR) {
   if (!enemies?.length || !linea) return null;
 

@@ -34,6 +34,20 @@ export default defineConfig({
         });
       },
     },
+    // Las ultimas corridas de la vigilancia, para que el diagnostico del movil
+    // compare la app con SU propio pasado. Van fuera de /data y sin cachear
+    // por el mismo motivo que version.json: de cache dirian siempre lo mismo.
+    {
+      name: 'historial-de-salud',
+      generateBundle() {
+        let filas = [];
+        try {
+          filas = readFileSync(new URL('./historial/salud.jsonl', import.meta.url), 'utf8')
+            .split('\n').filter(Boolean).slice(-40).map((l) => JSON.parse(l));
+        } catch { /* sin historial todavia: el diagnostico lo dice */ }
+        this.emitFile({ type: 'asset', fileName: 'historial.json', source: JSON.stringify(filas) });
+      },
+    },
     VitePWA({
       registerType: 'autoUpdate',
       includeAssets: ['icon-192.png', 'icon-512.png'],

@@ -326,6 +326,27 @@ Todos estos llegaron a producción y costaron rondas enteras de ida y vuelta:
   compara con lo guardado y solo se copia encima si no empeora. Hay una prueba
   que falla si alguien vuelve a apuntar la ingesta directa a `public/data`.
 
+## Simular lo que falta por salir
+
+Desde 1.27.0, `src/engine/robustez.js`. Con el draft a medias se simulan
+finales plausibles —por las líneas enemigas abiertas (`lineasOcupadas`, el
+mismo reparto que el rival) y ponderando cada línea por pickrate— y se cuenta
+en qué fracción tu nº1 sigue siéndolo. Dos cosas medidas que no conviene volver
+a suponer:
+
+- **La cuota predice**: con 2 enemigos vistos, cuota ≥ 0.5 → el nº1 aguanta el
+  58% del draft completo; < 0.5 → 27%. Con 3: 59/27. Con 4: 72/39. Con 1 visto
+  casi nada es robusto (4 de 200). `CUOTA_ROBUSTA = 0.5` es donde separa.
+- **No se usa para ordenar.** Medido con 120 simulaciones y dos semillas:
+  ordenar por la simulación solo mejora con un enemigo visto (+4–6 puntos de
+  acierto del nº1) y con dos o tres no aporta nada; cambiar de mecanismo en una
+  sola fase sería un acantilado. Se enseña como información.
+- Se cuenta por **votos** de nº1, no por media de puntuaciones: la nota se
+  reescala dentro de cada draft y promediar escalas distintas es el fallo del
+  encogimiento que se comía la normalización.
+- Es determinista (semilla fija): sin eso el número bailaría entre dos
+  aperturas del diagnóstico.
+
 ## Las builds de objetos
 
 Desde 1.11.0. `src/engine/builds.js`, y conviene tener clara la diferencia entre
@@ -457,6 +478,14 @@ pasar, la cierra sola.
 En modo automático no hay móvil, así que la maestría y las partidas no se ven.
 Esas comprobaciones se apagan con `env.sinDatosPersonales` en vez de convertirse
 en avisos: si no, todos los informes vendrían con avisos y dejaríamos de leerlos.
+
+Desde 1.27.0 el diagnóstico del móvil también se compara con ese historial:
+`vite.config.js` embebe las últimas 40 filas en `historial.json` (fuera de la
+precarga y de `/data/`, como `version.json`) y `selftest.js` avisa si cruces,
+sinergias, objetos, builds o el pool de la línea caen por debajo de la mediana
+de la serie más 3 MAD. Y detecta datos imposibles (winrate fuera de 35–65%,
+cuotas de pick que no suman 1, filas de counters planas): la ingesta conserva lo
+anterior cuando un endpoint falla, así que una API rota se nota en los VALORES.
 
 Cada corrida deja además una fila en `historial/salud.jsonl` con sus cifras
 (cobertura, ruido, cruces, edad de los datos, pools por línea). Un umbral solo
