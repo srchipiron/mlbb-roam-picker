@@ -406,9 +406,38 @@ test('la calibracion compara lo previsto con lo que paso, y se guarda al apuntar
   ok(calibracion(buenas.slice(0, 5)).faltan === MINIMO_PARA_CALIBRAR - 5, 'no dice cuantas faltan');
 });
 
+test('las novedades salen del CHANGELOG.md y la primera es la version que se publica', async () => {
+  const { parsearChangelog, resumen, sinMarkdown } = await import('./changelog.mjs');
+  const md = readFileSync(resolve(ROOT, 'CHANGELOG.md'), 'utf8');
+  const pkg = JSON.parse(readFileSync(resolve(ROOT, 'package.json'), 'utf8'));
+  const entradas = parsearChangelog(md);
+  ok(entradas.length >= 5 && entradas.length <= 12, `deberian salir entre 5 y 12 versiones, salen ${entradas.length}`);
+  eq(entradas[0].version, pkg.version, 'la primera entrada no es la version del package.json');
+  ok(entradas.every((e) => e.cambios.length > 0), 'hay una version sin cambios');
+  ok(entradas.every((e) => e.cambios.every((c) => !/\*\*|`/.test(c))), 'queda markdown en los cambios');
+  // Las lineas de continuacion se pegan a su vineta, no se pierden.
+  const fx = parsearChangelog('## 2.0.0\n\n- **Uno.** Sigue aqui\n  y aqui.\n- Dos.\n\n## 1.9.0\n\n- Tres `x`.\n');
+  eq(fx.length, 2, 'fixture: dos versiones');
+  eq(fx[0].cambios[0], 'Uno. Sigue aqui y aqui.', `continuacion mal pegada: ${fx[0].cambios[0]}`);
+  eq(fx[1].cambios[0], 'Tres x.', 'sinMarkdown no quita el codigo');
+  // Las versiones antiguas van en parrafos: cada parrafo es un cambio.
+  const px = parsearChangelog('## 1.0.0\n\n**Uno.** Sigue\naqui.\n\nDos entero.\n');
+  eq(px[0].cambios.length, 2, `dos parrafos, dos cambios: ${JSON.stringify(px[0].cambios)}`);
+  eq(px[0].cambios[0], 'Uno. Sigue aqui.', 'el parrafo no se pega');
+  eq(sinMarkdown('**a** `b`'), 'a b', 'sinMarkdown');
+  // El resumen es la primera frase, y un cambio de una frase se queda entero.
+  eq(resumen('Banear en la mitad de toques. El selector ya no se cierra con cada heroe: tocas y listo.'), 'Banear en la mitad de toques.', 'resumen');
+  eq(resumen('Corrige un fallo.'), 'Corrige un fallo.', 'resumen de una frase');
+  eq(resumen('Probabilidad estimada de ganar: debajo del analisis sale el porcentaje.'), 'Probabilidad estimada de ganar.', 'resumen con dos puntos');
+});
+
 test('la ingesta profesional lee los drafts de Liquipedia y reconoce a los heroes', async () => {
   const { parsearPartidas, resumirPro, resolverHeroe, fechaISO, claveDe, ALIAS } = await import('./ingesta-pro.mjs');
-  const { evaluar, cargarPartidas } = await import('./medir-pro.mjs');
+  const { evaluar, cargarPartidas, opciones } = await import('./medir-pro.mjs');
+  // `--json` a solas dejaba NaN dias y la medida reventaba en el bot.
+  eq(opciones(['--json', '/tmp/x']).dias, 120, 'sin --dias deberian ser 120');
+  eq(opciones(['--json', '/tmp/x']).json, '/tmp/x', 'no lee --json');
+  eq(opciones(['--dias', '400']).dias, 400, 'no lee --dias');
   // Un trozo real de wikitext (MPL ID S16, fase regular): dos partidas de un
   // {{Match}} con fecha y equipos, y un {{Map}} sin picks (no jugado).
   const w = `{{Match

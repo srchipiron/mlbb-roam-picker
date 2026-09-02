@@ -5,6 +5,7 @@ import { esPrevia, siguioConsejo, resumen, calibracion } from '../engine/registr
 import { buildsDe, objetosDe, ajustesDeBuild } from '../engine/builds.js';
 import { crearT } from '../i18n.js';
 import { titular } from '../engine/selftest.js';
+import { resumen as resumenDeCambio } from '../../scripts/changelog.mjs';
 
 // Traductor por defecto para los componentes que no reciben uno. La app le pasa
 // el suyo; esto solo evita que un olvido deje la pantalla en blanco.
@@ -418,8 +419,45 @@ export function MasteryEditor({ pool, mastery, onChange, onClose, t = tPorDefect
  * datos. La hora es la LOCAL del móvil, convertida desde la marca UTC que deja
  * la ingesta, para que se lea de un vistazo sin hacer cuentas.
  */
-export function Footer({ meta, generado, ageHours, rango, cov }) {
+/**
+ * Las novedades, al tocar la versión del pie. Resumidas: la primera frase
+ * de cada cambio, y «ver todo» para el porqué. Vienen del CHANGELOG.md en
+ * la compilación, así que no hace falta red.
+ */
+export function Changelog({ entradas, actual, onClose, t = tPorDefecto }) {
+  const [enteras, setEnteras] = useState(() => new Set());
+  const alternar = (v) => setEnteras((prev) => { const n = new Set(prev); if (n.has(v)) n.delete(v); else n.add(v); return n; });
+  return (
+    <div className="sheet" role="dialog" aria-label={t('changelog.titulo')}>
+      <div className="sheet-head">
+        <strong style={{ flex: 1, alignSelf: 'center' }}>{t('changelog.titulo')}</strong>
+        <button className="close" onClick={onClose}>{t('app.cerrar')}</button>
+      </div>
+      <div className="changelog">
+        {entradas.map((e) => (
+          <section key={e.version} className={e.version === actual ? 'actual' : ''}>
+            <h3>
+              v{e.version}
+              {e.version === actual && <span className="inferred">{t('changelog.actual')}</span>}
+              <button className="changelog-mas" onClick={() => alternar(e.version)}>
+                {enteras.has(e.version) ? t('changelog.menos') : t('changelog.mas')}
+              </button>
+            </h3>
+            <ul>
+              {e.cambios.map((c, i) => <li key={i}>{enteras.has(e.version) ? c : resumenDeCambio(c)}</li>)}
+            </ul>
+          </section>
+        ))}
+        {!entradas.length && <p className="empty-state">{t('changelog.vacio')}</p>}
+        <p className="build-nota">{t('changelog.idioma')}</p>
+      </div>
+    </div>
+  );
+}
+
+export function Footer({ meta, generado, ageHours, rango, cov, t = tPorDefecto }) {
   const [abierto, setAbierto] = useState(false);
+  const [novedades, setNovedades] = useState(false);
 
   const fecha = generado
     ? generado.toLocaleString('es-ES', {
@@ -473,9 +511,16 @@ export function Footer({ meta, generado, ageHours, rango, cov }) {
         </div>
       )}
       <span className="pie-linea">
-        v{__APP_VERSION__}
+        {/* La versión abre las novedades; el resto del pie sigue abriendo el
+            detalle de los datos. stopPropagation para que no hagan las dos. */}
+        <button className="pie-version" onClick={(e) => { e.stopPropagation(); setNovedades(true); }} title={t('changelog.titulo')}>
+          v{__APP_VERSION__}
+        </button>
         {fecha ? ` · datos ${fecha}` : ' · sin datos'}
       </span>
+      {novedades && (
+        <Changelog entradas={__CHANGELOG__} actual={__APP_VERSION__} onClose={() => setNovedades(false)} t={t} />
+      )}
     </footer>
   );
 }

@@ -8,6 +8,16 @@ que esto no se olvida.
 Criterio: `0.X.0` cuando cambia cómo decide la app o qué hace; `0.0.X` para
 correcciones.
 
+## 1.30.0
+
+- **Novedades dentro de la app.** Toca la versión del pie y salen los
+  últimos cambios, resumidos por versión, con «ver todo» para el porqué. Se
+  leen de este mismo fichero al compilar, así que van en el móvil sin red y
+  no pueden desincronizarse de la versión que usas.
+- El bot de partidas profesionales reconoce dos abreviaturas más (`fred`,
+  `bal`), su medida ya no falla por un argumento mal leído, y su push
+  vuelve a publicar la app, que hasta ahora no ocurría.
+
 ## 1.29.1
 
 - El bot de partidas profesionales reconoce once abreviaturas más de

@@ -93,9 +93,16 @@ export function cargarPartidas(lineas, heroes) {
   return { usables, sinMapear };
 }
 
+/** `--dias 90 --json x` → { dias: 90, json: 'x' }. Sin `--dias`, 120: antes `--json` a solas leía NaN días y reventaba con "Invalid time value". */
+export function opciones(args) {
+  const valor = (k) => { const i = args.indexOf(k); return i >= 0 ? args[i + 1] : undefined; };
+  const dias = Number(valor('--dias'));
+  return { dias: Number.isFinite(dias) && dias > 0 ? dias : 120, json: valor('--json') ?? null };
+}
+
 async function main() {
   const args = process.argv.slice(2);
-  const dias = Number(args[args.indexOf('--dias') + 1] || 120);
+  const { dias, json } = opciones(args);
   const desde = new Date(Date.now() - dias * 86400e3).toISOString().slice(0, 10);
   const lineas = (await readFile(resolve(ROOT, 'historial/pro-partidas.jsonl'), 'utf8')).split('\n').filter(Boolean).map((l) => JSON.parse(l));
   const cat = JSON.parse(await readFile(resolve(ROOT, 'public/data/heroes.json'), 'utf8'));
@@ -123,8 +130,7 @@ async function main() {
   const azul = usables.filter((p) => (p.lado1 === 'blue') === (p.ganador === 1)).length;
   resumen.azul = azul / usables.length;
   console.log(`Gana el lado azul: ${(azul / usables.length * 100).toFixed(1)}% (n=${usables.length})`);
-  const json = args[args.indexOf('--json') + 1];
-  if (args.includes('--json') && json) {
+  if (json) {
     const { writeFile } = await import('node:fs/promises');
     await writeFile(json, JSON.stringify(resumen));
   }

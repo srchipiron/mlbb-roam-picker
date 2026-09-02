@@ -597,6 +597,22 @@ automáticas contra lo publicado.
 `mantenimiento.yml` (lunes) regenera las tablas de deducción y propone el cambio
 en un pull request, y avisa de héroes nuevos SIN inventarles tags.
 
+## Las novedades en la app
+
+Desde 1.30.0 la versión del pie abre el CHANGELOG (`scripts/changelog.mjs`,
+metido en `__CHANGELOG__` al compilar). Es el MISMO fichero que exige
+`check-version.mjs`: no hay que escribir las novedades dos veces ni pueden
+desincronizarse. Formato: `## X.Y.Z` y viñetas `- ` con continuación
+indentada; el resumen es la primera frase de cada viñeta, así que escribe
+primero QUÉ cambia y después el porqué. Hay una prueba de que la primera
+entrada es la versión de `package.json`.
+
+Y un detalle de los bots: un push hecho con `GITHUB_TOKEN` NO dispara
+`on: push`. Por eso `deploy.yml` escucha por `workflow_run` a los bots
+que commitean datos; si añades otro bot que commitee, ponlo en esa lista o
+lo suyo no se publica hasta el siguiente push de código (pasó con
+`pro.json`: 304 partidas en el repositorio y cero en la app).
+
 ## Saber qué versión estás usando
 
 Desde 1.13.0. El service worker guarda la app ENTERA y los datos se refrescan

@@ -576,6 +576,7 @@ export default function App() {
       )}
 
       <Footer
+        t={t}
         meta={meta}
         generado={fechaValida ? generado : null}
         ageHours={ageHours}

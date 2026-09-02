@@ -90,6 +90,8 @@ export const ALIAS = {
   nova: 'Novaria',
   mathil: 'Mathilda',
   khu: 'Khufra',
+  fred: 'Fredrinn',
+  bal: 'Balmond',
 };
 
 const dormir = (ms) => new Promise((r) => setTimeout(r, ms));

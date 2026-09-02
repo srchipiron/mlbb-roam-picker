@@ -4,7 +4,7 @@ on:
   push:
     branches: [main]
   workflow_run:                      # republica cuando la ingesta trae datos nuevos
-    workflows: ["Actualizar datos meta"]
+    workflows: ["Actualizar datos meta", "Partidas profesionales"]
     types: [completed]
   workflow_dispatch:
 
