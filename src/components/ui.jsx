@@ -87,8 +87,9 @@ export function Side({ title, kind, picks, max, onAdd, onRemove, markedName, onM
               <button className="x" onClick={() => onRemove(hero)} aria-label={t('app.quitar', { nombre: hero.name })}>×</button>
             </div>
           ) : (
-            <button key={`empty-${i}`} className="slot empty" onClick={onAdd}>
-              {t('app.anadir')}
+            <button key={`empty-${i}`} className="slot empty" onClick={onAdd} aria-label={t('app.anadir')}>
+              {/* Diez huecos de baneo en 360px no caben con la palabra: «+». */}
+              {kind === 'bans' ? '+' : t('app.anadir')}
             </button>
           ),
         )}
@@ -108,12 +109,17 @@ export function HeroSheet({
   const [q, setQ] = useState('');
   const inputRef = useRef(null);
 
+  // Enfocar UNA vez al abrir. Con `onClose` en las dependencias (una función
+  // nueva en cada render de App) el efecto se repetía con cada baneo y el
+  // teclado del móvil volvía a salir encima de la rejilla en cada toque.
+  const cerrarRef = useRef(onClose);
+  cerrarRef.current = onClose;
   useEffect(() => {
     inputRef.current?.focus();
-    const esc = (e) => e.key === 'Escape' && onClose();
+    const esc = (e) => e.key === 'Escape' && cerrarRef.current?.();
     window.addEventListener('keydown', esc);
     return () => window.removeEventListener('keydown', esc);
-  }, [onClose]);
+  }, []);
 
   const list = useMemo(() => {
     const key = (s) => s.toLowerCase().normalize('NFD')
@@ -150,7 +156,7 @@ export function HeroSheet({
   };
 
   return (
-    <div className="sheet" role="dialog" aria-label={t('app.elegirHeroe')}>
+    <div className="sheet" role="dialog" aria-modal="true" aria-label={t('app.elegirHeroe')}>
       <div className="sheet-head">
         <input
           ref={inputRef}
@@ -280,13 +286,13 @@ export function Pick({ result, index, stat, pro = null, onBuild, t = tPorDefecto
 const RANK_LABELS = { all: 'Todos', epic: 'Epic', legend: 'Legend', mythic: 'Mythic', honor: 'Honor', glory: 'Glory' };
 
 /** Selector del rango del que salen los winrates. El meta de Glory no es el de Epic. */
-export function RankPicker({ ranks, value, onChange }) {
+export function RankPicker({ ranks, value, onChange, t = tPorDefecto }) {
   if (!ranks?.length) return null;
   return (
     <div className="rank-picker">
       {ranks.map((r) => (
         <button key={r} aria-pressed={r === value} onClick={() => onChange(r)}>
-          {RANK_LABELS[r] ?? r}
+          {r === 'all' ? t('rango.todos') : (RANK_LABELS[r] ?? r)}
         </button>
       ))}
     </div>
@@ -362,6 +368,10 @@ export function MasteryEditor({ pool, mastery, onChange, onClose, t = tPorDefect
       const games = parseDecimal(e.games);
       const wr = parseDecimal(e.wr);
       if (games > 0 && wr > 0 && wr <= 100) clean[name] = { games, winRate: wr / 100 };
+      // Una fila con errata ("50.6%", un campo vaciado a medias) no borra lo
+      // que había: se conserva el valor anterior. Borrar es dejar los dos
+      // campos vacíos.
+      else if ((e.games ?? '') !== '' || (e.wr ?? '') !== '') { if (mastery?.[name]) clean[name] = mastery[name]; }
     }
     onChange(clean);
     onClose();
@@ -379,7 +389,7 @@ export function MasteryEditor({ pool, mastery, onChange, onClose, t = tPorDefect
   };
 
   return (
-    <div className="sheet" role="dialog" aria-label={t('app.maestria')}>
+    <div className="sheet" role="dialog" aria-modal="true" aria-label={t('app.maestria')}>
       <div className="sheet-head">
         <strong style={{ flex: 1, alignSelf: 'center' }}>{t('app.maestria')}</strong>
         <button className="close" onClick={onClose}>{t('app.cancelar')}</button>
@@ -428,7 +438,7 @@ export function Changelog({ entradas, actual, onClose, t = tPorDefecto }) {
   const [enteras, setEnteras] = useState(() => new Set());
   const alternar = (v) => setEnteras((prev) => { const n = new Set(prev); if (n.has(v)) n.delete(v); else n.add(v); return n; });
   return (
-    <div className="sheet" role="dialog" aria-label={t('changelog.titulo')}>
+    <div className="sheet" role="dialog" aria-modal="true" aria-label={t('changelog.titulo')} onClick={(e) => e.stopPropagation()}>
       <div className="sheet-head">
         <strong style={{ flex: 1, alignSelf: 'center' }}>{t('changelog.titulo')}</strong>
         <button className="close" onClick={onClose}>{t('app.cerrar')}</button>
@@ -460,7 +470,7 @@ export function Footer({ meta, generado, ageHours, rango, cov, t = tPorDefecto }
   const [novedades, setNovedades] = useState(false);
 
   const fecha = generado
-    ? generado.toLocaleString('es-ES', {
+    ? generado.toLocaleString(undefined, {
         day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit',
       })
     : null;
@@ -471,11 +481,11 @@ export function Footer({ meta, generado, ageHours, rango, cov, t = tPorDefecto }
     <footer className={`pie ${viejo ? 'stale' : ''}`} onClick={() => setAbierto((v) => !v)}>
       {abierto && meta && (
         <div className="pie-detalle">
-          <div>Datos de la API: {fecha ?? 'nunca'}</div>
-          <div>Antigüedad: {ageHours != null ? `${Math.round(ageHours)} h` : '—'}</div>
-          <div>Rango: {rango ?? '—'} · ventana {meta.days ?? '?'} días</div>
-          <div>Héroes con estadísticas: {meta.heroCount ?? 0}</div>
-          <div>Rangos descargados: {meta.ranks?.join(', ') || 'ninguno'}</div>
+          <div>{t('pie.datosApi', { fecha: fecha ?? t('pie.nunca') })}</div>
+          <div>{t('pie.antiguedad', { horas: ageHours != null ? `${Math.round(ageHours)} h` : '—' })}</div>
+          <div>{t('pie.rango', { rango: rango ?? '—', dias: meta.days ?? '?' })}</div>
+          <div>{t('pie.heroesConStats', { n: meta.heroCount ?? 0 })}</div>
+          <div>{t('pie.rangos', { lista: meta.ranks?.join(', ') || t('pie.ninguno') })}</div>
           {meta.diagnostics?.rangos && Object.entries(meta.diagnostics.rangos)
             .filter(([, v]) => String(v).startsWith('fallo'))
             .map(([k, v]) => <div key={k} className="pie-aviso">{k}: {v}</div>)}
@@ -506,7 +516,7 @@ export function Footer({ meta, generado, ageHours, rango, cov, t = tPorDefecto }
               )}
             </div>
           )}
-          <div>Compilada: {new Date(__BUILD_TIME__).toLocaleString('es-ES')}</div>
+          <div>{t('pie.compilada', { fecha: new Date(__BUILD_TIME__).toLocaleString() })}</div>
           {meta.diagnostics?.base && <div className="pie-api">{meta.diagnostics.base}</div>}
         </div>
       )}
@@ -516,7 +526,7 @@ export function Footer({ meta, generado, ageHours, rango, cov, t = tPorDefecto }
         <button className="pie-version" onClick={(e) => { e.stopPropagation(); setNovedades(true); }} title={t('changelog.titulo')}>
           v{__APP_VERSION__}
         </button>
-        {fecha ? ` · datos ${fecha}` : ' · sin datos'}
+        {' · '}{fecha ? t('pie.datos', { fecha }) : t('pie.sinDatos')}
       </span>
       {novedades && (
         <Changelog entradas={__CHANGELOG__} actual={__APP_VERSION__} onClose={() => setNovedades(false)} t={t} />
@@ -526,7 +536,7 @@ export function Footer({ meta, generado, ageHours, rango, cov, t = tPorDefecto }
 }
 
 /** Pantalla de diagnóstico: ejecuta las comprobaciones y deja el texto listo para copiar. */
-export function SelfTest({ resultado, onClose }) {
+export function SelfTest({ resultado, onClose, t = tPorDefecto }) {
   const [copiado, setCopiado] = useState(false);
 
   const copiar = async () => {
@@ -560,26 +570,26 @@ export function SelfTest({ resultado, onClose }) {
     const duenno = window.location.hostname.split('.')[0];
     const repo = window.location.pathname.split('/').filter(Boolean)[0] ?? 'mlbb-roam-picker';
     const url = new URL(`https://github.com/${duenno}/${repo}/issues/new`);
-    url.searchParams.set('title', `Diagnóstico ${new Date().toLocaleDateString('es-ES')}: ${titular(resultado.fallos, resultado.avisos)}`);
+    url.searchParams.set('title', t('diag.tituloIncidencia', { fecha: new Date().toLocaleDateString(), titular: titular(resultado.fallos, resultado.avisos) }));
     url.searchParams.set('labels', 'diagnostico');
-    url.searchParams.set('body', `Enviado desde el móvil con el botón Diagnóstico.\n\n\`\`\`\n${resultado.texto}\n\`\`\``);
+    url.searchParams.set('body', `${t('diag.cuerpoIncidencia')}\n\n\`\`\`\n${resultado.texto}\n\`\`\``);
     window.open(url.toString(), '_blank', 'noopener');
   };
 
   return (
-    <div className="sheet" role="dialog" aria-label="Diagnóstico">
+    <div className="sheet" role="dialog" aria-modal="true" aria-label={t('app.diagnostico')}>
       <div className="sheet-head">
         {/* El mismo titular que el texto, para que la cabecera y lo que copias
             digan lo mismo. Antes ponía "Todo correcto · 1 avisos". */}
         <strong style={{ flex: 1, alignSelf: 'center' }}>
           {titular(resultado.fallos, resultado.avisos)}
         </strong>
-        {navigator.share && <button className="close" onClick={compartir}>Enviar</button>}
-        <button className="close" onClick={aGitHub}>A GitHub</button>
+        {navigator.share && <button className="close" onClick={compartir}>{t('diag.enviar')}</button>}
+        <button className="close" onClick={aGitHub}>{t('diag.aGitHub')}</button>
         <button className="close" style={{ color: 'var(--gold)' }} onClick={copiar}>
-          {copiado ? 'Copiado' : 'Copiar'}
+          {copiado ? t('diag.copiado') : t('diag.copiar')}
         </button>
-        <button className="close" onClick={onClose}>Cerrar</button>
+        <button className="close" onClick={onClose}>{t('app.cerrar')}</button>
       </div>
       <pre id="selftest-texto" className="selftest">{resultado.texto}</pre>
     </div>
@@ -701,7 +711,7 @@ export function HistorialPartidas({ partidas, pool, maestria = {}, onOlvidar, on
   };
 
   return (
-    <div className="sheet" role="dialog" aria-label={t('hist.titulo')}>
+    <div className="sheet" role="dialog" aria-modal="true" aria-label={t('hist.titulo')}>
       <div className="sheet-head">
         <strong style={{ flex: 1, alignSelf: 'center' }}>{t('hist.titulo')}</strong>
         <button className="close" onClick={onClose}>{t('app.cerrar')}</button>
@@ -814,7 +824,7 @@ export function Perfil({ datos, onImportar, onClose, t = tPorDefecto }) {
   };
 
   return (
-    <div className="sheet" role="dialog" aria-label={t('perfil.titulo')}>
+    <div className="sheet" role="dialog" aria-modal="true" aria-label={t('perfil.titulo')}>
       <div className="sheet-head">
         <strong style={{ flex: 1, alignSelf: 'center' }}>{t('perfil.titulo')}</strong>
         <button className="close" onClick={onClose}>{t('app.cerrar')}</button>
@@ -865,7 +875,7 @@ export function RegistroPartida({ pool, recomendados, onGuardar, onClose, t = tP
   }, [pool, recomendados]);
 
   return (
-    <div className="sheet" role="dialog" aria-label={t('app.apuntarPartida')}>
+    <div className="sheet" role="dialog" aria-modal="true" aria-label={t('app.apuntarPartida')}>
       <div className="sheet-head">
         <strong style={{ flex: 1, alignSelf: 'center' }}>{t('registro.conQuien')}</strong>
         <button className="close" onClick={onClose}>{t('app.cancelar')}</button>
@@ -903,7 +913,7 @@ export function RegistroPartida({ pool, recomendados, onGuardar, onClose, t = tP
  */
 export function SelectorDeLinea({ lineas, valor, onElegir, onClose, t = tPorDefecto }) {
   return (
-    <div className="sheet" role="dialog" aria-label={t('app.elegirLinea')}>
+    <div className="sheet" role="dialog" aria-modal="true" aria-label={t('app.elegirLinea')}>
       <div className="sheet-head">
         <strong style={{ flex: 1, alignSelf: 'center' }}>{t('linea.pregunta')}</strong>
         {onClose && <button className="close" onClick={onClose}>{t('app.cerrar')}</button>}
@@ -970,7 +980,7 @@ export function Build({ hero, linea, builds, equipment, enemies, onClose, t = tP
   const pct = (n) => (n * 100).toFixed(1);
 
   return (
-    <div className="sheet" role="dialog" aria-label={t('build.titulo')}>
+    <div className="sheet" role="dialog" aria-modal="true" aria-label={t('build.titulo')}>
       <div className="sheet-head">
         <strong style={{ flex: 1, alignSelf: 'center' }}>
           {hero?.name} · {t('build.deLinea', { linea: t(`linea.${linea}`) })}

@@ -14,7 +14,28 @@ const clamp01 = (n) => Math.max(0, Math.min(1, n));
  * Precisión medida de los tags deducidos (rol + speciality) frente a los
  * escritos a mano. Sale de scripts/derivar-tags.mjs, no de una intuición.
  */
-const PRECISION_DEDUCIDA = 0.67;
+export const PRECISION_DEDUCIDA = 0.67;
+
+/**
+ * Escalas con las que un cruce y una pareja se convierten en nota. Medidas
+ * (p10/p90 de cada matriz) y COMPARTIDAS con el diagnóstico: antes estaban
+ * copiadas allí y un cambio aquí dejaba al vigilante mirando la escala vieja.
+ */
+export const ESCALA_CRUCE = { base: 0.44, rango: 0.12 };
+export const ESCALA_PAREJA = { base: 0.42, rango: 0.16 };
+
+/** Riesgo de contrapick a partir del cual un pick es «castigable a ciegas». */
+export const RIESGO_AVISO = 0.6;
+
+/**
+ * ¿Es un pick a ciegas? Riesgo alto Y más de dos enemigos por ver. Un solo
+ * predicado para la tarjeta y para el análisis: antes cada uno tenía el suyo
+ * y con cuatro enemigos vistos la tarjeta callaba y el análisis avisaba.
+ */
+export function esPickCiego(riesgo, enemigosVistos) {
+  const cegera = Math.max(0, 5 - enemigosVistos) / 5;
+  return riesgo != null && riesgo > RIESGO_AVISO && cegera > 0.4;
+}
 
 /** Ventaja máxima que un roamer puede acumular contra un enemigo: 1.4 + 0.9/2. */
 const SUB_MAX = 1.85;
@@ -93,7 +114,7 @@ export function indexByName(obj, depth = 1) {
  * importa: si quien llama no normalizó el mapa, la versión anterior devolvía
  * "sin datos" en silencio y todos los héroes empataban a 0.50.
  */
-const lookup = (map, name) => {
+export const lookup = (map, name) => {
   if (!map) return undefined;
   return map[normName(name)] ?? map[name];
 };
@@ -277,7 +298,7 @@ export function counterScore(roamHero, enemies, counterMatrix, enemyRoamName = n
     const confianza = pr > 0 ? pr / (pr + PICKRATE_FIABLE) : CONFIANZA_SIN_MUESTRA;
     const encogido = 0.5 + (pair - 0.5) * confianza;
 
-    const porDato = clamp01((encogido - 0.44) / 0.12);
+    const porDato = clamp01((encogido - ESCALA_CRUCE.base) / ESCALA_CRUCE.rango);
     total += porDato * peso;
 
     if (pair >= CRUCE_DESTACABLE) reasons.push({ clave: 'regla.ganaMatchup', params: { e: enemy.name }, good: true, w: 1.2 });
@@ -322,7 +343,7 @@ export function synergyScore(roamHero, allies, synergyMatrix) {
       // la dispersión de las sinergias de un héroe raro es solo 1.05 veces la
       // de uno popular (en los counters, 1.16), así que aquí no hay ni ese poco
       // ruido que corregir.
-      total += clamp01((pair - 0.42) / 0.16);
+      total += clamp01((pair - ESCALA_PAREJA.base) / ESCALA_PAREJA.rango);
       if (pair >= PAREJA_DESTACABLE) reasons.push({ clave: 'regla.combinaCon', params: { a: ally.name }, good: true, w: 0.7 });
       continue;
     }
@@ -524,7 +545,9 @@ export function priorDeMaestria(mastery = {}, nivel) {
 
 export function masteryScore(roamHero, mastery, nivel, prior) {
   const m = lookup(mastery, roamHero.name) ?? mastery?.[roamHero.name];
-  if (!m || !m.games) return { value: 0.5, reasons: [] };
+  // Sin partidas o sin winrate, neutro: un `winRate: null` importado daba
+  // 0·games = 0% y castigaba al héroe con la nota mínima.
+  if (!m || !(m.games > 0) || m.winRate == null) return { value: 0.5, reasons: [] };
   const base = nivel ?? tuNivel(mastery);
   const k = prior ?? priorDeMaestria(mastery, base);
   const shrunk = (m.winRate * m.games + base * k) / (m.games + k);
@@ -597,7 +620,10 @@ export function scoreHero(roamHero, ctx) {
     contributions: Object.fromEntries(
       Object.entries(weights).map(([k, w]) => [k, (parts[k]?.value ?? 0.5) * w]),
     ),
-    reasons: reasons.slice(0, 3),
+    // TODOS los motivos: los tres que se enseñan se eligen en rankRoamers
+    // DESPUÉS de quitar los comunes al pool. Cortando aquí, el 12% de las
+    // tarjetas se quedaba con menos de tres teniendo un cuarto válido.
+    reasons,
     banned: false,
   };
 }
@@ -678,6 +704,12 @@ export function rankRoamers(pool, ctx) {
 
   // Cada componente se reescala dentro del pool ANTES de aplicar su peso, para
   // que un peso de 0.36 sea de verdad el 36% de la decisión.
+  // Sin ningún aliado no hay hueco que tapar: la composición premiaba solo
+  // ACUMULAR etiquetas (el sesgo de Marcel, otra vez) con el peso entero y
+  // sin motivo en la tarjeta. Se deja plana hasta que haya alguien.
+  if (!(ctx.allies?.length)) {
+    for (const r of resultados) if (r.parts.comp) r.parts.comp = { ...r.parts.comp, value: 0.5 };
+  }
   const normalizados = {};
   for (const k of claves) {
     normalizados[k] = normalizarComponente(resultados.map((r) => r.parts[k]?.value ?? 0.5));
@@ -707,14 +739,14 @@ export function rankRoamers(pool, ctx) {
   resultados.forEach((r, i) => {
     const propios = r.reasons.filter((x) => !comunes.has(idRazon(x)));
     // Si al quitar los comunes no queda nada, mejor decir eso que mentir.
-    r.reasons = propios.length ? propios : [];
+    r.reasons = propios.slice(0, 3);
     r.contributions = Object.fromEntries(claves.map((k) => [k, normalizados[k][i] * weights[k]]));
     r.score = claves.reduce((acc, k) => acc + r.contributions[k], 0);
 
     r.riesgo = riesgoContrapick(r.hero, ctx.meta?.counters, ctx.candidatos ?? []);
     if (r.riesgo != null && cegera > 0) {
       r.score -= r.riesgo * cegera * RIESGO_MAX;
-      if (r.riesgo > 0.6 && cegera > 0.4) {
+      if (esPickCiego(r.riesgo, ctx.enemies?.length ?? 0)) {
         r.reasons = [{ clave: 'regla.arriesgadoCiego', good: false, w: 1.5 }, ...r.reasons].slice(0, 3);
       }
     }

@@ -29,7 +29,7 @@ export function apuntar(partidas, entrada, tope = 500) {
   const limpia = {
     t,
     pick: String(entrada.pick ?? '').trim(),
-    recomendados: (entrada.recomendados ?? []).slice(0, 3),
+    recomendados: (Array.isArray(entrada.recomendados) ? entrada.recomendados : []).slice(0, 3),
     gane: !!entrada.gane,
     rango: entrada.rango ?? null,
     // La probabilidad que la app estimaba al apuntarla (0..1), si la había.
@@ -41,7 +41,7 @@ export function apuntar(partidas, entrada, tope = 500) {
     ...(entrada.previa ? { previa: true } : {}),
   };
   if (!limpia.pick) return partidas;
-  return [limpia, ...partidas].sort((a, b) => (b.t ?? 0) - (a.t ?? 0)).slice(0, tope);
+  return [limpia, ...(partidas ?? [])].sort((a, b) => (b.t ?? 0) - (a.t ?? 0)).slice(0, tope);
 }
 
 /** Partidas con estimación a partir de las cuales se dice algo de la calibración. */
@@ -264,11 +264,19 @@ export function maestriaDesdeRegistro(partidas = []) {
  * dos cosas que no se hablaban.
  */
 export function maestriaEfectiva(maestria = {}, partidas = []) {
-  const delRegistro = maestriaDesdeRegistro(partidas);
-  const salida = { ...maestria };
-  for (const [nombre, m] of Object.entries(delRegistro)) {
-    const mano = salida[nombre];
-    if (!mano || (m.games ?? 0) > (mano.games ?? 0)) salida[nombre] = m;
+  // Por nombre NORMALIZADO: la API escribe "X.Borg" y el catálogo "X Borg", y
+  // con la clave cruda 400 partidas escritas a mano desaparecían del ranking
+  // sin que nada chillara (ver CLAUDE.md, "Nombres de héroe"). `lookup` ya
+  // prueba la clave normalizada y la cruda, así que el motor lee esto igual.
+  const salida = {};
+  for (const [nombre, m] of Object.entries(maestria ?? {})) {
+    const k = normName(nombre);
+    if (!salida[k] || (m?.games ?? 0) > (salida[k].games ?? 0)) salida[k] = m;
+  }
+  for (const [nombre, m] of Object.entries(maestriaDesdeRegistro(partidas))) {
+    const k = normName(nombre);
+    const mano = salida[k];
+    if (!mano || (m.games ?? 0) > (mano.games ?? 0)) salida[k] = m;
   }
   return salida;
 }

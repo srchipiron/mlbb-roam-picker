@@ -82,6 +82,9 @@ jobs:
       # del catálogo. Si cambian, se propone el cambio; no se mete a la brava.
       - name: Regenerar tablas de deducción
         id: tablas
+        # 133 peticiones con 20 s de tope cada una: sin esto, con la API a
+        # medias el paso podia durar 44 minutos.
+        timeout-minutes: 15
         run: |
           node scripts/derivar-tags.mjs > /tmp/tablas.txt 2>/dev/null || {
             echo "no se pudieron derivar (¿API caída?); no es un fallo"; exit 0; }

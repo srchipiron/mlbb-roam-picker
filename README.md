@@ -26,15 +26,16 @@ En cuanto hay datos meta, entran los winrates reales.
 npm run build       # -> dist/
 ```
 
-Sube `dist/` a GitHub Pages, Netlify o Vercel. En GitHub Pages, descomenta `base` en `vite.config.js`
-con el nombre del repo. Desde el navegador de la tablet: menú → "Añadir a pantalla de inicio".
+Sube `dist/` a GitHub Pages, Netlify o Vercel. En GitHub Pages la ruta base la pone el despliegue con la
+variable `BASE_PATH` (ver `deploy.yml` y `vite.config.js`). Desde el navegador de la tablet: menú → "Añadir a pantalla de inicio".
 
 Si quieres un APK, ver [APK.md](APK.md): se genera desde el móvil con PWABuilder, sin tocar el código.
 
 ## Cómo se mantiene solo al día
 
-`.github/workflows/update-data.yml` corre `scripts/ingest.mjs` dos veces al día y commitea el JSON
-si ha cambiado. El service worker sirve el fichero cacheado al instante y lo refresca por detrás,
+`.github/workflows/update-data.yml` corre `scripts/ingest.mjs` dos veces al día a un fichero temporal,
+`scripts/comparar-ingesta.mjs` comprueba que la corrida nueva no resuelva menos que la guardada, y solo
+entonces se commitea el JSON con los iconos y retratos nuevos. El service worker sirve el fichero cacheado al instante y lo refresca por detrás,
 así que en el draft nunca esperas a la red.
 
 La ingesta también descarga la **lista completa de héroes** con su rol, así que el catálogo escrito a
@@ -51,13 +52,12 @@ con un User-Agent identificado y una petición cada 5 segundos, como piden sus c
 `scripts/ingesta-pro.mjs` las guarda en `historial/pro-partidas.jsonl` (la muestra, para
 `scripts/medir-pro.mjs`) y en `public/data/pro.json` (lo poco que lee la app).
 
-API pública de la comunidad (proyecto OpenMLBB / api-mobilelegends, licencia BSD-3): winrate, pickrate,
+API pública de la comunidad (Rone Arena, `api-mobilelegends` de ridwaanhall): winrate, pickrate y
 banrate por rango, además de counters y compatibilidad por héroe. No es oficial de Moonton.
 
-El proyecto ha cambiado de dominio y de prefijo de rutas más de una vez (era `mlbb.rone.dev/api/mlbb/`,
-ahora `arena.rone.dev/api/heroes/`), así que `scripts/ingest.mjs` **no fija ninguna URL**: prueba las
-bases y prefijos conocidos, se queda con la primera que responde y lo anota en `diagnostics` dentro del
-JSON. Los campos también se buscan por varios nombres posibles, y si un endpoint falla se conservan los
+El proyecto ha cambiado de dominio y de prefijo de rutas más de una vez (`mlbb.rone.dev`, `arena.rone.dev`,
+hoy `arena-hv.fastapicloud.dev`), así que `scripts/ingest.mjs` **no fija ninguna URL**: prueba las
+bases conocidas, se queda con la primera que responde y lo anota en `diagnostics` dentro del JSON. Los campos también se buscan por varios nombres posibles, y si un endpoint falla se conservan los
 datos anteriores en vez de dejarte sin nada.
 
 Más aún: antes de pedir nada, la ingesta **lee el esquema OpenAPI de la API** y saca de ahí las rutas
@@ -68,8 +68,8 @@ si no hay esquema cae a probar rutas conocidas a ciegas.
 Si algún día deja de funcionar del todo, la app lo dice y el JSON lleva el esquema y lo que se probó.
 Se añade la nueva base a `BASES` en `scripts/ingest.mjs`, o se pasa con `--base https://loquesea/api`.
 
-Para cruzar con una segunda fuente, añade un módulo en `scripts/sources/` que devuelva el mismo formato
-`{ nombre: { winRate, pickRate, banRate, matches } }` y promedia en `main()`.
+No hay una segunda fuente de estadísticas viva: se buscaron (ver CLAUDE.md) y las que había están muertas
+o bloquean robots. Antes de añadir una, pídele datos; no te fíes de su README.
 
 ## De dónde sale cada decisión
 
@@ -86,12 +86,12 @@ lleve dentro, mejor: las reglas escritas a mano envejecen, los datos no.
 | Composición | 8% | reglas escritas a mano (lo único que envejece) |
 
 Los pesos dan el 92% a datos reales y el 8% a reglas escritas a mano. Medido en
-un draft de verdad sale menos —en torno al 77%— porque donde no hay dato de la
-pareja entran las reglas por tags, y la matriz de counters solo cubre el 7,5% de
-los cruces posibles. Los dos números son ciertos: uno es la intención, el otro
-lo que pasa. El botón **Diagnóstico** mide el segundo en vivo, así que fíate de
-él y no de esta tabla: si ese porcentaje baja, los datos han dejado de llegar y
-las reglas están tapando el hueco.
+un draft de verdad sale prácticamente igual desde 1.5.0, porque la matriz de
+counters cubre el 100% de los cruces (17.556) y las reglas por tags solo entran
+con un héroe tan nuevo que la API no publica ni un cruce suyo. El botón
+**Diagnóstico** lo mide en vivo, así que fíate de él y no de esta tabla: si ese
+porcentaje baja, los datos han dejado de llegar y las reglas están tapando el
+hueco.
 
 La confianza en cada matchup **también la decide el dato**: se encoge hacia el
 empate según lo jugado que esté el rival, porque contra un héroe raro un 57% es
@@ -100,15 +100,7 @@ que era criterio mío y no se ajustaba a nada.
 
 ## Cómo puntúa
 
-Cinco componentes, con pesos en `src/engine/rules.js`:
-
-| Componente | Peso | Qué mide |
-|---|---|---|
-| Meta | 30% | winrate global, encogido según tamaño de muestra |
-| Counter | 22% | matchup contra cada pick enemigo |
-| Composición | 20% | huecos del equipo que rellena |
-| Maestría | 15% | tu propio historial con el héroe |
-| Sinergia | 13% | encaje con tus aliados ya elegidos |
+Cinco componentes, con los pesos de la tabla de arriba (`DEFAULT_WEIGHTS` en `src/engine/rules.js`).
 
 Tres decisiones que conviene entender antes de tocar los pesos:
 
@@ -170,7 +162,9 @@ cuánto lo banea el resto de la gente y lo mal que le va a los aliados que ya ha
 
 - **El winrate global no es tu winrate.** Elige tu rango en "Baneos y ajustes": la ingesta descarga
   Epic, Legend, Mythic y Glory, y el meta cambia bastante entre ellos.
-- **Los counters de estas webs son ruidosos.** Por eso pesan un 22% y no un 50%.
+- **Los counters pesan un 40%, no más.** Están medidos como índices de cruce ya centrados, sin ruido de
+  muestreo apreciable, pero un cruce no decide una partida: la fuerza general del héroe y las parejas
+  también cuentan.
 - **No lee la pantalla del juego.** Los picks enemigos los metes tú a mano. En 30 segundos de draft
   da tiempo a tres o cuatro toques, no a más: por eso la rejilla tiene botones grandes y buscador.
 
@@ -188,10 +182,10 @@ de hoy salió bien y que tu móvil está mostrando lo que debe.
 ## Comprobaciones
 
 ```bash
-npm test    # orden de declaraciones + estilos + 21 pruebas del motor
+npm test    # orden de declaraciones + estilos + versión documentada + ~100 pruebas del motor
 ```
 
-Las tres corren en GitHub **antes** de compilar, así que un cambio que rompa la
+Las cuatro corren en GitHub **antes** de compilar, así que un cambio que rompa la
 lógica no llega a publicarse: te quedas con la versión anterior funcionando.
 
 - `check-order.mjs` — consts usadas antes de declararse. Ese fallo no da error al

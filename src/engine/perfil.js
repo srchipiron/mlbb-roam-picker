@@ -106,8 +106,8 @@ export async function leerPerfil(codigo) {
     const bytes = deBase64(cuerpo.slice(1));
     const json = cuerpo[0] === 'z' ? await descomprimir(bytes) : new TextDecoder().decode(bytes);
     const perfil = JSON.parse(json);
-    if (!perfil || typeof perfil !== 'object') return { error: 'formato' };
-    return { perfil };
+    if (!perfil || typeof perfil !== 'object' || Array.isArray(perfil)) return { error: 'formato' };
+    return { perfil: sanear(perfil) };
   } catch {
     return { error: 'ilegible' };
   }
@@ -125,16 +125,43 @@ export async function leerPerfil(codigo) {
  *  - partidas: se juntan las dos listas y se quitan las repetidas.
  *  - preferencias: solo se cogen si aquí no había nada.
  */
+/**
+ * Solo lo que tiene la forma esperada. Un código pegado de otra versión, o
+ * manipulado, llegaba aquí con `mastery: "abc"` y `partidas: "xy"`: la
+ * fusión metía las letras como héroes y la pantalla de partidas reventaba.
+ */
+export function sanear(perfil) {
+  const mastery = {};
+  const m = perfil.mastery;
+  if (m && typeof m === 'object' && !Array.isArray(m)) {
+    for (const [nombre, v] of Object.entries(m)) {
+      if (v && typeof v === 'object' && v.games > 0 && typeof v.winRate === 'number' && v.winRate >= 0 && v.winRate <= 1) {
+        mastery[nombre] = { games: v.games, winRate: v.winRate };
+      }
+    }
+  }
+  const partidas = (Array.isArray(perfil.partidas) ? perfil.partidas : [])
+    .filter((p) => p && typeof p === 'object' && typeof p.pick === 'string' && typeof p.t === 'number')
+    .map((p) => ({ ...p, recomendados: Array.isArray(p.recomendados) ? p.recomendados : [] }));
+  return { ...perfil, mastery, partidas };
+}
+
 export function fundirPerfil(actual, entrante) {
+  entrante = sanear(entrante ?? {});
   const mastery = { ...(actual.mastery ?? {}) };
   for (const [nombre, m] of Object.entries(entrante.mastery ?? {})) {
     const mio = mastery[nombre];
     if (!mio || (m?.games ?? 0) > (mio.games ?? 0)) mastery[nombre] = m;
   }
 
-  const clave = (p) => `${p.t ?? ''}|${p.pick ?? ''}|${p.gane ? 1 : 0}`;
+  // El instante ES la identidad (así la quita y la corrige el historial). Con
+  // pick y resultado en la clave, una partida corregida aquí y reimportada de
+  // un código viejo salía DOS veces, borrar una se llevaba las dos y la
+  // maestría la contaba doble. Y en el empate gana la copia local, que es la
+  // que lleva la corrección.
+  const clave = (p) => String(p.t ?? '');
   const vistas = new Set();
-  const partidas = [...(entrante.partidas ?? []), ...(actual.partidas ?? [])]
+  const partidas = [...(actual.partidas ?? []), ...(entrante.partidas ?? [])]
     .filter((p) => {
       const k = clave(p);
       if (vistas.has(k)) return false;

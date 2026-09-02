@@ -1,4 +1,4 @@
-import { normName, matchup, perfilDeDano, tapaElHueco, CRUCE_MALO } from './score.js';
+import { normName, matchup, perfilDeDano, tapaElHueco, CRUCE_MALO, esPickCiego, SATISFIES } from './score.js';
 import { CUOTA_ROBUSTA } from './robustez.js';
 import { HUECOS_QUE_SE_DICEN } from './composicion.js';
 import { TEAM_NEEDS } from './rules.js';
@@ -110,7 +110,7 @@ export function analizarDraft({
   // 3. ¿Estás eligiendo a ciegas? El riesgo ya lo calcula el motor; aquí solo
   //    se traduce a algo accionable.
   const porVer = 5 - enemies.length;
-  if (porVer > 0 && top.riesgo != null && top.riesgo > 0.6) {
+  if (esPickCiego(top.riesgo, enemies.length)) {
     salida.push({
       tono: 'duda',
       clave: 'analisis.pickCiego',
@@ -192,7 +192,9 @@ export function analizarDraft({
   if (allies.length >= 3) {
     const cubierto = new Set([...allies, hero].flatMap((h) => h.tags ?? []));
     const caros = [...TEAM_NEEDS].sort((a, b) => b.weight - a.weight).slice(0, 3);
-    const falta = caros.find((n) => !cubierto.has(n.tag));
+    // Mismo criterio de «cubierto» que el motor y la composición: encadenar
+    // control vale como control duro, un escudo vale como peel.
+    const falta = caros.find((n) => !(SATISFIES[n.tag] ?? [n.tag]).some((tg) => cubierto.has(tg)));
     if (falta) salida.push({ tono: 'duda', clave: falta.why });
   }
 
