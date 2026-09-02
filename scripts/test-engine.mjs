@@ -2099,6 +2099,39 @@ test('la pantalla del veredicto ensena el margen y la trampa, no solo el numero'
     'el margen se ha separado de la diferencia: el numero solo es publicidad');
 });
 
+test('el diagnostico lleva el draft con nombres, para poder reproducir una partida', async () => {
+  const { runSelfTest } = await import('../src/engine/selftest.js');
+
+  // Desde que los huecos ensenan la cara y no el nombre, una captura no dice
+  // quien estaba enfrente: hubo que reconstruir a medias el draft de una
+  // derrota. El diagnostico es lo que Javi pega, asi que tiene que llevarlo.
+  const base = {
+    catalog: { heroes: cat.heroes }, meta: { heroes: [] },
+    metaCtx: { stats: {}, counters: {}, synergies: {} },
+    allHeroes: all, roamPool: pool, mastery: {}, partidas: [], linea: 'roam',
+    env: { version: '1.0', buildTime: null, rango: 'glory', width: 400, height: 800, storage: true, sw: 'x', sinDatosPersonales: true },
+  };
+  const draft = {
+    enemies: [h('Kadita'), h('Ixia')], allies: [h('Layla')], bans: [],
+    rival: 'Kadita', marcado: false,
+    ranked: [{ hero: h('Atlas'), score: 0.79, reasons: [{ clave: 'regla.ganaMatchup', params: { e: 'Ixia' } }] }],
+    analisis: [{ clave: 'analisis.cuidadoCon', params: { e: 'Ixia', pct: 48 } }],
+  };
+  const con = runSelfTest({ ...base, draft }).texto;
+  for (const esperado of ['DRAFT ACTUAL', 'Kadita', 'Ixia', 'Layla', 'Atlas 79', 'ganaMatchup:Ixia', 'cuidadoCon', 'deducido']) {
+    ok(con.includes(esperado), `el diagnostico no lleva "${esperado}"`);
+  }
+  // Marcado a mano se distingue de deducido: no es lo mismo que la app se
+  // equivoque de rival a que lo hayas puesto tu.
+  ok(runSelfTest({ ...base, draft: { ...draft, marcado: true } }).texto.includes('marcado a mano'),
+    'no distingue el rival marcado a mano del deducido');
+
+  // Sin draft, lo dice y no cuenta como aviso ni fallo.
+  const sin = runSelfTest({ ...base, draft: null });
+  ok(sin.texto.includes('sin draft'), 'sin draft no lo dice');
+  eq(sin.fallos, runSelfTest({ ...base, draft }).fallos, 'el draft cambia el numero de fallos');
+});
+
 test('el titular del diagnostico no se contradice ni escribe mal el plural', async () => {
   const { titular } = await import('../src/engine/selftest.js');
 
