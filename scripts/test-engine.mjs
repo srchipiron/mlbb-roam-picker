@@ -260,6 +260,12 @@ test('el diagnostico detecta datos imposibles y caidas frente a su propio histor
     allHeroes: all, roamPool: pool, mastery: {}, partidas: [], linea: 'roam', env };
   const avisosDe = (m, hist) => runSelfTest({ ...base, meta: m, historial: hist }).texto.split('\n').filter((l) => /^\[AVISO\]/.test(l));
 
+  // Una corrida que conservó lo anterior por API caída avisa; una con
+  // estadísticas nuevas, no; y un fichero de antes de esa marca, tampoco.
+  ok(avisosDe({ ...meta, rank: 'glory', diagnostics: { conservado: true, frescos: [] } }, null).some((l) => /NO descargó/.test(l)), 'no avisa de una corrida que conservó lo anterior');
+  ok(!avisosDe({ ...meta, diagnostics: { conservado: false, frescos: ['glory'] } }, null).some((l) => /NO descargó/.test(l)), 'avisa con estadísticas nuevas');
+  ok(!avisosDe({ ...meta, diagnostics: {} }, null).some((l) => /NO descargó/.test(l)), 'avisa con un fichero antiguo sin la marca');
+
   // Datos sanos: ninguno de los avisos nuevos.
   const limpio = avisosDe(meta, null);
   ok(!limpio.some((l) => /imposible|planas|suman/.test(l)), `avisa con datos sanos: ${limpio.join(' | ')}`);
@@ -1349,6 +1355,22 @@ test('la ingesta arranca sin errores de programación', async () => {
     ok(!/is not defined|is not a function|Cannot read/.test(salida),
       `error de programación en la ingesta: ${salida.split('\n').find((l) => /is not/.test(l))}`);
     ok(salida.includes('Escrito'), 'no llega a escribir el fichero cuando la red falla');
+
+    // Con la API caida la corrida conserva lo anterior, y eso tiene que
+    // notarse: la fecha es la de los datos conservados (no la de hoy) y el
+    // comparador la rechaza por no traer nada nuevo. Sin esto, el bot
+    // commiteaba los datos de ayer con la fecha de hoy y la puerta de
+    // frescura del despliegue (72 h) no saltaba nunca.
+    if (existsSync(real)) {
+      const guardada = JSON.parse(readFileSync(real, 'utf8'));
+      const nueva = JSON.parse(readFileSync(out, 'utf8'));
+      eq(nueva.generatedAt, guardada.generatedAt, 'una corrida sin red se fecha como si trajera datos nuevos');
+      eq(nueva.diagnostics?.conservado, true, 'la corrida no dice que conserva lo anterior');
+      const { comparar } = await import('./comparar-ingesta.mjs');
+      const veredicto = comparar(nueva, guardada);
+      ok(veredicto.peores.some((p) => p.clave === 'rangoFresco'),
+        `el comparador acepta una corrida que no ha descargado nada: ${JSON.stringify(veredicto.peores)}`);
+    }
   } finally {
     rmSync(dir, { recursive: true, force: true });
   }
