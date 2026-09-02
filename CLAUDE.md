@@ -113,6 +113,12 @@ Todos estos llegaron a producción y costaron rondas enteras de ida y vuelta:
 - **`ROUTES is not defined`** — la ingesta reventaba en la primera línea. Pasaba
   `node --check` porque la sintaxis era válida. Hay una prueba que la ejecuta de
   verdad; no la quites.
+- **La ingesta sin tope de tiempo** — `continue-on-error` cubre que falle, no
+  que se cuelgue: ~570 peticiones con 15 s de timeout son 140 minutos con la
+  API a medias, y el despliegue se quedaba ahí sabiendo publicar con los datos
+  del repositorio. Se vio en directo (20 minutos en un paso de 9). Hoy los dos
+  workflows llevan `timeout-minutes: 20` en la ingesta y hay prueba. Si un paso
+  llama a un servicio externo, tiene tope de tiempo; si no, no está protegido.
 - **`continue-on-error` en el paso de ingesta** — publicaba la app nueva con los
   datos congelados del despliegue anterior, sin ninguna señal. Se quitó, y hay
   una comprobación de que el JSON se ha regenerado.
