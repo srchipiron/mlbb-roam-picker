@@ -8,6 +8,16 @@ que esto no se olvida.
 Criterio: `0.X.0` cuando cambia cómo decide la app o qué hace; `0.0.X` para
 correcciones.
 
+## 1.27.1
+
+- La simulación de «¿aguanta el pick?» ya respeta los baneos: un héroe
+  baneado no puede salir por ninguna línea enemiga ni cuenta como candidato
+  tuyo. Antes, con el líder baneado, la simulación le seguía dando sus votos
+  y llamaba «depende de lo que saquen» a un pick que en realidad era seguro.
+- Si tu línea aún no tiene rival visible, el que sale por ella en cada final
+  simulado cuenta como tu rival (su cruce pesa doble, como en el ranking
+  real). Medido: cuando la app dice «pick seguro», acierta más que antes.
+
 ## 1.27.0
 
 **La app razona sobre los enemigos que todavía no han salido, y el diagnóstico

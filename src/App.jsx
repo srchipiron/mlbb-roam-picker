@@ -234,9 +234,9 @@ export default function App() {
     const poolsPorLinea = Object.fromEntries(LINEAS.map((l) => [l, poolDeLinea(allHeroes, lineas, l)]));
     return simularFinales({
       pool: roamPool, enemies, allies, lineasAbiertas: abiertas, poolsPorLinea,
-      ctx: { meta: metaCtx, mastery: maestriaUsada, enemyRoam: enemyRoamEfectivo },
+      ctx: { meta: metaCtx, mastery: maestriaUsada, bans, enemyRoam: enemyRoamEfectivo }, linea,
     });
-  }, [enemies, allies, roamPool, allHeroes, lineas, frecuencias, metaCtx, maestriaUsada, enemyRoamEfectivo]);
+  }, [enemies, allies, bans, roamPool, allHeroes, lineas, frecuencias, metaCtx, maestriaUsada, enemyRoamEfectivo, linea]);
 
   const analisis = useMemo(
     () => analizarDraft({

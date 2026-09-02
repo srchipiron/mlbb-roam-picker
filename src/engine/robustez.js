@@ -11,10 +11,20 @@ import { rankRoamers, normName, LINEAS } from './score.js';
  * sigue siendo el número uno.
  *
  * Lo que dice esa fracción está MEDIDO, no supuesto (200 drafts por caso,
- * verdad conocida): con dos enemigos vistos, si el nº1 mantiene al menos la
- * mitad de los finales, sobrevive al draft completo el 58%; si no, el 27%. Con
- * tres, 59% frente a 27%. Con cuatro, 72% frente a 39%. Con UNO visto casi
- * nada es robusto (4 de 200), que es la verdad: con un enemigo, espera.
+ * verdad conocida, con el rival de línea contando doble como en la app): en
+ * roam, con dos enemigos vistos, si el nº1 mantiene al menos la mitad de los
+ * finales sobrevive al draft completo el 71%; si no, el 28%. Con tres, 62%
+ * frente a 26%. Con cuatro, 71% frente a 31%. Con UNO visto casi nada es
+ * robusto (14 de 200), que es la verdad: con un enemigo, espera. En la exp,
+ * parecido (68/25 con dos vistos).
+ *
+ * Dos cosas que hacen falta para que el final simulado se parezca al real:
+ * los BANEADOS no salen por ninguna línea ni son candidatos tuyos (la app ya
+ * los quita del ranking; sin quitarlos aquí la simulación votaba a un héroe
+ * que no se enseña y llamaba "frágil" al nº1 de verdad), y si tu línea está
+ * abierta, el que sale por ella en ese final es tu RIVAL y su cruce pesa
+ * doble. Medido: con el rival dentro, "pick seguro" acierta más (roam con tres
+ * vistos 55%→62%, exp con dos vistos 61%→68%) a cambio de decirlo menos.
  *
  * Lo que NO se hace con esto: cambiar el ranking. Medido, usar la simulación
  * para ordenar solo ayuda con un enemigo visto (+4-6 puntos) y no aporta nada
@@ -60,31 +70,40 @@ function muestrear(pool, excluidos, pickRateDe, rnd) {
  * @param allies          aliados ya elegidos
  * @param lineasAbiertas  líneas enemigas por las que aún falta alguien
  * @param poolsPorLinea   { linea: [héroes] } de dónde salen los que faltan
- * @param ctx             lo mismo que recibe rankRoamers (meta, mastery, enemyRoam...)
+ * @param ctx             lo mismo que recibe rankRoamers (meta, mastery, bans, enemyRoam...)
+ * @param linea           tu línea: si está abierta, el que salga por ella es tu rival
  * @returns { cuota: { nombre: 0..1 }, lider, cuotaLider, n, lineasAbiertas } o null
  */
 export function simularFinales({
   pool, enemies = [], allies = [], lineasAbiertas = [], poolsPorLinea = {},
-  ctx = {}, n = FINALES_POR_DEFECTO, semilla = 7,
+  ctx = {}, linea = null, n = FINALES_POR_DEFECTO, semilla = 7,
 }) {
   const abiertas = lineasAbiertas.filter((l) => LINEAS.includes(l) && poolsPorLinea[l]?.length);
   if (!pool?.length || !enemies.length || !abiertas.length) return null;
 
   const rnd = generador(semilla);
   const pickRateDe = (h) => ctx.meta?.stats?.[normName(h.name)]?.pickRate ?? 0.001;
-  const fijos = new Set([...enemies, ...allies].map((h) => h.name));
+  // Un baneado no puede salir por ninguna línea, y tampoco es candidato tuyo:
+  // el ranking de verdad ya lo quita (rankRoamers lee ctx.bans), y sin
+  // quitarlo aquí la simulación votaba a un héroe que la app no enseña.
+  const fijos = new Set([...enemies, ...allies, ...(ctx.bans ?? [])].map((h) => h.name));
   const votos = {};
 
   for (let k = 0; k < n; k++) {
     const excluidos = new Set(fijos);
     const completo = [...enemies];
+    let rival = ctx.enemyRoam ?? null;
     for (const l of abiertas) {
       const h = muestrear(poolsPorLinea[l], excluidos, pickRateDe, rnd);
       if (!h) continue;
       excluidos.add(h.name);
       completo.push(h);
+      // Si tu rival aún no se ve, en este final es el que sale por tu línea:
+      // su cruce pesa doble en el ranking real, y sin esto la simulación lo
+      // contaba como a uno más.
+      if (!rival && l === linea) rival = h.name;
     }
-    const top = rankRoamers(pool, { ...ctx, enemies: completo, allies })[0];
+    const top = rankRoamers(pool, { ...ctx, enemies: completo, allies, enemyRoam: rival })[0];
     if (top) votos[top.hero.name] = (votos[top.hero.name] ?? 0) + 1;
   }
 
