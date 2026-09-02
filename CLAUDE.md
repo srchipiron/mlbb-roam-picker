@@ -30,6 +30,18 @@ despliegue de código NO depende de que la API esté viva, y eso ya costó una
 versión sin publicar. Si algo falla, el despliegue se detiene y la app se queda
 con la versión anterior funcionando, que es lo correcto.
 
+Desde 1.25.0 el despliegue **no descarga datos si los del repositorio tienen
+menos de 24 horas**: el bot ya lo hace dos veces al día. Son 24 y no 12 porque
+**GitHub ejecuta el cron con 3–5 horas de retraso** (medido en las seis
+corridas del bot: cron a las 05:17 y 17:17 UTC, arranques reales entre las
+10:05 y las 11:35 y entre las 19:50 y las 21:53), así que los datos del
+repositorio tienen normalmente entre 12 y 17 horas. No es un fallo del bot; si
+cambias el umbral, mide antes el retraso real. Cada push de código
+costaba diez minutos de ingesta y, con `cancel-in-progress`, cada push
+reiniciaba la del anterior: cinco commits seguidos dejaron lo publicado 25
+minutos por detrás. Si ves que un despliegue tarda doce minutos, es que el bot
+lleva medio día sin traer datos, y eso es lo que hay que mirar.
+
 **Sube la versión en `package.json` y documéntala en `CHANGELOG.md`.** Criterio:
 `0.X.0` cuando cambia cómo decide la app o qué hace; `0.0.X` para correcciones.
 La versión sale en el pie de la app, así que sirve para saber desde el móvil si

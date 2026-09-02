@@ -31,7 +31,31 @@ jobs:
       # en el despliegue, y eso es indepurable desde el movil.
       - run: npm ci
 
+      # ¿Hacen falta datos nuevos? El bot de datos ya descarga dos veces al dia
+      # y los commitea, y un winrate de ventana de 7 dias no se mueve en horas.
+      # Volver a descargar en CADA push de codigo costaba diez minutos por
+      # despliegue y, peor, con cancel-in-progress cada push reiniciaba la
+      # descarga del anterior desde cero: cinco commits seguidos dejaron la app
+      # publicada 25 minutos por detras. Se descarga solo si el repositorio
+      # lleva mas de 24 horas sin datos nuevos, o sea, si el bot lleva un dia
+      # fallando.
+      #
+      # 24 h y no 12: el bot programa dos corridas al dia, pero GitHub ejecuta
+      # el cron con 3-5 horas de retraso (medido en sus seis corridas: cron a
+      # las 05:17 y 17:17, arranques reales a las 10:28, 19:50, 11:35, 21:53,
+      # 10:05 y 19:56). Los datos del repositorio tienen normalmente entre 12 y
+      # 17 horas, asi que con 12 se descargaba casi siempre y no se ahorraba
+      # nada. 24 sigue tres veces por debajo del limite de rancio (72 h).
+      - name: Frescura de los datos del repositorio
+        id: frescura
+        run: |
+          node -e "const d=require('./public/data/roam-meta.json');
+          const h=(Date.now()-new Date(d.generatedAt))/3.6e6;
+          console.log('datos del repositorio de hace', h.toFixed(1), 'h');
+          require('fs').appendFileSync(process.env.GITHUB_OUTPUT, 'fresca=' + (h < 24) + '\n');"
+
       - name: Ingesta
+        if: steps.frescura.outputs.fresca != 'true'
         # A un temporal: hasta saber que esta corrida no es peor que la
         # guardada, los datos buenos no se tocan.
         #
@@ -63,7 +87,9 @@ jobs:
         # despliegue de 1.6.0 se quedo sin publicar por un UPSTREAM_REQUEST_FAILED
         # que no tenia nada que ver con el codigo que se subia.
         run: |
-          if [ "${{ steps.ingesta.outcome }}" = "success" ] \
+          if [ "${{ steps.ingesta.outcome }}" = "skipped" ]; then
+            echo "Datos del repositorio recientes: ingesta omitida, se publica con ellos."
+          elif [ "${{ steps.ingesta.outcome }}" = "success" ] \
              && node scripts/comparar-ingesta.mjs /tmp/nueva.json public/data/roam-meta.json; then
             cp /tmp/nueva.json public/data/roam-meta.json
             echo "Se publica con la corrida nueva."

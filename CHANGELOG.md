@@ -8,6 +8,22 @@ que esto no se olvida.
 Criterio: `0.X.0` cuando cambia cómo decide la app o qué hace; `0.0.X` para
 correcciones.
 
+## 1.25.0
+
+**Publicar un cambio de código pasa de doce minutos a dos.** El despliegue
+volvía a descargar todos los datos en cada push, y no hace falta: el bot ya lo
+hace dos veces al día y los guarda en el repositorio, y un winrate de ventana
+de siete días no se mueve en horas. Peor: como cada despliegue nuevo cancela al
+anterior, cinco cambios seguidos dejaron la app publicada 25 minutos por detrás
+de lo subido —cada uno reiniciaba desde cero la descarga del anterior—.
+
+Ahora solo descarga si el repositorio lleva más de 24 horas sin datos nuevos, es
+decir, si el bot lleva un día fallando. (Veinticuatro y no doce porque GitHub
+ejecuta el cron del bot con tres a cinco horas de retraso, medido en todas sus
+corridas: los datos del repositorio tienen normalmente entre 12 y 17 horas.) Y
+cuando el propio bot trae datos frescos, el despliegue que dispara tampoco los
+vuelve a pedir.
+
 ## 1.24.1
 
 Corrección en el mantenimiento semanal: su descarga de datos se saltaba el
