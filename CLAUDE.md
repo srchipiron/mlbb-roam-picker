@@ -180,6 +180,12 @@ Todos estos llegaron a producción y costaron rondas enteras de ida y vuelta:
   premiaba TENER DATOS, no ser bueno con el héroe. Hoy `tuNivel` saca su media
   ponderada y todo va centrado ahí. Si añades algo que compare winrates
   personales, compáralo contra su nivel, nunca contra 0.50.
+- **El rival de línea, deducido enemigo a enemigo** — nunca se había medido y
+  con draft a medias se equivocaba del 10% al 21%: nombraba a un rival que aún
+  no estaba en el draft y le doblaba el cruce. Desde 1.21.0 reparte a todos los
+  enemigos entre las líneas a la vez (eliminación) y hay una prueba de
+  precisión sobre drafts con la línea conocida: exp ≥80% acierto, ≤5% error. El
+  margen para nombrar a alguien (`MARGEN_PARA_HABLAR`) está medido, no puesto.
 - **El mismo 0.53 escrito a mano en TRES sitios** — counters, análisis del draft
   y sinergias. En los tres es el percentil 99 de su distribución, o sea «casi
   nunca». Y las parejas ni siquiera comparten distribución con los cruces

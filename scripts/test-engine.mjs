@@ -139,6 +139,75 @@ test('se deduce el rival de TU línea, y se calla si hay duda', async () => {
     'sin datos de líneas se inventa un mid');
 });
 
+test('el rival se deduce por eliminacion, y acierta lo que se midio', async () => {
+  const { detectarRivalDeLinea, indiceDeLineas, frecuenciaDeRoles } =
+    await import('../src/engine/rival-de-linea.js');
+  const { poolDeLinea, LINEAS } = await import('../src/engine/score.js');
+
+  // 1. Eliminacion: cuatro enemigos claros en otras lineas y uno ambiguo entre
+  //    exp y jungla. Mirandolo solo es ambiguo; mirando el draft entero, si la
+  //    jungla ya esta cogida, va a la exp. Es como lo lee cualquiera.
+  const listado = [
+    { name: 'Angela', role: 'support', lane: 'roam' },
+    { name: 'Kagura', role: 'mage', lane: 'mid' },
+    { name: 'Claude', role: 'marksman', lane: 'gold' },
+    { name: 'Saber', role: 'assassin', lane: 'jungle' },
+    { name: 'YuZhong', role: 'fighter', lane: 'exp,jungle' },
+    { name: 'Argus', role: 'fighter', lane: 'exp' },
+  ];
+  const info = indiceDeLineas(listado);
+  const frec = frecuenciaDeRoles(listado.map((x) => ({ ...x, lanes: x.lane.split(',') })));
+  const draft = ['Angela', 'Kagura', 'Claude', 'Saber', 'YuZhong'].map((n) => ({ name: n }));
+  eq(detectarRivalDeLinea(draft, info, 'exp', frec), 'YuZhong',
+    'con la jungla ya cogida, el que juega exp o jungla tiene que ir a la exp');
+  eq(detectarRivalDeLinea(draft, info, 'jungle', frec), 'Saber', 'y la jungla es del jungla claro');
+
+  // 2. Con solo el ambiguo y nadie mas, sigue sin mojarse entre sus dos lineas.
+  ok(detectarRivalDeLinea([{ name: 'YuZhong' }], info, 'exp', frec) === null
+    || detectarRivalDeLinea([{ name: 'YuZhong' }], info, 'jungle', frec) === null,
+  'nombra al mismo heroe como rival de DOS lineas a la vez');
+
+  // 3. Precision medida sobre los datos reales, no sobre un fixture: drafts con
+  //    un enemigo por linea (verdad conocida). Los suelos salen de la medicion
+  //    del cambio (exp 60%->88%, jungla 69%->91%) con holgura, y el techo de
+  //    errores tambien. Si un cambio futuro vuelve a mirar a cada enemigo por
+  //    separado, esto lo nota.
+  const meta = JSON.parse(readFileSync(resolve(ROOT, 'public/data/roam-meta.json'), 'utf8'));
+  if (!(meta.heroes ?? []).length) return;
+  const todos = mergeCatalog(cat.heroes, meta.heroes);
+  const idx = indiceDeLineas(meta.heroes);
+  const fr = frecuenciaDeRoles(meta.heroes);
+  const pools = Object.fromEntries(LINEAS.map((l) => [l, poolDeLinea(todos, idx, l)]));
+  if (LINEAS.some((l) => pools[l].length < 10)) return;
+
+  let semilla = 13;
+  const r = () => (semilla = (semilla * 1103515245 + 12345) % 2147483648) / 2147483648;
+  const cuenta = Object.fromEntries(LINEAS.map((l) => [l, { bien: 0, mal: 0, n: 0 }]));
+  for (let d = 0; d < 600; d++) {
+    const usados = new Set();
+    const draftReal = {};
+    for (const l of LINEAS) {
+      let h;
+      do h = pools[l][Math.floor(r() * pools[l].length)]; while (usados.has(h.name));
+      usados.add(h.name);
+      draftReal[l] = h;
+    }
+    const enemigos = [...LINEAS].sort(() => r() - 0.5).map((l) => draftReal[l]);
+    for (const l of LINEAS) {
+      const dicho = detectarRivalDeLinea(enemigos, idx, l, fr);
+      cuenta[l].n++;
+      if (dicho === draftReal[l].name) cuenta[l].bien++;
+      else if (dicho != null) cuenta[l].mal++;
+    }
+  }
+  for (const l of LINEAS) {
+    const acierta = cuenta[l].bien / cuenta[l].n;
+    const falla = cuenta[l].mal / cuenta[l].n;
+    ok(acierta >= 0.80, `${l}: acierta el rival solo el ${(acierta * 100).toFixed(0)}% en draft completo`);
+    ok(falla <= 0.05, `${l}: nombra al rival equivocado el ${(falla * 100).toFixed(1)}%`);
+  }
+});
+
 test('los dos idiomas están completos y las reglas usan claves de verdad', async () => {
   const { CLAVES, DICCIONARIOS, crearT, idiomaPorDefecto, IDIOMAS } = await import('../src/i18n.js');
   const { COUNTER_RULES, TEAM_NEEDS, DANGER_RULES } = await import('../src/engine/rules.js');
