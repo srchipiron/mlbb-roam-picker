@@ -8,6 +8,17 @@ que esto no se olvida.
 Criterio: `0.X.0` cuando cambia cómo decide la app o qué hace; `0.0.X` para
 correcciones.
 
+## 1.24.0
+
+**El despliegue ya no puede quedarse colgado esperando a la API.** Se vio en
+directo: una ingesta llevaba veinte minutos en un paso que normalmente tarda
+nueve. La descarga hace unas 570 peticiones con 15 segundos de tope cada una,
+así que con la API a medias puede tardar más de dos horas — y el despliegue se
+quedaba ahí, aunque desde la 1.6.0 sabe publicar con los datos del repositorio
+cuando la descarga falla. Ahora la ingesta tiene tope de 20 minutos en los dos
+workflows, y pasarse cuenta como fallo: se publica con lo guardado y queda
+avisado en el registro.
+
 ## 1.23.0
 
 **El diagnóstico lleva ahora el draft que tienes delante, con nombres.** Desde

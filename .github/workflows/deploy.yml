@@ -41,6 +41,13 @@ jobs:
         # temporal y quien decide es el paso de abajo, mirando lo que hay.
         id: ingesta
         continue-on-error: true
+        # Tope de tiempo, porque "fallar" ya lo cubre continue-on-error pero
+        # "colgarse" no: la ingesta hace ~570 peticiones con 15 s de timeout
+        # cada una, asi que con la API caida a medias puede tardar 140 minutos
+        # y el despliegue se queda ahi aunque ya sepa publicar con los datos del
+        # repositorio. Lo normal medido son 9-10 minutos; 20 deja margen doble.
+        # Un timeout cuenta como fallo, y el paso de abajo hace lo de siempre.
+        timeout-minutes: 20
         run: node scripts/ingest.mjs --rank glory --days 7 --out /tmp/nueva.json
 
       - name: Elegir con qué datos se publica

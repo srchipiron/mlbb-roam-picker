@@ -1033,6 +1033,20 @@ test('los workflows que publican datos pasan por el guardarrail', () => {
   const deploy = readFileSync(resolve(ROOT, '.github/workflows/deploy.yml'), 'utf8');
   ok(/h > \d+\)/.test(deploy), 'deploy.yml ya no comprueba la antiguedad de los datos');
   ok(/cruces < \d+/.test(deploy), 'deploy.yml ya no comprueba que haya matriz de counters');
+
+  // Y con tope de tiempo en la ingesta. "Fallar" lo cubre continue-on-error,
+  // "colgarse" no: ~570 peticiones con 15 s de timeout son 140 minutos con la
+  // API a medias, y el despliegue se quedaba ahi sabiendo publicar con los
+  // datos del repositorio. Se vio en directo: una ingesta llevaba 20 minutos
+  // en un paso que normalmente tarda 9.
+  for (const f of ['deploy.yml', 'update-data.yml']) {
+    const yml = readFileSync(resolve(ROOT, `.github/workflows/${f}`), 'utf8');
+    const paso = yml.slice(yml.indexOf('name: Ingesta'), yml.indexOf('scripts/ingest.mjs'));
+    const m = paso.match(/timeout-minutes:\s*(\d+)/);
+    ok(m, `${f}: la ingesta no tiene timeout-minutes y puede colgar el workflow dos horas`);
+    if (m) ok(Number(m[1]) >= 15 && Number(m[1]) <= 40,
+      `${f}: timeout de ${m[1]} min; lo normal son 9-10 y hace falta margen sin dejar que se cuelgue`);
+  }
 });
 
 test('el tipo de dano sale del texto de Moonton, no del rol', async () => {

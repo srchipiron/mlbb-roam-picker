@@ -20,6 +20,8 @@ jobs:
       - name: Ingesta
         # A un temporal, no encima de los datos buenos: si esta corrida sale
         # peor, los de antes tienen que seguir intactos para poder compararlos.
+        # Con tope de tiempo: con la API a medias puede tardar 140 minutos.
+        timeout-minutes: 20
         run: node scripts/ingest.mjs --rank glory --days 7 --out /tmp/nueva.json
 
       - name: Descartar la corrida si resuelve menos que la guardada
