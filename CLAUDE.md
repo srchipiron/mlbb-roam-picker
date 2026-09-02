@@ -212,6 +212,12 @@ Todos estos llegaron a producción y costaron rondas enteras de ida y vuelta:
   premiaba TENER DATOS, no ser bueno con el héroe. Hoy `tuNivel` saca su media
   ponderada y todo va centrado ahí. Si añades algo que compare winrates
   personales, compáralo contra su nivel, nunca contra 0.50.
+- **Las constantes del rival de línea, sin medir** — con el arnés de drafts de
+  línea conocida se midieron las cuatro (`base`, `alt`, `rol`, `veto`); tres en
+  meseta, y `rol` monótono: a 0.10 cero rivales equivocados en 1.600 drafts
+  frente al 1,3–2,7% a 0.30, por 1–1,5 puntos de cobertura. Ver `ROL_TIPICO`.
+  La prueba de precisión mide ahora también drafts a medias, que es donde se
+  distingue.
 - **El rival de línea, deducido enemigo a enemigo** — nunca se había medido y
   con draft a medias se equivocaba del 10% al 21%: nombraba a un rival que aún
   no estaba en el draft y le doblaba el cruce. Desde 1.21.0 reparte a todos los

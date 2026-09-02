@@ -182,30 +182,40 @@ test('el rival se deduce por eliminacion, y acierta lo que se midio', async () =
 
   let semilla = 13;
   const r = () => (semilla = (semilla * 1103515245 + 12345) % 2147483648) / 2147483648;
-  const cuenta = Object.fromEntries(LINEAS.map((l) => [l, { bien: 0, mal: 0, n: 0 }]));
-  for (let d = 0; d < 600; d++) {
-    const usados = new Set();
-    const draftReal = {};
-    for (const l of LINEAS) {
-      let h;
-      do h = pools[l][Math.floor(r() * pools[l].length)]; while (usados.has(h.name));
-      usados.add(h.name);
-      draftReal[l] = h;
+  // Draft completo (5 enemigos) y draft a medias (3): el segundo es donde
+  // nombrar a alguien que aun no ha salido cuesta caro, y donde mas se nota el
+  // peso del rol (0.30: 2,7% de errores; 0.10: 0,0%).
+  const cuenta = {};
+  for (const cuantos of [5, 3]) {
+    let bien = 0; let mal = 0; let n = 0;
+    for (let d = 0; d < 600; d++) {
+      const usados = new Set();
+      const draftReal = {};
+      for (const l of LINEAS) {
+        let h;
+        do h = pools[l][Math.floor(r() * pools[l].length)]; while (usados.has(h.name));
+        usados.add(h.name);
+        draftReal[l] = h;
+      }
+      const orden = [...LINEAS].sort(() => r() - 0.5).slice(0, cuantos);
+      const enemigos = orden.map((l) => draftReal[l]);
+      for (const l of LINEAS) {
+        const real = orden.includes(l) ? draftReal[l].name : null;
+        const dicho = detectarRivalDeLinea(enemigos, idx, l, fr);
+        n++;
+        if (dicho == null) { if (!real) bien++; } else if (dicho === real) bien++; else mal++;
+      }
     }
-    const enemigos = [...LINEAS].sort(() => r() - 0.5).map((l) => draftReal[l]);
-    for (const l of LINEAS) {
-      const dicho = detectarRivalDeLinea(enemigos, idx, l, fr);
-      cuenta[l].n++;
-      if (dicho === draftReal[l].name) cuenta[l].bien++;
-      else if (dicho != null) cuenta[l].mal++;
-    }
+    cuenta[cuantos] = { bien: bien / n, mal: mal / n };
   }
-  for (const l of LINEAS) {
-    const acierta = cuenta[l].bien / cuenta[l].n;
-    const falla = cuenta[l].mal / cuenta[l].n;
-    ok(acierta >= 0.80, `${l}: acierta el rival solo el ${(acierta * 100).toFixed(0)}% en draft completo`);
-    ok(falla <= 0.05, `${l}: nombra al rival equivocado el ${(falla * 100).toFixed(1)}%`);
-  }
+  // Suelos y techos con holgura sobre lo medido (5en: 93,5% / 0,0%; 3en:
+  // 85,8% / 0,0%), pero lo bastante apretados para cazar tanto el metodo
+  // enemigo a enemigo (60% en exp, 5% de error) como un peso del rol de 0.30
+  // (2,7% de error a medias).
+  ok(cuenta[5].bien >= 0.88, `draft completo: acierta solo el ${(cuenta[5].bien * 100).toFixed(1)}%`);
+  ok(cuenta[5].mal <= 0.01, `draft completo: nombra al rival equivocado el ${(cuenta[5].mal * 100).toFixed(1)}%`);
+  ok(cuenta[3].bien >= 0.80, `draft a medias: acierta solo el ${(cuenta[3].bien * 100).toFixed(1)}%`);
+  ok(cuenta[3].mal <= 0.012, `draft a medias: nombra a un rival equivocado el ${(cuenta[3].mal * 100).toFixed(1)}%`);
 });
 
 test('los dos idiomas están completos y las reglas usan claves de verdad', async () => {
