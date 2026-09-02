@@ -44,6 +44,13 @@ cuáles son. Escribirle sus tags propios lo hace mejor, pero es opcional, no un 
 
 ## Fuente de datos
 
+Las **partidas profesionales** (picks, baneos y resultado de cada partida de MPL, MSC, M-Series y
+demás torneos S/A) salen de [Liquipedia](https://liquipedia.net/mobilelegends), bajo licencia
+[CC-BY-SA 3.0](https://creativecommons.org/licenses/by-sa/3.0/). Se leen por su API (nunca el HTML),
+con un User-Agent identificado y una petición cada 5 segundos, como piden sus condiciones de uso.
+`scripts/ingesta-pro.mjs` las guarda en `historial/pro-partidas.jsonl` (la muestra, para
+`scripts/medir-pro.mjs`) y en `public/data/pro.json` (lo poco que lee la app).
+
 API pública de la comunidad (proyecto OpenMLBB / api-mobilelegends, licencia BSD-3): winrate, pickrate,
 banrate por rango, además de counters y compatibilidad por héroe. No es oficial de Moonton.
 

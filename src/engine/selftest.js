@@ -31,7 +31,7 @@ const OK = 'OK  ';
 const MAL = 'FALLO';
 const AVISO = 'AVISO';
 
-export function runSelfTest({ catalog, meta, metaCtx, allHeroes, roamPool, mastery, partidas = [], linea = 'roam', env = {}, draft = null, historial = null }) {
+export function runSelfTest({ catalog, meta, metaCtx, allHeroes, roamPool, mastery, partidas = [], linea = 'roam', env = {}, draft = null, historial = null, pro = null }) {
   const lineas = [];
   let fallos = 0;
   let avisos = 0;
@@ -361,6 +361,27 @@ export function runSelfTest({ catalog, meta, metaCtx, allHeroes, roamPool, maste
     if (conFallos) lineas.push(`Corridas con fallos en la serie: ${conFallos} de ${ultimas.length}`);
   } else {
     lineas.push(filasHist.length ? `Solo ${filasHist.length} corridas: aún no hay serie` : '(sin historial a mano)');
+  }
+
+  // ---------- partidas profesionales ----------
+  seccion('PROFESIONAL');
+  if (!pro) {
+    lineas.push('Sin partidas profesionales (public/data/pro.json no llega): la app funciona igual, sin la línea «Pro» de las tarjetas');
+  } else {
+    lineas.push(`${pro.partidas ?? 0} partidas de ${pro.torneos ?? 0} torneos desde ${pro.desde ?? '?'} (${pro.primera ?? '?'} → ${pro.ultima ?? '?'}) · ${pro.total ?? '?'} guardadas en total`);
+    const edadDias = pro.generatedAt ? (Date.now() - Date.parse(pro.generatedAt)) / 86400e3 : null;
+    if (edadDias != null) lineas.push(`Corrida de hace ${edadDias.toFixed(1)} días · ${pro.peticiones ?? '?'} peticiones · ${(pro.errores ?? []).length} errores`);
+    for (const e of (pro.errores ?? []).slice(0, 3)) lineas.push(`  ${e}`);
+    // Un slug que no se reconoce descarta partidas en silencio: que se vea.
+    const sinMapear = Object.entries(pro.sinMapear ?? {});
+    check(!sinMapear.length, 'Todos los nombres de Liquipedia se reconocen',
+      `Nombres de Liquipedia sin reconocer: ${sinMapear.map(([s, n]) => `${s} (${n})`).join(', ')}: añade el alias en ingesta-pro.mjs`, true);
+    // Los picks de la ventana tienen que ser los del pool de tu línea: si un
+    // héroe con 40 picks pro no está en tu pool, o las líneas de la API o los
+    // alias están mal.
+    const conPicks = Object.keys(pro.heroes ?? {}).length;
+    check(conPicks >= 50 || (pro.partidas ?? 0) < 30, `${conPicks} héroes con presencia profesional`,
+      `Solo ${conPicks} héroes con presencia en ${pro.partidas} partidas: la ventana o el mapeo están mal`, true);
   }
 
   seccion('MOTOR');

@@ -8,6 +8,25 @@ que esto no se olvida.
 Criterio: `0.X.0` cuando cambia cómo decide la app o qué hace; `0.0.X` para
 correcciones.
 
+## 1.29.0
+
+- **Partidas profesionales de verdad, con resultado.** Un bot semanal lee de
+  Liquipedia (CC-BY-SA 3.0) cada partida de los torneos S y A (MPL, MSC,
+  M-Series...): los cinco picks de cada equipo, los baneos, el lado y quién
+  ganó. Es lo que hace falta para medir el motor contra la realidad, y
+  `scripts/medir-pro.mjs` lo hace término a término.
+- **Lo que hacen los profesionales con cada héroe**, en su tarjeta: «Pro:
+  84 picks · 54% · 35 bans» en los torneos de los últimos cuatro meses. Es
+  dato, y se lee distinto que el winrate de tu rango: un héroe muy baneado
+  en pro es fuerte aunque su winrate público sea del montón.
+- El diagnóstico tiene sección PROFESIONAL: cuántas partidas, de cuándo, y
+  si algún nombre de Liquipedia se ha quedado sin reconocer.
+- Lo medido ya con 164 partidas de MPL Indonesia (un año antes que los datos
+  actuales): el modelo completo no se distingue del azar, los cruces son el
+  único término con señal y el de héroes no tiene ninguna en pro. Con tan
+  pocas partidas y de otro parche no se cambia nada: hacen falta miles de la
+  misma época, y para eso está el bot.
+
 ## 1.28.0
 
 - **Probabilidad estimada de ganar.** Debajo del análisis sale «55% con

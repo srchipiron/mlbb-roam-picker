@@ -406,6 +406,81 @@ test('la calibracion compara lo previsto con lo que paso, y se guarda al apuntar
   ok(calibracion(buenas.slice(0, 5)).faltan === MINIMO_PARA_CALIBRAR - 5, 'no dice cuantas faltan');
 });
 
+test('la ingesta profesional lee los drafts de Liquipedia y reconoce a los heroes', async () => {
+  const { parsearPartidas, resumirPro, resolverHeroe, fechaISO, claveDe, ALIAS } = await import('./ingesta-pro.mjs');
+  const { evaluar, cargarPartidas } = await import('./medir-pro.mjs');
+  // Un trozo real de wikitext (MPL ID S16, fase regular): dos partidas de un
+  // {{Match}} con fecha y equipos, y un {{Map}} sin picks (no jugado).
+  const w = `{{Match
+    |date=August 22, 2025 - 15:15{{abbr/ICT}}
+    |opponent1={{TeamOpponent|ONIC}} |opponent2={{TeamOpponent|Dewa United Esports}}
+    {{Map|vod=x
+        |team1side=red |team2side=blue |length=11:44 |winner=1
+        |t1h1=cici |t1h2=joy |t1h3=pharsa |t1h4=claude |t1h5=hylos
+        |t2h1=esmeralda |t2h2=lancelot |t2h3=helcurt |t2h4=harith |t2h5=gatotkaca
+        |t1b1=wanwan |t1b2=yss |t1b3=fanny |t1b4=selena |t1b5=uranus
+        |t2b1=zhuxin |t2b2=kalea |t2b3=phoveus |t2b4=bruno |t2b5=granger
+    }}
+    {{Map|team1side=blue |team2side=red |length=14:02 |winner=2
+        |t1h1=luo yi |t1h2=lance |t1h3=xborg |t1h4=yuzhong |t1h5=lapu-lapu
+        |t2h1=esme |t2h2=haya |t2h3=valen |t2h4=arlot |t2h5=gatot
+    }}
+    {{Map|winner=skip}}
+}}`;
+  const ps = parsearPartidas(w, 'T');
+  eq(ps.length, 2, `deberian salir dos partidas jugadas, no ${ps.length}`);
+  eq(ps[0].fecha, '2025-08-22', 'la fecha del {{Match}} no llega a la partida');
+  eq(ps[0].equipos.join('|'), 'ONIC|Dewa United Esports', 'los equipos no llegan');
+  eq(ps[0].ganador, 1, 'el ganador no se lee'); eq(ps[1].ganador, 2, 'el ganador del segundo mapa no se lee');
+  eq(ps[0].picks[1][4], 'gatotkaca', 'los picks del equipo 2 no se leen en orden');
+  eq(ps[0].bans[0][1], 'yss', 'los baneos no se leen');
+  eq(ps[0].lado1, 'red', 'el lado no se lee');
+  ok(claveDe(ps[0]) !== claveDe(ps[1]), 'dos partidas distintas comparten clave');
+  eq(fechaISO('October 19, 2025 - 20:15{{abbr/ICT}}'), '2025-10-19', 'fechaISO');
+
+  // Cada alias apunta a un heroe REAL del catalogo, y los slugs del fixture
+  // (los abreviados de Liquipedia incluidos) se resuelven todos.
+  const indice = new Map(all.map((h) => [normName(h.name), h]));
+  for (const [slug, nombre] of Object.entries(ALIAS)) {
+    ok(indice.has(normName(nombre)), `el alias ${slug} -> ${nombre} no apunta a un heroe del catalogo`);
+    eq(resolverHeroe(slug, indice)?.name, nombre, `el alias ${slug} no resuelve a ${nombre}`);
+  }
+  const slugs = ps.flatMap((p) => [...p.picks.flat(), ...p.bans.flat()]);
+  const sinMapear = slugs.filter((s) => !resolverHeroe(s, indice));
+  eq(sinMapear.length, 0, `slugs sin reconocer: ${sinMapear.join(', ')}`);
+  eq(resolverHeroe('yss', indice)?.name, 'Yi Sun-shin', 'yss deberia ser Yi Sun-shin');
+  eq(resolverHeroe('lance', indice)?.name, 'Lancelot', 'lance deberia ser Lancelot');
+
+  // El resumen cuenta picks, victorias y baneos por heroe, y respeta la ventana.
+  const r = resumirPro(ps, all);
+  eq(r.partidas, 2, 'no cuenta las partidas');
+  eq(r.heroes.Cici?.picks, 1, 'no cuenta el pick de Cici'); eq(r.heroes.Cici?.ganadas, 1, 'Cici gano y no se cuenta');
+  eq(r.heroes.Esmeralda?.picks, 2, 'Esmeralda jugo las dos'); eq(r.heroes.Esmeralda?.ganadas, 1, 'Esmeralda gano una');
+  eq(r.heroes['Yi Sun-shin']?.bans, 1, 'el baneo de yss no se cuenta');
+  eq(resumirPro(ps, all, { desde: '2026-01-01' }).partidas, 0, 'la ventana no filtra');
+  eq(Object.keys(r.sinMapear).length, 0, `sin mapear en el resumen: ${JSON.stringify(r.sinMapear)}`);
+
+  // La medida: un predictor perfecto da AUC 1 y pendiente grande; uno al
+  // reves, AUC 0; el ruido, alrededor de 0.5 y pendiente ~0.
+  const perfecto = Array.from({ length: 60 }, (_, i) => ({ L: (i % 2 ? 1 : -1) * (0.5 + (i % 5) / 10), y: i % 2 }));
+  const ev = evaluar(perfecto);
+  eq(ev.auc, 1, `AUC de un predictor perfecto ${ev.auc}`); ok(ev.pendiente > 1.5, `pendiente de un predictor perfecto ${ev.pendiente}`); ok(ev.acierto === 1, 'acierto');
+  const alReves = evaluar(perfecto.map((r) => ({ L: -r.L, y: r.y })));
+  eq(alReves.auc, 0, `AUC al reves ${alReves.auc}`);
+  let s = 9; const rnd = () => (s = (s * 1103515245 + 12345) % 2147483648) / 2147483648;
+  const ruido = evaluar(Array.from({ length: 400 }, () => ({ L: rnd() * 2 - 1, y: rnd() < 0.5 ? 1 : 0 })));
+  ok(Math.abs(ruido.auc - 0.5) < 0.08 && Math.abs(ruido.pendiente) < 0.5, `ruido: AUC ${ruido.auc} pendiente ${ruido.pendiente}`);
+  const { usables } = cargarPartidas(ps, all);
+  eq(usables.length, 2, 'cargarPartidas descarta partidas con todos los heroes reconocidos');
+
+  // El workflow: a temporales, con tope de tiempo, y sin perder partidas.
+  const yml = readFileSync(resolve(ROOT, '.github/workflows/pro.yml'), 'utf8');
+  const paso = yml.split('\n').find((l) => l.includes('scripts/ingesta-pro.mjs'));
+  ok(paso && paso.includes('--out ') && paso.includes('--out-partidas'), 'pro.yml escribe directo sobre lo guardado');
+  ok(/timeout-minutes:\s*\d+/.test(yml), 'pro.yml no tiene tope de tiempo');
+  ok(/-lt/.test(yml) && /wc -l/.test(yml), 'pro.yml no comprueba que no se pierdan partidas');
+});
+
 test('el rival se deduce por eliminacion, y acierta lo que se midio', async () => {
   const { detectarRivalDeLinea, indiceDeLineas, frecuenciaDeRoles } =
     await import('../src/engine/rival-de-linea.js');

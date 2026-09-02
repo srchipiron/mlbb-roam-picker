@@ -197,7 +197,7 @@ export function HeroSheet({
 }
 
 /** Tarjeta de recomendación con la barra de desglose del score. */
-export function Pick({ result, index, stat, onBuild, t = tPorDefecto }) {
+export function Pick({ result, index, stat, pro = null, onBuild, t = tPorDefecto }) {
   const total = Object.values(result.contributions).reduce((a, b) => a + b, 0) || 1;
   return (
     <article className={`pick ${index === 0 ? 'top' : ''}`}>
@@ -252,6 +252,18 @@ export function Pick({ result, index, stat, onBuild, t = tPorDefecto }) {
         <span className="pick-wr">
           {stat?.winRate != null ? `${(stat.winRate * 100).toFixed(1)}% WR` : t('app.sinDatos')}
         </span>
+        {/* Lo que hacen los profesionales con él en los últimos torneos: es
+            DATO (Liquipedia), no opinión, y se lee distinto que el winrate de
+            tu rango: un héroe muy baneado en pro es fuerte aunque su winrate
+            público sea del montón. */}
+        {pro && pro.picks + pro.bans >= 3 && (
+          <span className="pick-pro" title={t('pro.titulo')}>
+            {/* El porcentaje solo con muestra: «0% en 1 pick» no dice nada. */}
+            {pro.picks >= 5
+              ? t('pro.linea', { picks: pro.picks, pct: Math.round(pro.ganadas / pro.picks * 100), bans: pro.bans })
+              : t('pro.lineaSinPct', { picks: pro.picks, bans: pro.bans })}
+          </span>
+        )}
         {/* Los objetos son lo siguiente que necesitas DESPUES de elegir, asi
             que van detras de un toque y no ocupando la tarjeta. */}
         {onBuild && (
@@ -1041,6 +1053,7 @@ export function AvisoLegal({ t = tPorDefecto, idioma, onIdioma, idiomas = ['es',
       </div>
       <p>{t('legal.noAfiliado')}</p>
       <p>{t('legal.privacidad')}</p>
+      <p>{t('legal.liquipedia')}</p>
       {ENLACE_DONAR && (
         <a className="donar" href={ENLACE_DONAR} target="_blank" rel="noopener noreferrer">
           {t('donar.texto')}

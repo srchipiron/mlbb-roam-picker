@@ -360,6 +360,43 @@ a suponer:
 - Es determinista (semilla fija): sin eso el número bailaría entre dos
   aperturas del diagnóstico.
 
+## Las partidas profesionales (Liquipedia)
+
+Desde 1.29.0, `scripts/ingesta-pro.mjs` y `pro.yml` (lunes). Es la ÚNICA
+fuente pública con drafts completos y resultado partida a partida; la API
+comunitaria solo tiene las del propio usuario, tras el login que no se toca
+(la cuenta de Javi vale dinero). Se buscaron otras APIs y no hay: la de
+`sixthmelb` está muerta, `mlbb.rone.dev` no resuelve, mlbb.io bloquea
+robots, mlbb.gg es una web. Antes de añadir una fuente, compruébala como
+aquí: pidiéndole datos, no leyendo su README.
+
+- **Se lee por la API y como piden sus condiciones**: `Accept-Encoding:
+  gzip` (sin eso, 406), User-Agent con contacto, una petición cada 5 s, y
+  NUNCA `action=parse` (una cada 30 s): el wikitext se lee con
+  `prop=revisions`. Desde una IP compartida Liquipedia corta mucho antes de
+  lo que dice (429 con Turnstile durante minutos): por eso hay retroceso de
+  2/4/8 minutos, tope de peticiones, y se guarda lo leído en vez de tirarlo.
+  Los picks van en `{{Map}}` (`t1h1..t2b5`, `winner`, `team1side`) dentro de
+  `{{Match}}` (`date`, `opponentN`) en las SUBPÁGINAS del torneo (Regular
+  Season, Playoffs...), no en la portada. La portada trae `sdate`/`edate`/
+  `patch` en la infobox.
+- **Los nombres son slugs y abreviaturas** (`yss`, `lance`, `esme`, `gatot`,
+  `luo yi`). `ALIAS` en el script solo lleva lo visto en wikitext real, y un
+  slug sin mapear descarta la partida y aparece en `pro.json` y en el
+  diagnóstico. Un alias adivinado mete al héroe de al lado: peor que perder
+  la partida.
+- **Lo medido con 164 partidas de MPL ID S16 (agosto–octubre 2025, un año
+  antes que los datos)**: modelo completo AUC 0.54, pendiente 0.29 ± 0.31;
+  solo cruces AUC 0.56, pendiente 1.05 ± 0.67; solo héroes 0.09 ± 0.40; lado
+  azul 50%. Con ese ± no se concluye nada de la escala. En pro los dos
+  equipos eligen del mismo meta, así que el término de héroes discrimina
+  poco ahí; en solo queue de Javi no tiene por qué ser igual. **No toques la
+  escala de `estimacion.js` por esto**: hacen falta miles de partidas de la
+  misma época (`--dias 120`) y `medir-pro.mjs` corre en cada corrida del bot.
+- Es incremental y monótona: funde por `claveDe` y `pro.yml` rechaza una
+  corrida con menos partidas que las guardadas. `pro.json` es un EXTRA para
+  la app (la línea «Pro» de las tarjetas): sin él, la app funciona igual.
+
 ## La probabilidad estimada de ganar
 
 Desde 1.28.0, `src/engine/estimacion.js`. Modelo aditivo en log-odds con
