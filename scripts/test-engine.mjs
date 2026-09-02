@@ -168,6 +168,41 @@ test('la robustez del pick: determinista, suma uno y predice si aguanta', async 
   eq(simularFinales({ ...args, enemies: LINEAS.map((l) => pools[l][2]), lineasAbiertas: [] }), null,
     'simula finales con el draft ya completo');
 
+  // 2b. Un baneado ni es candidato tuyo ni puede salir por ninguna linea. Con
+  //     el lider baneado, la app lo quita del ranking: si la simulacion le
+  //     siguiera votando, al nº1 real lo llamaria "fragil" con una cuota falsa.
+  const lider = { name: r1.lider };
+  const conBan = simularFinales({ ...args, ctx: { ...args.ctx, bans: [lider] } });
+  eq(conBan.cuota[r1.lider] ?? 0, 0, 'la simulacion vota a un heroe baneado');
+  //     Y banear a unos cuantos es lo mismo que quitarlos de TODOS los pools
+  //     enemigos (solo los que no son candidatos tuyos, para no tocar tu pool
+  //     por el otro lado; un mago que tambien juega jungla sale de las dos).
+  const enRoam = new Set(pools.roam.map((h) => h.name));
+  const soloMid = pools.mid.filter((h) => !enRoam.has(h.name));
+  ok(soloMid.length >= 5, 'el fixture necesita magos que no sean roamers');
+  const fuera = new Set(soloMid.map((h) => h.name));
+  const recortada = simularFinales({ ...args, poolsPorLinea: Object.fromEntries(LINEAS.map((l) => [l, pools[l].filter((h) => !fuera.has(h.name))])) });
+  const baneada = simularFinales({ ...args, ctx: { ...args.ctx, bans: soloMid } });
+  ok(JSON.stringify(recortada.cuota) === JSON.stringify(baneada.cuota), 'un baneado puede salir por una linea abierta');
+
+  // 2c. Si tu linea esta abierta, el que sale por ella en ese final es tu
+  //     rival y su cruce pesa doble, como en el ranking real. Fixture: contra
+  //     el enemigo visto V gana B; contra el rival E que falta gana A. A peso
+  //     uno manda B (0.5075 frente a 0.505); a peso dos, A (0.513 frente a
+  //     0.502). Medido en drafts reales: con el rival dentro, "pick seguro"
+  //     acierta mas (roam con 3 vistos 55%->62%, exp con 2 vistos 61%->68%).
+  const H = (name, lanes) => ({ name, role: 'tank', lanes, tags: [] });
+  const A = H('A', ['roam']); const B = H('B', ['roam']); const E = H('E', ['roam']); const V = H('V', ['mid']);
+  const st = indexByName(Object.fromEntries(['A', 'B', 'E', 'V'].map((n) => [n, { winRate: 0.5, pickRate: 0.01, banRate: 0 }])));
+  const fixtureArgs = {
+    pool: [A, B], enemies: [V], lineasAbiertas: ['roam'], poolsPorLinea: { roam: [E] }, n: 4,
+    ctx: { meta: { stats: st, counters: indexByName({ A: { V: 0.48, E: 0.53 }, B: { V: 0.525, E: 0.49 } }, 2), synergies: {} }, mastery: {} },
+  };
+  eq(simularFinales({ ...fixtureArgs, linea: 'roam' }).lider, 'A', 'el que sale por tu linea no cuenta como rival');
+  eq(simularFinales({ ...fixtureArgs, linea: null }).lider, 'B', 'el fixture del rival no discrimina: sin rival deberia ganar B');
+  //     Con el rival ya marcado, el simulado por tu linea no lo sustituye.
+  eq(simularFinales({ ...fixtureArgs, linea: 'roam', ctx: { ...fixtureArgs.ctx, enemyRoam: 'V' } }).lider, 'B', 'un rival marcado a mano se pierde en la simulacion');
+
   // 3. Lo que importa: la cuota PREDICE si el nº1 aguanta hasta el final. Medido
   //    con 3 enemigos vistos: si la cuota >= 0.5 aguanta el 59%, si no el 27%.
   //    Aqui se exige que la razon entre ambos sea al menos 1,5 sobre 150

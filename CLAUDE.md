@@ -334,9 +334,17 @@ mismo reparto que el rival) y ponderando cada línea por pickrate— y se cuenta
 en qué fracción tu nº1 sigue siéndolo. Dos cosas medidas que no conviene volver
 a suponer:
 
-- **La cuota predice**: con 2 enemigos vistos, cuota ≥ 0.5 → el nº1 aguanta el
-  58% del draft completo; < 0.5 → 27%. Con 3: 59/27. Con 4: 72/39. Con 1 visto
-  casi nada es robusto (4 de 200). `CUOTA_ROBUSTA = 0.5` es donde separa.
+- **La cuota predice**: en roam con 2 enemigos vistos, cuota ≥ 0.5 → el nº1
+  aguanta el 71% del draft completo; < 0.5 → 28%. Con 3: 62/26. Con 4: 71/31.
+  Con 1 visto casi nada es robusto (14 de 200). `CUOTA_ROBUSTA = 0.5` es donde
+  separa. Medido con el rival de línea contando doble, como en la app.
+- **El final simulado tiene que parecerse al real** (1.27.1): los baneados no
+  salen por ninguna línea ni son candidatos (la primera versión votaba a un
+  héroe baneado que la app no enseñaba, y llamaba «frágil» al nº1 real con
+  una cuota falsa), y el que sale por TU línea es tu rival, con su cruce a
+  peso doble. Con el rival dentro «pick seguro» acierta más (roam, 3 vistos:
+  55%→62%) y se dice menos. Si `rankRoamers` gana otra entrada de contexto que
+  cambie el ranking, pásala también a la simulación.
 - **No se usa para ordenar.** Medido con 120 simulaciones y dos semillas:
   ordenar por la simulación solo mejora con un enemigo visto (+4–6 puntos de
   acierto del nº1) y con dos o tres no aporta nada; cambiar de mecanismo en una
