@@ -193,8 +193,6 @@ export const DANGER_RULES = [
   { allyTag: 'engage', enemyTag: 'zone', weight: 0.5, why: 'peligro.cortaInicios' },
 ];
 
-/** Umbral de partidas a partir del cual la maestría personal se considera fiable. */
-export const MASTERY_CONFIDENCE_GAMES = 20;
 
 /**
  * Pesos por defecto de cada componente del score final.
