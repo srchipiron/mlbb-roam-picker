@@ -294,6 +294,79 @@ test('el diagnostico detecta datos imposibles y caidas frente a su propio histor
   ok(/A aguanta el 70%: pick seguro/.test(conDraft), 'no califica el pick por su cuota');
 });
 
+test('perfiles y registro: fundir por instante, sanear lo que llega y maestria por nombre normalizado', async () => {
+  const { fundirPerfil, sanear } = await import('../src/engine/perfil.js');
+  const { apuntar, olvidar, corregir, maestriaDesdeRegistro, maestriaEfectiva, resumen } = await import('../src/engine/registro.js');
+  const { masteryScore, lookup } = await import('../src/engine/score.js');
+
+  // 1. Una partida corregida aqui y reimportada de un codigo viejo es UNA, y
+  //    gana la copia local (la corregida). Antes salian dos, olvidar(t)
+  //    borraba las dos y la maestria contaba doble.
+  const local = apuntar([], { t: 1000, pick: 'Tigreal', gane: false });
+  const exportado = { mastery: {}, partidas: local };
+  const corregido = corregir(local, 1000, true);
+  const fundido = fundirPerfil({ mastery: {}, partidas: corregido }, exportado);
+  eq(fundido.partidas.length, 1, `la partida corregida sale ${fundido.partidas.length} veces`);
+  eq(fundido.partidas[0].gane, true, 'al fundir se pierde la correccion local');
+  eq(olvidar(fundido.partidas, 1000).length, 0, 'olvidar no la quita');
+  eq(maestriaDesdeRegistro(fundido.partidas).Tigreal.games, 1, 'la maestria la cuenta doble');
+
+  // 2. Un perfil con la forma rota no mete basura ni revienta la pantalla.
+  const roto = sanear({ mastery: 'abc', partidas: 'xy' });
+  eq(Object.keys(roto.mastery).length, 0, 'las letras de un string entran como heroes');
+  eq(roto.partidas.length, 0, 'un string entra como partidas');
+  const raro = sanear({ mastery: { A: { games: 10, winRate: 0.6 }, B: { games: 0, winRate: 0.5 }, C: { games: 5, winRate: 7 }, D: 'x' }, partidas: [{ t: 1, pick: 'A', gane: true, recomendados: 'ABC' }, { pick: 'B' }, null] });
+  eq(Object.keys(raro.mastery).join(','), 'A', `maestria saneada: ${Object.keys(raro.mastery)}`);
+  eq(raro.partidas.length, 1, 'una partida sin instante o nula pasa el filtro');
+  ok(Array.isArray(raro.partidas[0].recomendados), 'recomendados no es una lista');
+  ok(resumen(fundirPerfil({ mastery: {}, partidas: [] }, { mastery: 'abc', partidas: [{ t: 2, pick: 'A', gane: true, recomendados: 'ABC' }] }).partidas) != null, 'resumen revienta con un perfil saneado');
+  ok(Array.isArray(apuntar(null, { pick: 'A', gane: true })), 'apuntar(null) revienta');
+  eq(apuntar([], { pick: 'A', gane: true, recomendados: 'ABC' })[0].recomendados.length, 0, 'recomendados como string se guarda troceado');
+
+  // 3. La maestria escrita como "X.Borg" le sirve al heroe "X Borg", y el
+  //    motor la lee: antes 400 partidas desaparecian por un punto.
+  const ef = maestriaEfectiva({ 'X.Borg': { games: 400, winRate: 0.6 } }, [{ t: 3, pick: 'X Borg', gane: true }]);
+  eq(Object.keys(ef).length, 1, `dos claves para el mismo heroe: ${Object.keys(ef)}`);
+  eq(lookup(ef, 'X Borg')?.games, 400, 'lookup no encuentra la maestria por el nombre del catalogo');
+  ok(masteryScore({ name: 'X Borg' }, ef).value > 0.5, 'el motor no lee la maestria escrita con otra grafia');
+  // 4. winRate null importado: neutro, no 0%.
+  eq(masteryScore({ name: 'A' }, { A: { games: 50, winRate: null } }).value, 0.5, 'winRate null castiga en vez de ser neutro');
+});
+
+test('los motivos se filtran antes de cortar a tres, y el pick a ciegas es un solo criterio', async () => {
+  const { rankRoamers, esPickCiego, indexByName, scoreHero, idRazon } = await import('../src/engine/score.js');
+  eq(esPickCiego(0.7, 2), true, 'riesgo alto con dos vistos deberia ser a ciegas');
+  eq(esPickCiego(0.7, 4), false, 'con cuatro vistos ya no es a ciegas');
+  eq(esPickCiego(0.5, 1), false, 'riesgo bajo no es a ciegas');
+  eq(esPickCiego(null, 0), false, 'sin riesgo no es a ciegas');
+  // Sobre datos reales: ninguna tarjeta enseña menos de tres motivos teniendo
+  // un cuarto propio disponible (antes pasaba en el 12% de las tarjetas).
+  const meta = JSON.parse(readFileSync(resolve(ROOT, 'public/data/roam-meta.json'), 'utf8'));
+  if (!(meta.heroes ?? []).length) return;
+  const todos = mergeCatalog(cat.heroes, meta.heroes);
+  const M = { stats: indexByName(meta.stats), counters: indexByName(meta.counters, 2), synergies: indexByName(meta.synergies, 2), patchAvgWinRate: meta.patchAvgWinRate };
+  const poolReal = todos.filter((h) => h.roam);
+  let s = 21; const rnd = () => (s = (s * 1103515245 + 12345) % 2147483648) / 2147483648;
+  let cortas = 0; let tarjetas = 0;
+  for (let d = 0; d < 30; d++) {
+    const u = new Set(); const coge = () => { let h; do { h = todos[Math.floor(rnd() * todos.length)]; } while (u.has(h.name)); u.add(h.name); return h; };
+    const enemies = [coge(), coge(), coge()]; const allies = [coge(), coge()];
+    const ctx = { enemies, allies, meta: M, mastery: {} };
+    const ranked = rankRoamers(poolReal, ctx);
+    // Los comunes, recalculados igual que el motor, sobre la lista COMPLETA.
+    const completas = poolReal.filter((h) => !u.has(h.name)).map((h) => scoreHero(h, ctx).reasons);
+    const frec = new Map(); for (const rs of completas) for (const k of new Set(rs.map(idRazon))) frec.set(k, (frec.get(k) ?? 0) + 1);
+    const comunes = new Set([...frec].filter(([, n]) => n > completas.length * 0.6).map(([k]) => k));
+    for (const r of ranked) {
+      const disponibles = scoreHero(r.hero, ctx).reasons.filter((x) => !comunes.has(idRazon(x))).length;
+      const sinCiego = r.reasons.filter((x) => x.clave !== 'regla.arriesgadoCiego').length;
+      tarjetas += 1;
+      if (sinCiego < Math.min(3, disponibles) && !r.reasons.some((x) => x.clave === 'regla.arriesgadoCiego')) cortas += 1;
+    }
+  }
+  eq(cortas, 0, `${cortas} de ${tarjetas} tarjetas ensenan menos motivos de los que tienen`);
+});
+
 test('la estimacion de victoria: neutra sin datos, simetrica, y cae donde se midio', async () => {
   const { estimarVictoria, mediaDeSinergia } = await import('../src/engine/estimacion.js');
   const { indiceDeLineas } = await import('../src/engine/rival-de-linea.js');
@@ -1395,7 +1468,7 @@ test('una corrida de ingesta degradada no llega a los datos guardados', async ()
   ok(medir({}).heroes === 0, 'medir() no aguanta un JSON vacio');
 });
 
-test('los workflows que publican datos pasan por el guardarrail', () => {
+test('los workflows que publican datos pasan por el guardarrail', async () => {
   // Si alguien vuelve a poner la ingesta escribiendo directa sobre
   // public/data, el guardarrail deja de mirar y volvemos al fallo de arriba.
   // Los TRES que ejecutan la ingesta. mantenimiento.yml se quedo fuera de esta
@@ -1433,6 +1506,31 @@ test('los workflows que publican datos pasan por el guardarrail', () => {
   ok(Number(umbral) < 72, `frescura ${umbral} h no es menor que el limite de rancio (72 h)`);
   ok(/outcome }}"? = "skipped"/.test(deploy),
     'el paso de elegir datos no distingue "ingesta omitida" de "ingesta fallida": avisaria de un fallo que no existe');
+
+  // Los bots que commitean hacen rebase antes del push: la vigilancia mueve
+  // main varias veces al dia y un push rechazado pierde la corrida entera.
+  for (const f of ['update-data.yml', 'pro.yml']) {
+    const yml = readFileSync(resolve(ROOT, `.github/workflows/${f}`), 'utf8');
+    const push = yml.indexOf('git push'); const rebase = yml.indexOf('git pull --rebase');
+    ok(push > 0 && rebase > 0 && rebase < push, `${f}: hace git push sin git pull --rebase antes`);
+  }
+  // La vigilancia solo abre incidencia si el paso de pruebas falla, y con un
+  // `| tee` sin pipefail el paso devolvia siempre el codigo de tee.
+  const vig = readFileSync(resolve(ROOT, '.github/workflows/vigilancia.yml'), 'utf8');
+  const pruebas = vig.slice(vig.indexOf('name: Pruebas'), vig.indexOf('npm test'));
+  ok(/shell:\s*bash/.test(pruebas), 'vigilancia.yml: el paso de pruebas no tiene shell: bash (sin pipefail, npm test en rojo no abre incidencia)');
+  // Cualquier paso que llame a la API lleva tope de tiempo, no solo la ingesta.
+  const mant = readFileSync(resolve(ROOT, '.github/workflows/mantenimiento.yml'), 'utf8');
+  const desdeRegenerar = mant.indexOf('name: Regenerar tablas');
+  const regenerar = mant.slice(desdeRegenerar, mant.indexOf('derivar-tags.mjs', desdeRegenerar));
+  ok(/timeout-minutes:\s*\d+/.test(regenerar), 'mantenimiento.yml: regenerar tablas llama a la API sin timeout-minutes');
+  // Un despliegue por workflow_run solo si el bot acabo bien.
+  ok(/workflow_run\.conclusion == 'success'/.test(deploy), 'deploy.yml despliega tambien cuando el bot descarto su corrida');
+  // El guardarrail cuenta rangos: con glory caido, epic se colaba bajo su etiqueta.
+  const { medir } = await import('./comparar-ingesta.mjs');
+  const m = medir({ rank: 'glory', stats: { A: {} }, statsByRank: { epic: { A: {} } } });
+  eq(m.rangoPedido, 0, 'comparar-ingesta no nota que falta el rango pedido');
+  eq(medir({ rank: 'glory', stats: {}, statsByRank: { epic: {}, glory: {} } }).rangos, 2, 'comparar-ingesta no cuenta los rangos');
 
   // Y con tope de tiempo en la ingesta. "Fallar" lo cubre continue-on-error,
   // "colgarse" no: ~570 peticiones con 15 s de timeout son 140 minutos con la
@@ -1889,7 +1987,9 @@ test('las partidas viejas personalizan pero NO ensucian la comparacion', async (
   ok(ps.filter(esPrevia).length === 40, 'no marca las viejas como previas');
 
   // Y SI tienen que personalizar: para eso se meten.
-  const m = maestriaEfectiva({ Diggie: { games: 3821, winRate: 0.54 } }, ps);
+  // Las claves van normalizadas (ver maestriaEfectiva): se leen con normName.
+  const mE = maestriaEfectiva({ Diggie: { games: 3821, winRate: 0.54 } }, ps);
+  const m = new Proxy(mE, { get: (o, k) => o[typeof k === 'string' ? normName(k) : k] });
   eq(m.Atlas.games, 40, 'las partidas viejas no llegan a la maestria');
   ok(Math.abs(m.Atlas.winRate - 21 / 40) < 1e-9, 'calcula mal el winrate de las viejas');
   // La escrita a mano gana si tiene mas partidas: no se suman, se elige.
@@ -2343,7 +2443,8 @@ test('el umbral de "ganas el cruce" sale de la distribucion, no de una intuicion
   const meta = JSON.parse(readFileSync(resolve(ROOT, 'public/data/roam-meta.json'), 'utf8'));
   const C = indexByName(meta.counters, 2);
   const nombres = (meta.heroes ?? []).map((h) => h.name);
-  if (nombres.length < 100) return;
+  // Sin heroes no se puede calibrar nada, y eso es un FALLO, no un pase.
+  ok(nombres.length >= 100, `roam-meta.json trae ${nombres.length} heroes: la calibracion del umbral no se puede comprobar`);
 
   const v = [];
   for (const a of nombres) for (const b of nombres) {

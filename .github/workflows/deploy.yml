@@ -19,6 +19,10 @@ concurrency:
 
 jobs:
   build:
+    # Un bot que descarto su corrida (comparar-ingesta en rojo) tambien
+    # "completa": sin esto se desplegaba igual, y si los datos del repo ya
+    # pasaban de 24 h, con veinte minutos de ingesta para nada.
+    if: ${{ github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success' }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7

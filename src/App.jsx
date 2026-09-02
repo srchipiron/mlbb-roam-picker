@@ -31,6 +31,9 @@ const save = (key, value) => {
 export default function App() {
   const [catalog, setCatalog] = useState(null);
   const [meta, setMeta] = useState(null);
+  // Hasta que roam-meta.json responda (o falle) no se enseñan los avisos de
+  // «sin winrates» / «sin pool»: el catálogo llega antes y parecían fallos.
+  const [metaListo, setMetaListo] = useState(false);
   // Partidas profesionales (Liquipedia): un extra, la app funciona sin él.
   const [pro, setPro] = useState(null);
   const [error, setError] = useState(null);
@@ -50,6 +53,7 @@ export default function App() {
   // El idioma del móvil si lo hablamos; si no, inglés. La app ya no es solo
   // para Javi.
   const [idioma, setIdioma] = useState(() => load(IDIOMA_KEY, null) ?? idiomaPorDefecto());
+  useEffect(() => { document.documentElement.lang = idioma; }, [idioma]);
   const t = useMemo(() => crearT(idioma), [idioma]);
   const [sheet, setSheet] = useState(null); // 'enemy' | 'ally' | 'ban'
 
@@ -143,7 +147,7 @@ export default function App() {
     };
     fetchJson('./data/heroes.json').then(setCatalog).catch((e) => setError(e.message));
     // El meta puede faltar en el primer arranque: la app sigue siendo útil sin él.
-    fetchJson('./data/roam-meta.json').then(setMeta).catch(() => setMeta(null));
+    fetchJson('./data/roam-meta.json').then(setMeta).catch(() => setMeta(null)).finally(() => setMetaListo(true));
     fetchJson('./data/pro.json').then(setPro).catch(() => setPro(null));
   }, []);
 
@@ -426,7 +430,7 @@ export default function App() {
 
           <div className="side" >
             <div className="side-label"><span>{t('app.rango')}</span></div>
-            <RankPicker ranks={meta?.ranks} value={activeRank} onChange={setRank} />
+            <RankPicker t={t} ranks={meta?.ranks} value={activeRank} onChange={setRank} />
           </div>
 
           <BanSuggestions t={t} items={banIdeas} onBan={(h) => setBanNames((p) => [...p, h.name])} />
@@ -467,7 +471,7 @@ export default function App() {
           </span>
         </div>
 
-        {!metaCtx.stats || !Object.keys(metaCtx.stats).length ? (
+        {metaListo && (!metaCtx.stats || !Object.keys(metaCtx.stats).length) ? (
           <div className="notice">
             {t('app.sinWinrates')}
             {meta?.diagnostics && (
@@ -489,7 +493,7 @@ export default function App() {
           </div>
         ) : null}
 
-        {!roamPool.length && (
+        {metaListo && !roamPool.length && (
           <div className="notice">
             {t('app.sinPool', { linea: t(`linea.${linea}`) })}
           </div>

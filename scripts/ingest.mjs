@@ -1001,11 +1001,18 @@ async function main() {
 
   const heroes = JSON.parse(await readFile(HEROES, 'utf8'));
 
+  // Lo anterior se lee de los DATOS GUARDADOS, no de la salida: los tres
+  // workflows escriben a un temporal (--out) que no existe, y con eso el
+  // "conservo lo anterior" de cada endpoint conservaba la nada, y un fallo
+  // suelto de la API tiraba la corrida entera en vez de degradarla.
   let previous = null;
-  try {
-    previous = JSON.parse(await readFile(OUT, 'utf8'));
-  } catch {
-    /* primera ejecución */
+  for (const ruta of [resolve(ROOT, 'public/data/roam-meta.json'), OUT]) {
+    try {
+      previous = JSON.parse(await readFile(ruta, 'utf8'));
+      break;
+    } catch {
+      /* primera ejecución, o salida a un temporal */
+    }
   }
 
   let heroList = previous?.heroes ?? [];

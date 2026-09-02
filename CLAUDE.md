@@ -20,7 +20,7 @@ comprobaciones automáticas importan más de lo normal.
 
 ## Reglas de trabajo
 
-**Nunca subas nada sin pasar `npm test`.** Son cuatro comprobaciones y 60
+**Nunca subas nada sin pasar `npm test`.** Son cuatro comprobaciones y ~100
 pruebas (orden de declaraciones, CSS, versión documentada y motor). El
 despliegue corre esas cuatro más dos que no están en `npm test`: que la corrida
 nueva no resuelva menos que la guardada (`comparar-ingesta.mjs`), y que los
@@ -315,6 +315,34 @@ Todos estos llegaron a producción y costaron rondas enteras de ida y vuelta:
   el selector de baneos es multi-toque (`multi` en `HeroSheet`), con los
   sugeridos arriba y ordenado por tasa de ban. Si añades otro selector con
   varios toques seguidos, reutiliza ese modo en vez de cerrar y reabrir.
+- **El «conservo lo anterior» de la ingesta, leyendo del temporal** — cada
+  endpoint que falla conserva los datos previos, pero `previous` se leía de
+  la ruta de SALIDA (`--out /tmp/nueva.json`, que no existe) y conservaba
+  la nada: un fallo suelto tiraba la corrida entera. Hoy se lee de
+  `public/data/roam-meta.json`. Si cambias dónde se escribe, mira de dónde
+  se lee.
+- **Un bot haciendo push sin rebase** — la vigilancia commitea su fila de
+  salud varias veces al día; la ingesta tarda diez minutos; el push se
+  rechazaba y la corrida se perdía en silencio (pasó con `pro.yml` en su
+  primera corrida). Todo bot que commitea hace `git pull --rebase` antes,
+  y hay prueba.
+- **`npm test | tee` sin pipefail en la vigilancia** — el paso devolvía el
+  código de `tee` y un motor roto nunca abría incidencia. `shell: bash`.
+- **Motivos cortados a tres ANTES de quitar los comunes** — el 12% de las
+  tarjetas se quedaba con menos de tres teniendo un cuarto válido.
+  `scoreHero` devuelve todos y `rankRoamers` corta después de filtrar.
+- **La composición con el equipo vacío** — sin aliados no hay hueco que
+  tapar, pero `comp` premiaba acumular etiquetas con el peso entero (el
+  sesgo de Marcel otra vez) y sin motivo en la tarjeta. Se deja plana hasta
+  que hay alguien: cambia el nº1 en el 22% de los drafts vacíos (medido,
+  300 drafts). Un factor global se lo come la normalización; PONER A 0.5
+  todos los valores no, porque los iguala.
+- **Maestría con la clave cruda** — «X.Borg» escrito a mano y «X Borg» en el
+  catálogo: 400 partidas fuera del ranking sin aviso. `maestriaEfectiva`
+  devuelve claves normalizadas y todo se lee con `lookup`.
+- **Fundir perfiles por instante+pick+resultado** — una partida corregida
+  aquí y reimportada de un código viejo salía dos veces. La clave es `t`, y
+  gana la copia local.
 - **Texto escrito a mano en la interfaz** — «37/37 con datos · 37 con counters»
   estaba en español dentro de App.jsx y salía tal cual con la app en inglés.
   Todo lo que se ve pasa por `t()`; la única excepción a propósito es el

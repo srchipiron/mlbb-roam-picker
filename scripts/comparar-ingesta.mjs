@@ -17,6 +17,8 @@
  */
 
 import { readFile } from 'node:fs/promises';
+import { resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
 
 /** Lo que la app necesita, contado. Nada de porcentajes. */
 export function medir(datos) {
@@ -27,6 +29,11 @@ export function medir(datos) {
     conRol: heroes.filter((h) => h?.role).length,
     conDano: heroes.filter((h) => h?.damage).length,
     stats: Object.keys(datos?.stats ?? {}).length,
+    // Los RANGOS resueltos, y si el pedido esta entre ellos: con el de glory
+    // caido, `stats` se rellenaba con epic bajo la etiqueta glory y este
+    // recuento seguia diciendo 133.
+    rangos: Object.keys(datos?.statsByRank ?? {}).length,
+    rangoPedido: datos?.rank && datos?.statsByRank?.[datos.rank] ? 1 : 0,
     counters: Object.keys(datos?.counters ?? {}).length,
     // Los PARES, no solo cuantos heroes tienen fila. Una corrida puede traer
     // los 133 con fila y cinco cruces cada uno en vez de 132: son los mismos
@@ -68,7 +75,7 @@ const leer = async (ruta) => {
   }
 };
 
-if (import.meta.url === `file://${process.argv[1]}`) {
+if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
   const [rutaNueva, rutaGuardada] = process.argv.slice(2);
   if (!rutaNueva) {
     console.error('uso: node scripts/comparar-ingesta.mjs <nueva.json> [guardada.json]');

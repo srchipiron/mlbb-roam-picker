@@ -8,6 +8,34 @@ que esto no se olvida.
 Criterio: `0.X.0` cuando cambia cómo decide la app o qué hace; `0.0.X` para
 correcciones.
 
+## 1.31.0
+
+- **Repaso general de la app, el motor y los bots.** Lo visible que estaba
+  escrito en español a mano (pie, botones del diagnóstico) ya se traduce; el
+  título es tu línea y no siempre «Roam»; la parte baja de la página ya no
+  queda tapada por el pie en el móvil; los huecos de baneo enseñan «+» en
+  vez de diez «Añad…» cortados; la × y el marcador de rival tienen área de
+  toque de 40 puntos; los nombres largos ya no se cortan en el selector.
+- **Baneos sin teclado saltando.** El buscador se enfocaba de nuevo con
+  cada baneo y el teclado tapaba la rejilla. Ahora se enfoca una vez.
+- **Los motivos de cada tarjeta se eligen después de quitar los comunes**,
+  no antes: las tarjetas con menos de tres motivos bajan de 6.917 a 4.462
+  de cada 10.087. Y «castigable a ciegas» es un solo criterio para la
+  tarjeta y para el análisis.
+- **Sin aliados, la composición no decide.** Con el equipo vacío premiaba
+  solo acumular etiquetas, con el peso entero y sin motivo en la tarjeta.
+  Cambia el nº1 en el 22% de los drafts vacíos, a favor del dato.
+- **Tu maestría escrita como «X.Borg» le sirve al héroe «X Borg»**: por un
+  punto, cientos de partidas desaparecían del ranking sin aviso.
+- **Importar un perfil ya no duplica partidas corregidas** ni acepta
+  códigos con la forma rota; una fila de maestría con errata conserva el
+  valor anterior en vez de borrarlo.
+- **Los bots**: el de datos hace rebase antes del push (se perdía la corrida
+  si la vigilancia había movido `main`), guarda los retratos nuevos, y la
+  ingesta vuelve a conservar lo anterior cuando falla un endpoint (leía el
+  «anterior» del fichero temporal, que no existe). La vigilancia ya detecta
+  un `npm test` en rojo. Un bot que descarta su corrida ya no redespliega.
+
 ## 1.30.0
 
 - **Novedades dentro de la app.** Toca la versión del pie y salen los

@@ -1,4 +1,4 @@
-import { normName, tipoDeDano } from './score.js';
+import { normName, tipoDeDano, PRECISION_DEDUCIDA } from './score.js';
 
 /**
  * Precision medida de los tags deducidos, la misma que usa el motor. Un heroe
@@ -10,7 +10,6 @@ import { normName, tipoDeDano } from './score.js';
  * seguro mas uno adivinado tampoco. Es la misma regla que ya costo una version
  * con Marcel: acumular etiquetas dudosas hasta que parecen un hecho.
  */
-const PRECISION_DEDUCIDA = 0.67;
 
 /**
  * Builds de objetos: lo que la gente compra de verdad, y como ajustarlo al

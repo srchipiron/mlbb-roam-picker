@@ -99,9 +99,18 @@ if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.ur
   }
 
   const cache = arg('--detalles', null);
+  // La base sale de lo que la ingesta descubrio, no de una URL escrita aqui.
+  const baseDescubierta = String(meta.diagnostics?.base ?? '').replace(/^[A-Z]+ /, '') || 'https://arena-hv.fastapicloud.dev';
   const det = cache
     ? JSON.parse(readFileSync(cache, 'utf8'))
-    : await descargarDetalles(meta.heroes ?? [], arg('--base', 'https://arena-hv.fastapicloud.dev'));
+    : await descargarDetalles(meta.heroes ?? [], arg('--base', baseDescubierta));
+  // Con la API caida `det` sale vacio y la tabla, vacia: mantenimiento.yml
+  // proponia un pull request borrando SPECIALITY_TAGS entera.
+  const minimo = Math.floor((meta.heroes ?? []).length / 2);
+  if (Object.keys(det).length < minimo) {
+    console.error(`Solo ${Object.keys(det).length} héroes con speciality (mínimo ${minimo}): la API no responde, no se deriva nada.`);
+    process.exit(1);
+  }
   const speciality = (n) => (Array.isArray(det[n]) ? det[n] : det[n]?.speciality) ?? [];
 
   const { mapa, veto } = derivar(cat, speciality, (n) => rol.get(n) ?? '');

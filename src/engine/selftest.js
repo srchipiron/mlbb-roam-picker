@@ -1,6 +1,8 @@
 import {
   rankRoamers, metaScore, masteryScore, coverage, normName, densidadCounters, matchup, sinergia,
+  ESCALA_CRUCE, ESCALA_PAREJA, lookup,
 } from './score.js';
+import { CUOTA_ROBUSTA } from './robustez.js';
 import { DEFAULT_WEIGHTS } from './rules.js';
 import { resumen, MINIMO_PARA_CONCLUIR, calibracion } from './registro.js';
 import { coberturaBuilds } from './builds.js';
@@ -118,7 +120,7 @@ export function runSelfTest({ catalog, meta, metaCtx, allHeroes, roamPool, maste
       const top3 = Object.entries(r.cuota).sort((x, y) => y[1] - x[1]).slice(0, 3)
         .map(([n, c]) => `${n} ${Math.round(c * 100)}%`).join(' · ');
       lineas.push(`Líneas enemigas abiertas: ${r.lineasAbiertas.join(', ')} · en ${r.n} finales plausibles, nº1: ${top3}`);
-      lineas.push(`  ${a.hero.name} aguanta el ${Math.round((r.cuota[a.hero.name] ?? 0) * 100)}%: ${(r.cuota[a.hero.name] ?? 0) >= 0.5 ? 'pick seguro' : 'depende de lo que saquen'}`);
+      lineas.push(`  ${a.hero.name} aguanta el ${Math.round((r.cuota[a.hero.name] ?? 0) * 100)}%: ${(r.cuota[a.hero.name] ?? 0) >= CUOTA_ROBUSTA ? 'pick seguro' : 'depende de lo que saquen'}`);
     }
   } else {
     lineas.push('(sin draft: no hay ningún héroe elegido)');
@@ -281,13 +283,13 @@ export function runSelfTest({ catalog, meta, metaCtx, allHeroes, roamPool, maste
       }
       return n ? fuera / n : 0;
     };
-    const rc = recorte((a, b) => matchup(metaCtx.counters, a, b), 0.44, 0.12);
+    const rc = recorte((a, b) => matchup(metaCtx.counters, a, b), ESCALA_CRUCE.base, ESCALA_CRUCE.rango);
     check(rc < 0.02,
       `Escala de counters bien ajustada (se recorta el ${(rc * 100).toFixed(1)}%)`,
       `Los counters se recortan contra el tope en el ${(rc * 100).toFixed(1)}% de los cruces: se pierde informacion`,
       true);
     if (metaCtx.synergies) {
-      const rs = recorte((a, b) => sinergia(metaCtx.synergies, a, b), 0.42, 0.16);
+      const rs = recorte((a, b) => sinergia(metaCtx.synergies, a, b), ESCALA_PAREJA.base, ESCALA_PAREJA.rango);
       check(rs < 0.02,
         `Escala de sinergias bien ajustada (se recorta el ${(rs * 100).toFixed(1)}%)`,
         `Las sinergias se recortan contra el tope en el ${(rs * 100).toFixed(1)}% de las parejas`,
@@ -487,12 +489,14 @@ export function runSelfTest({ catalog, meta, metaCtx, allHeroes, roamPool, maste
   }
 
   if (conMaestria) {
-    const [nombre] = Object.keys(mastery);
-    const h = H(nombre);
+    const [clave] = Object.keys(mastery);
+    // Las claves de la maestría van normalizadas: se busca el héroe por ahí.
+    const h = allHeroes.find((x) => normName(x.name) === normName(clave));
+    const nombre = h?.name ?? clave;
     if (h) {
       const sin = rankRoamers(roamPool, { meta: metaCtx }).findIndex((r) => r.hero.name === nombre);
       const con = rankRoamers(roamPool, { meta: metaCtx, mastery }).findIndex((r) => r.hero.name === nombre);
-      const m = mastery[nombre];
+      const m = lookup(mastery, nombre);
       lineas.push(`Ejemplo: ${nombre} ${Math.round(m.winRate * 100)}% en ${m.games} partidas · puesto ${sin + 1} -> ${con + 1}`);
       check(masteryScore(h, mastery).value !== 0.5,
         'Tu maestría se está aplicando',

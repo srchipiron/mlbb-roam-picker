@@ -48,6 +48,10 @@ jobs:
           # su imagen tiene que entrar en el mismo commit, o la app pide un
           # fichero que no existe. Se anaden AQUI, despues de la comparacion,
           # para que una corrida descartada no deje basura.
-          git add public/data/roam-meta.json public/objetos
+          git add public/data/roam-meta.json public/objetos public/heroes
           git diff --staged --quiet || git commit -m "datos: meta $(date -u +%Y-%m-%d)"
+          # La vigilancia commitea su fila de salud varias veces al dia y la
+          # ingesta tarda diez minutos: sin rebase, el push se rechaza y la
+          # corrida se pierde en silencio.
+          git pull --rebase --autostash origin main
           git push

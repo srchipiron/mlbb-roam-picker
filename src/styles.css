@@ -122,7 +122,8 @@ button:focus-visible, [tabindex]:focus-visible { outline: 2px solid var(--gold);
   display: flex; align-items: center; justify-content: space-between; gap: 6px;
 }
 .slot.empty { color: var(--muted); border-style: dashed; }
-.slot .x { color: var(--muted); font-size: 18px; line-height: 1; padding: 0 2px; }
+/* Área de toque grande sin cambiar la caja: el relleno se compensa con margen negativo. */
+.slot .x { color: var(--muted); font-size: 18px; line-height: 1; padding: 10px 8px; margin: -10px -6px; }
 .slot .slot-name { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
 /* La cara dentro del hueco del draft.
@@ -141,7 +142,7 @@ button:focus-visible, [tabindex]:focus-visible { outline: 2px solid var(--gold);
   border-radius: 4px; object-fit: cover; background: var(--ink);
 }
 .slot:has(.slot-cara) .slot-name { display: none; }
-.slot .mark { color: var(--muted); font-size: 13px; line-height: 1; padding: 0 1px; }
+.slot .mark { color: var(--muted); font-size: 13px; line-height: 1; padding: 12px 7px; margin: -12px -6px; }
 .slot.marked { border-color: var(--gold) !important; }
 /* Deducido por la app, no marcado por ti: se distingue del marcado a mano. */
 .slot.auto { border-color: var(--gold) !important; border-style: dashed; }
@@ -256,7 +257,7 @@ button:focus-visible, [tabindex]:focus-visible { outline: 2px solid var(--gold);
   flex: 1; background: var(--panel-hi); border: 1px solid var(--line);
   border-radius: var(--r); padding: 12px 14px; color: var(--text); font-size: 16px;
 }
-.sheet .close { padding: 0 14px; color: var(--muted); }
+.sheet .close { padding: 0 14px; min-height: 40px; color: var(--muted); }
 
 .hero-grid {
   flex: 1; overflow-y: auto;
@@ -567,17 +568,17 @@ button:focus-visible, [tabindex]:focus-visible { outline: 2px solid var(--gold);
 /* --- Historial de partidas --- */
 
 .partida {
-  display: grid; grid-template-columns: 58px 1fr auto auto 30px 30px;
+  display: grid; grid-template-columns: 58px minmax(0, 1fr) auto auto 30px 30px;
   gap: 8px; align-items: center;
   padding: 8px 0; border-bottom: 1px solid var(--line); font-size: 13px;
 }
 .partida-fecha { color: var(--muted); font-family: var(--font-num); font-size: 11px; }
-.partida-hero { font-weight: 600; }
+.partida-hero { font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .partida-bien { color: var(--c-comp); }
 .partida-mal { color: var(--enemy); }
 /* El tipo de partida en pequeño: es lo que menos se mira y lo que mas ocupa. */
 .partida-tipo { color: var(--muted); font-size: 11px; text-align: right; }
-.partida .x { color: var(--muted); font-size: 16px; padding: 0 4px; }
+.partida .x { color: var(--muted); font-size: 16px; padding: 12px 10px; margin: -12px -6px; }
 
 /* Al añadir partidas viejas la rejilla no puede comerse la pantalla: si no, el
    boton de Gané/Perdí queda debajo del teclado y no se alcanza. */
@@ -597,18 +598,18 @@ button:focus-visible, [tabindex]:focus-visible { outline: 2px solid var(--gold);
    regla base con su mismo selector.
    ------------------------------------------------------------------------- */
 
-.pick-pro { display: block; font-size: 11px; color: var(--muted); font-family: var(--font-num); margin-top: 2px; white-space: nowrap; }
+.pick-pro { display: block; font-size: 11px; color: var(--muted); font-family: var(--font-num); margin-top: 2px; max-width: 130px; text-align: right; }
 
 /* ---------- novedades (changelog) ---------- */
 .pie-version { color: inherit; font: inherit; padding: 0; text-decoration: underline dotted; text-underline-offset: 3px; }
 .pie-version:hover { color: var(--gold); }
 /* El pie va alineado a la derecha y la hoja lo hereda: se deshace aquí. */
-.pie .sheet { text-align: left; font-size: 14px; color: var(--text); cursor: auto; }
+.pie .sheet { text-align: left; font-size: 14px; color: var(--text); cursor: auto; font-family: var(--font-body); }
 .changelog { flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 14px; }
 .changelog section { border: 1px solid var(--line); border-radius: var(--r); padding: 10px 12px; background: var(--panel); }
 .changelog section.actual { border-color: var(--gold); }
 .changelog h3 { margin: 0 0 6px; font-size: 15px; display: flex; align-items: center; gap: 8px; font-family: var(--font-num); }
-.changelog-mas { margin-left: auto; font-size: 12px; color: var(--muted); padding: 2px 8px; border: 1px solid var(--line); border-radius: 999px; }
+.changelog-mas { margin-left: auto; font-size: 12px; color: var(--muted); padding: 6px 10px; min-height: 32px; border: 1px solid var(--line); border-radius: 999px; }
 .changelog ul { margin: 0; padding-left: 18px; display: flex; flex-direction: column; gap: 6px; font-size: 13px; line-height: 1.4; }
 
 /* ---------- probabilidad estimada ---------- */
@@ -673,15 +674,17 @@ button:focus-visible, [tabindex]:focus-visible { outline: 2px solid var(--gold);
      96px para el nombre; desde que llevan la cara, el nombre ya no esta y con
      `flex: 1 1 0` se reparten el ancho. Medido: la tira del draft baja 50px, que
      es una recomendacion mas a la vista sin desplazarse. */
-  .slot { min-height: 38px; min-width: 0; flex: 1 1 0; padding: 6px 4px; font-size: 12px; gap: 2px; }
-  .slot .x { font-size: 18px; padding: 0 2px; }
-  .slot .mark { padding: 0; }
+  /* Cinco huecos enemigos en 360px: (360-24-4·6)/5 = 57px por hueco. */
+  .slot { min-height: 38px; min-width: 0; flex: 1 1 0; padding: 6px 2px; font-size: 12px; gap: 1px; }
+  .slot .x { font-size: 18px; padding: 10px 6px; margin: -10px -5px; }
+  .slot .mark { padding: 12px 5px; margin: -12px -4px; }
   .side-label { font-size: 10px; }
   /* Fuera del desplegable no caben; dentro sí, y ahí deben verse. */
-  .draft > .side.bans { display: none; }
   .tools { margin-top: 10px; }
   .tools .reset { padding: 8px; font-size: 11px; }
-  .results { padding: 10px 12px; }
+  .results { padding: 10px 12px 38px; }
+  /* Dos columnas: con tres, «Popol and Kupa» y «Yi Sun-shin» se cortaban. */
+  .hero-grid { grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); }
   .pick { grid-template-columns: 28px 1fr auto; gap: 8px; padding: 9px 10px; }
   .pick-name { font-size: 16px; }
   .pick.top .pick-name { font-size: 20px; }
@@ -696,12 +699,12 @@ button:focus-visible, [tabindex]:focus-visible { outline: 2px solid var(--gold);
 @media (max-height: 560px) and (orientation: landscape) {
   .app { grid-template-columns: minmax(220px, 34%) 1fr; grid-template-rows: 100%; }
   .draft { padding: 8px 10px; overflow-y: auto; }
-  .results { padding: 8px 12px; }
+  .results { padding: 8px 12px 38px; }
   .brand h1 { font-size: 16px; }
   .side { margin-top: 8px; }
   .side-label { font-size: 10px; margin-bottom: 3px; }
   .slot { min-height: 34px; flex: 1 1 92px; padding: 5px 6px; font-size: 12px; gap: 3px; }
-  .slot .x { font-size: 18px; padding: 0 4px; }
+  .slot .x { font-size: 18px; padding: 10px 8px; margin: -10px -6px; }
   .pick { padding: 8px 10px; gap: 8px; margin-bottom: 6px; }
   .pick-name { font-size: 16px; }
   .pick.top .pick-name { font-size: 19px; }

@@ -283,7 +283,7 @@ const ES = {
   'pro.linea': 'Pro: {picks} picks · {pct}% · {bans} bans',
   'pro.lineaSinPct': 'Pro: {picks} picks · {bans} bans',
   'donar.texto': 'Invítame a un café',
-  'idioma.nombre': 'Idioma',
+  'rango.todos': 'Todos',
 };
 
 const EN = {
@@ -540,7 +540,7 @@ const EN = {
   'pro.linea': 'Pro: {picks} picks · {pct}% · {bans} bans',
   'pro.lineaSinPct': 'Pro: {picks} picks · {bans} bans',
   'donar.texto': 'Buy me a coffee',
-  'idioma.nombre': 'Language',
+  'rango.todos': 'All',
 };
 
 const TEXTOS = { es: ES, en: EN };

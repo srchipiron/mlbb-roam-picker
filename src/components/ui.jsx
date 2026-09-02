@@ -87,8 +87,9 @@ export function Side({ title, kind, picks, max, onAdd, onRemove, markedName, onM
               <button className="x" onClick={() => onRemove(hero)} aria-label={t('app.quitar', { nombre: hero.name })}>×</button>
             </div>
           ) : (
-            <button key={`empty-${i}`} className="slot empty" onClick={onAdd}>
-              {t('app.anadir')}
+            <button key={`empty-${i}`} className="slot empty" onClick={onAdd} aria-label={t('app.anadir')}>
+              {/* Diez huecos de baneo en 360px no caben con la palabra: «+». */}
+              {kind === 'bans' ? '+' : t('app.anadir')}
             </button>
           ),
         )}
@@ -108,12 +109,17 @@ export function HeroSheet({
   const [q, setQ] = useState('');
   const inputRef = useRef(null);
 
+  // Enfocar UNA vez al abrir. Con `onClose` en las dependencias (una función
+  // nueva en cada render de App) el efecto se repetía con cada baneo y el
+  // teclado del móvil volvía a salir encima de la rejilla en cada toque.
+  const cerrarRef = useRef(onClose);
+  cerrarRef.current = onClose;
   useEffect(() => {
     inputRef.current?.focus();
-    const esc = (e) => e.key === 'Escape' && onClose();
+    const esc = (e) => e.key === 'Escape' && cerrarRef.current?.();
     window.addEventListener('keydown', esc);
     return () => window.removeEventListener('keydown', esc);
-  }, [onClose]);
+  }, []);
 
   const list = useMemo(() => {
     const key = (s) => s.toLowerCase().normalize('NFD')
@@ -150,7 +156,7 @@ export function HeroSheet({
   };
 
   return (
-    <div className="sheet" role="dialog" aria-label={t('app.elegirHeroe')}>
+    <div className="sheet" role="dialog" aria-modal="true" aria-label={t('app.elegirHeroe')}>
       <div className="sheet-head">
         <input
           ref={inputRef}
@@ -280,13 +286,13 @@ export function Pick({ result, index, stat, pro = null, onBuild, t = tPorDefecto
 const RANK_LABELS = { all: 'Todos', epic: 'Epic', legend: 'Legend', mythic: 'Mythic', honor: 'Honor', glory: 'Glory' };
 
 /** Selector del rango del que salen los winrates. El meta de Glory no es el de Epic. */
-export function RankPicker({ ranks, value, onChange }) {
+export function RankPicker({ ranks, value, onChange, t = tPorDefecto }) {
   if (!ranks?.length) return null;
   return (
     <div className="rank-picker">
       {ranks.map((r) => (
         <button key={r} aria-pressed={r === value} onClick={() => onChange(r)}>
-          {RANK_LABELS[r] ?? r}
+          {r === 'all' ? t('rango.todos') : (RANK_LABELS[r] ?? r)}
         </button>
       ))}
     </div>
@@ -362,6 +368,10 @@ export function MasteryEditor({ pool, mastery, onChange, onClose, t = tPorDefect
       const games = parseDecimal(e.games);
       const wr = parseDecimal(e.wr);
       if (games > 0 && wr > 0 && wr <= 100) clean[name] = { games, winRate: wr / 100 };
+      // Una fila con errata ("50.6%", un campo vaciado a medias) no borra lo
+      // que había: se conserva el valor anterior. Borrar es dejar los dos
+      // campos vacíos.
+      else if ((e.games ?? '') !== '' || (e.wr ?? '') !== '') { if (mastery?.[name]) clean[name] = mastery[name]; }
     }
     onChange(clean);
     onClose();
@@ -379,7 +389,7 @@ export function MasteryEditor({ pool, mastery, onChange, onClose, t = tPorDefect
   };
 
   return (
-    <div className="sheet" role="dialog" aria-label={t('app.maestria')}>
+    <div className="sheet" role="dialog" aria-modal="true" aria-label={t('app.maestria')}>
       <div className="sheet-head">
         <strong style={{ flex: 1, alignSelf: 'center' }}>{t('app.maestria')}</strong>
         <button className="close" onClick={onClose}>{t('app.cancelar')}</button>
@@ -428,7 +438,7 @@ export function Changelog({ entradas, actual, onClose, t = tPorDefecto }) {
   const [enteras, setEnteras] = useState(() => new Set());
   const alternar = (v) => setEnteras((prev) => { const n = new Set(prev); if (n.has(v)) n.delete(v); else n.add(v); return n; });
   return (
-    <div className="sheet" role="dialog" aria-label={t('changelog.titulo')}>
+    <div className="sheet" role="dialog" aria-modal="true" aria-label={t('changelog.titulo')} onClick={(e) => e.stopPropagation()}>
       <div className="sheet-head">
         <strong style={{ flex: 1, alignSelf: 'center' }}>{t('changelog.titulo')}</strong>
         <button className="close" onClick={onClose}>{t('app.cerrar')}</button>
@@ -567,7 +577,7 @@ export function SelfTest({ resultado, onClose, t = tPorDefecto }) {
   };
 
   return (
-    <div className="sheet" role="dialog" aria-label={t('app.diagnostico')}>
+    <div className="sheet" role="dialog" aria-modal="true" aria-label={t('app.diagnostico')}>
       <div className="sheet-head">
         {/* El mismo titular que el texto, para que la cabecera y lo que copias
             digan lo mismo. Antes ponía "Todo correcto · 1 avisos". */}
@@ -701,7 +711,7 @@ export function HistorialPartidas({ partidas, pool, maestria = {}, onOlvidar, on
   };
 
   return (
-    <div className="sheet" role="dialog" aria-label={t('hist.titulo')}>
+    <div className="sheet" role="dialog" aria-modal="true" aria-label={t('hist.titulo')}>
       <div className="sheet-head">
         <strong style={{ flex: 1, alignSelf: 'center' }}>{t('hist.titulo')}</strong>
         <button className="close" onClick={onClose}>{t('app.cerrar')}</button>
@@ -814,7 +824,7 @@ export function Perfil({ datos, onImportar, onClose, t = tPorDefecto }) {
   };
 
   return (
-    <div className="sheet" role="dialog" aria-label={t('perfil.titulo')}>
+    <div className="sheet" role="dialog" aria-modal="true" aria-label={t('perfil.titulo')}>
       <div className="sheet-head">
         <strong style={{ flex: 1, alignSelf: 'center' }}>{t('perfil.titulo')}</strong>
         <button className="close" onClick={onClose}>{t('app.cerrar')}</button>
@@ -865,7 +875,7 @@ export function RegistroPartida({ pool, recomendados, onGuardar, onClose, t = tP
   }, [pool, recomendados]);
 
   return (
-    <div className="sheet" role="dialog" aria-label={t('app.apuntarPartida')}>
+    <div className="sheet" role="dialog" aria-modal="true" aria-label={t('app.apuntarPartida')}>
       <div className="sheet-head">
         <strong style={{ flex: 1, alignSelf: 'center' }}>{t('registro.conQuien')}</strong>
         <button className="close" onClick={onClose}>{t('app.cancelar')}</button>
@@ -903,7 +913,7 @@ export function RegistroPartida({ pool, recomendados, onGuardar, onClose, t = tP
  */
 export function SelectorDeLinea({ lineas, valor, onElegir, onClose, t = tPorDefecto }) {
   return (
-    <div className="sheet" role="dialog" aria-label={t('app.elegirLinea')}>
+    <div className="sheet" role="dialog" aria-modal="true" aria-label={t('app.elegirLinea')}>
       <div className="sheet-head">
         <strong style={{ flex: 1, alignSelf: 'center' }}>{t('linea.pregunta')}</strong>
         {onClose && <button className="close" onClick={onClose}>{t('app.cerrar')}</button>}
@@ -970,7 +980,7 @@ export function Build({ hero, linea, builds, equipment, enemies, onClose, t = tP
   const pct = (n) => (n * 100).toFixed(1);
 
   return (
-    <div className="sheet" role="dialog" aria-label={t('build.titulo')}>
+    <div className="sheet" role="dialog" aria-modal="true" aria-label={t('build.titulo')}>
       <div className="sheet-head">
         <strong style={{ flex: 1, alignSelf: 'center' }}>
           {hero?.name} · {t('build.deLinea', { linea: t(`linea.${linea}`) })}

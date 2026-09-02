@@ -40,6 +40,9 @@ jobs:
       # 1) El motor sigue siendo correcto.
       - name: Pruebas
         id: pruebas
+        # shell: bash trae -o pipefail: sin eso el paso devolvia el codigo de
+        # `tee` y un npm test en rojo nunca abria incidencia.
+        shell: bash
         run: npm test 2>&1 | tee /tmp/pruebas.txt
 
       # 2) Y lo publicado está sano. Se reintenta: justo después de un
