@@ -34,6 +34,14 @@ export function medir(datos) {
     // recuento seguia diciendo 133.
     rangos: Object.keys(datos?.statsByRank ?? {}).length,
     rangoPedido: datos?.rank && datos?.statsByRank?.[datos.rank] ? 1 : 0,
+    // Y si el rango pedido se DESCARGO en esa corrida. Con la API caida la
+    // ingesta conserva todo lo anterior y sale identica a la guardada: no
+    // resuelve menos, pero tampoco trae nada, y commitearla solo cambiaria
+    // la fecha. Los ficheros de antes de esta medida no llevan `frescos`, y
+    // para ellos cuenta como fresco lo que tenga datos.
+    rangoFresco: datos?.diagnostics?.frescos
+      ? (datos.diagnostics.frescos.includes(datos.rank) ? 1 : 0)
+      : (datos?.rank && datos?.statsByRank?.[datos.rank] ? 1 : 0),
     counters: Object.keys(datos?.counters ?? {}).length,
     // Los PARES, no solo cuantos heroes tienen fila. Una corrida puede traer
     // los 133 con fila y cinco cruces cada uno en vez de 132: son los mismos

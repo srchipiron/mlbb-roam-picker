@@ -321,6 +321,14 @@ Todos estos llegaron a producción y costaron rondas enteras de ida y vuelta:
   la nada: un fallo suelto tiraba la corrida entera. Hoy se lee de
   `public/data/roam-meta.json`. Si cambias dónde se escribe, mira de dónde
   se lee.
+- **Los datos de ayer con la fecha de hoy** — al arreglar lo anterior, una
+  corrida con la API caída conservaba TODO (también `statsByRank`) y salía
+  con `generatedAt` nuevo: idéntica a la guardada, el comparador la
+  aceptaba, el bot la commiteaba y la puerta de frescura (72 h) no habría
+  saltado jamás. Hoy la fecha solo avanza si se descargó el rango pedido
+  (`diagnostics.frescos`, `conservado`) y `comparar-ingesta` cuenta
+  `rangoFresco`. Cada vez que un fallback conserve algo, pregúntate qué
+  METADATO deja de ser verdad.
 - **Un bot haciendo push sin rebase** — la vigilancia commitea su fila de
   salud varias veces al día; la ingesta tarda diez minutos; el push se
   rechazaba y la corrida se perdía en silencio (pasó con `pro.yml` en su

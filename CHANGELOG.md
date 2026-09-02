@@ -8,6 +8,15 @@ que esto no se olvida.
 Criterio: `0.X.0` cuando cambia cómo decide la app o qué hace; `0.0.X` para
 correcciones.
 
+## 1.31.1
+
+- La fecha de los datos ya no miente cuando la API está caída. Una corrida
+  sin red conserva los datos anteriores (eso está bien) pero salía fechada
+  hoy, pasaba el comparador y habría engañado para siempre a la puerta de
+  frescura del despliegue. Ahora conserva también la fecha, dice que ha
+  conservado, y el comparador rechaza una corrida que no ha descargado el
+  rango pedido.
+
 ## 1.31.0
 
 - **Repaso general de la app, el motor y los bots.** Lo visible que estaba

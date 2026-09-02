@@ -149,6 +149,13 @@ export function runSelfTest({ catalog, meta, metaCtx, allHeroes, roamPool, maste
   }
     lineas.push(`Ventana: ${meta.days ?? '?'} días · héroes con estadísticas: ${meta.heroCount ?? 0}`);
     lineas.push(`API: ${meta.diagnostics?.base ?? 'desconocida'}`);
+    // La última corrida de la ingesta puede haber conservado lo anterior por
+    // API caída: los datos siguen siendo buenos, pero son los de antes y la
+    // fecha del pie es la suya, no la de la corrida. Que se sepa.
+    if (meta.diagnostics?.conservado != null) {
+      check(!meta.diagnostics.conservado, `Última corrida con estadísticas nuevas (${(meta.diagnostics.frescos ?? []).join(', ') || 'ninguno'})`,
+        `La última corrida NO descargó estadísticas de ${meta.rank ?? 'tu rango'}: se conservan las anteriores (API caída o cambiada)`, true);
+    }
 
     // Datos que no pueden ser: un winrate del 90%, cuotas de pick que no
     // suman uno, un ban por encima del 100%, una fila de counters plana. La

@@ -1073,11 +1073,16 @@ async function main() {
   console.log(`  · ${nombresPedir.length} heroes a los que pedir counters`);
 
   const statsByRank = { ...(previous?.statsByRank ?? {}) };
+  // Qué rangos se han DESCARGADO en esta corrida, aparte de los conservados.
+  // Es lo que decide la fecha del fichero: con la API caída la corrida
+  // reproducía los datos de ayer con la fecha de hoy, pasaba el comparador
+  // (no resolvía menos) y engañaba a la puerta de frescura del despliegue.
+  const frescos = [];
   diagnostics.rangos = {};
   for (const rank of RANKS) {
     try {
       const s = await fetchStats(rank);
-      if (Object.keys(s).length) statsByRank[rank] = s;
+      if (Object.keys(s).length) { statsByRank[rank] = s; frescos.push(rank); }
       diagnostics.rangos[rank] = `${Object.keys(s).length} héroes`;
       console.log(`  · ${rank}: ${Object.keys(s).length} héroes`);
     } catch (err) {
@@ -1175,8 +1180,13 @@ async function main() {
   const seen = new Set([...Object.keys(stats), ...heroList.map((h) => h.name)]);
   const newHeroes = [...seen].filter((n) => !known.has(n));
 
+  // Sin estadísticas nuevas del rango pedido, la fecha es la de los datos que
+  // se conservan, no la de hoy. Sin datos previos, no hay fecha.
+  const estadisticasNuevas = frescos.includes(RANK);
+  diagnostics.frescos = frescos;
+  diagnostics.conservado = !estadisticasNuevas;
   const out = {
-    generatedAt: new Date().toISOString(),
+    generatedAt: estadisticasNuevas ? new Date().toISOString() : (previous?.generatedAt ?? null),
     rank: RANK,
     ranks: Object.keys(statsByRank),
     days: DAYS,
@@ -1203,6 +1213,8 @@ async function main() {
         : (ROUTES?.rank ? `${ROUTES.rank.method} ${new URL(ROUTES.rank.template).origin}` : null),
       schema: diagnostics.schema ?? null,
       routes: diagnostics.routes ?? null,
+      frescos: diagnostics.frescos ?? [],
+      conservado: diagnostics.conservado ?? false,
       relations: diagnostics.relations ?? null,
       speciality: diagnostics.speciality ?? null,
       rutasMedidas: diagnostics.rutasMedidas ?? null,
