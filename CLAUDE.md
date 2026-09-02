@@ -310,6 +310,11 @@ Todos estos llegaron a producción y costaron rondas enteras de ida y vuelta:
   salía 24px. Hoy los bloques van AL FINAL y `check-css.mjs` falla si vuelve a
   aparecer una regla normal después del primer `@media`. Si añades una consulta
   de medios, va al final del fichero, siempre.
+- **La fase de baneos a un héroe por apertura** — el selector se cerraba con
+  cada toque, y diez baneos en medio minuto no daban tiempo. Desde 1.28.0
+  el selector de baneos es multi-toque (`multi` en `HeroSheet`), con los
+  sugeridos arriba y ordenado por tasa de ban. Si añades otro selector con
+  varios toques seguidos, reutiliza ese modo en vez de cerrar y reabrir.
 - **Texto escrito a mano en la interfaz** — «37/37 con datos · 37 con counters»
   estaba en español dentro de App.jsx y salía tal cual con la app en inglés.
   Todo lo que se ve pasa por `t()`; la única excepción a propósito es el
@@ -354,6 +359,44 @@ a suponer:
   encogimiento que se comía la normalización.
 - Es determinista (semilla fija): sin eso el número bailaría entre dos
   aperturas del diagnóstico.
+
+## La probabilidad estimada de ganar
+
+Desde 1.28.0, `src/engine/estimacion.js`. Modelo aditivo en log-odds con
+cuatro términos, y cada uno está medido antes de sumarse. Lo que NO conviene
+volver a suponer:
+
+- **Las tres matrices están centradas.** Los cruces son antisimétricos
+  (c[a][b]+c[b][a] = 1.0000 en los 8.778 pares) y no llevan la fuerza de
+  nadie (r=0,009 con wrA−wrB). Las parejas TAMPOCO llevan la fuerza de los
+  dos (pendiente 0.000 sobre wrA+wrB, r=0.000), aunque su media no sea 0.5
+  (0.4954) y no sean antisimétricas: se centran en su propia media, que se
+  calcula de la matriz, no se escribe.
+- **Centrar los cruces en la media de la fila (0.494) es un error**, aunque
+  el CLAUDE.md diga que esa es la media: metía +0.6 log-odds a favor del
+  primer equipo y la mediana de drafts al azar salía al 64%. Se centran en
+  0.5. Hay una prueba de que la mediana en 200 drafts al azar queda en 50±6.
+- **La escala no está calibrada** y no hay con qué: no existen resultados de
+  partidas. Con drafts completos al azar da entre el 30% y el 70% (p05/p95),
+  con el término de héroes pesando el doble que el de cruces. Por eso se
+  enseña con su aviso y por eso cada partida apuntada guarda `estimacion`:
+  `calibracion()` en registro.js compara previsto con ocurrido (Brier contra
+  0.25, y winrate real con ≥50% frente a <50%). Cuando haya 20 partidas,
+  ESO es lo que dice si el número vale; si el Brier sale por encima de
+  0.25, el diagnóstico avisa. No toques la escala a ojo: espera al dato.
+- **Tu maestría sustituye al término de tu héroe, no se suma encima.** Tu
+  winrate con él se encoge (mismo prior que la maestría) hacia lo que cabe
+  esperar de ti con ese héroe: su winrate público más tu ventaja sobre el
+  50%. Hay una prueba de que el término de héroes no cambia con la maestría.
+
+La composición (`composicion.js`) separa dos cosas que no valen lo mismo: lo
+medido en las parejas (dos del mismo daño rinden 0,54 puntos peor; dos magos
+−4,0pp, dos asesinos −2,6, dos tanques −1,95, dos tiradores −1,26, en
+`ROL_DOBLE_PP`) y los huecos por etiqueta (`TEAM_NEEDS`), que son regla
+escrita a mano y se enseñan como tal. Solo se dicen en voz alta con tres
+aliados, como el daño: es una afirmación sobre el equipo. Las listas de
+claves en los params de un motivo (`lista: ['comp.tanky']`) las traduce `t()`
+elemento a elemento.
 
 ## Las builds de objetos
 

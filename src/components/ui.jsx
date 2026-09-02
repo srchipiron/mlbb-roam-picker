@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { filtrarPorNombre } from '../engine/alias.js';
 import { recogerPerfil, exportarPerfil, leerPerfil, fundirPerfil } from '../engine/perfil.js';
-import { esPrevia, siguioConsejo, resumen } from '../engine/registro.js';
+import { esPrevia, siguioConsejo, resumen, calibracion } from '../engine/registro.js';
 import { buildsDe, objetosDe, ajustesDeBuild } from '../engine/builds.js';
 import { crearT } from '../i18n.js';
 import { titular } from '../engine/selftest.js';
@@ -97,7 +97,13 @@ export function Side({ title, kind, picks, max, onAdd, onRemove, markedName, onM
 }
 
 /** Selector a pantalla completa. Buscador enfocado y rejilla de toque grande. */
-export function HeroSheet({ heroes, taken, stats, onPick, onClose, t = tPorDefecto }) {
+export function HeroSheet({
+  heroes, taken, stats, onPick, onClose, t = tPorDefecto,
+  // Modo baneos: el selector no se cierra al tocar, se marca y se sigue. En
+  // la fase de baneos hay diez toques en medio minuto, y abrir-buscar-cerrar
+  // por cada uno no daba tiempo. `seleccionados` se pintan y se destocan.
+  multi = false, seleccionados = null, max = 10, sugeridos = [], orden = 'pick',
+}) {
   const [q, setQ] = useState('');
   const inputRef = useRef(null);
 
@@ -112,6 +118,9 @@ export function HeroSheet({ heroes, taken, stats, onPick, onClose, t = tPorDefec
     const key = (s) => s.toLowerCase().normalize('NFD')
       .replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]/g, '');
     const pickRate = (h) => stats?.[key(h.name)]?.pickRate ?? -1;
+    // Para banear, primero los más baneados: es lo que se va a buscar.
+    const banRate = (h) => stats?.[key(h.name)]?.banRate ?? -1;
+    const criterio = orden === 'ban' ? banRate : pickRate;
     // filtrarPorNombre busca tambien por el nombre que el juego usa en otros
     // idiomas -Javi lo tiene en espanol y escribia "Ciclope" sin encontrar
     // nada- y, si aun asi no sale nadie, por las letras en orden. Lo que se
@@ -120,8 +129,24 @@ export function HeroSheet({ heroes, taken, stats, onPick, onClose, t = tPorDefec
     return filtrarPorNombre(heroes, q)
       // Sin buscar, primero los más jugados: en 30 segundos de draft, el pick
       // que necesitas suele estar entre los veinte primeros y te ahorras teclear.
-      .sort((a, b) => (q ? 0 : pickRate(b) - pickRate(a)) || a.name.localeCompare(b.name));
-  }, [heroes, q, stats]);
+      .sort((a, b) => (q ? 0 : criterio(b) - criterio(a)) || a.name.localeCompare(b.name));
+  }, [heroes, q, stats, orden]);
+
+  const marcado = (h) => !!seleccionados?.has(h.name);
+  const lleno = multi && seleccionados && seleccionados.size >= max;
+  const elegir = (h) => {
+    if (taken.has(h.name)) return;
+    if (multi && lleno && !marcado(h)) return;
+    onPick(h);
+    if (multi) setQ('');
+  };
+  // Intro coge el primero de la lista: escribir tres letras y darle es más
+  // rápido que apuntar al botón, sobre todo con el teclado del móvil abierto.
+  const conIntro = (e) => {
+    if (e.key !== 'Enter') return;
+    const primero = list.find((h) => !taken.has(h.name));
+    if (primero) elegir(primero);
+  };
 
   return (
     <div className="sheet" role="dialog" aria-label={t('app.elegirHeroe')}>
@@ -132,13 +157,37 @@ export function HeroSheet({ heroes, taken, stats, onPick, onClose, t = tPorDefec
           onChange={(e) => setQ(e.target.value)}
           placeholder={t('app.buscar')}
           autoComplete="off"
+          onKeyDown={conIntro}
         />
-        <button className="close" onClick={onClose}>{t('app.cerrar')}</button>
+        <button className="close" onClick={onClose}>{multi ? t('sheet.listo') : t('app.cerrar')}</button>
       </div>
+      {multi && seleccionados && (
+        <p className="sheet-cuenta">{t('sheet.baneados', { n: seleccionados.size, max })}</p>
+      )}
+      {multi && !q && sugeridos.length > 0 && (
+        <div className="sheet-sugeridos">
+          <span className="side-label">{t('sheet.sugeridos')}</span>
+          {sugeridos.filter((h) => !taken.has(h.name)).slice(0, 6).map((h) => (
+            <button key={h.name} className={`chip ${marcado(h) ? 'elegido' : ''}`} onClick={() => elegir(h)}>
+              <Imagen src={`./heroes/${h.id}.jpg`} alt={h.name} className="grid-cara" tam={22} />
+              {h.name}
+            </button>
+          ))}
+        </div>
+      )}
       <div className="hero-grid">
         {list.map((h) => (
-          <button key={h.name} disabled={taken.has(h.name)} onClick={() => onPick(h)}>
-            {h.name}
+          <button
+            key={h.name}
+            className={marcado(h) ? 'elegido' : ''}
+            disabled={taken.has(h.name) || (lleno && !marcado(h))}
+            aria-pressed={multi ? marcado(h) : undefined}
+            onClick={() => elegir(h)}
+          >
+            {/* La cara, con carga perezosa: se reconoce antes que el nombre y
+                solo se descargan las que están a la vista. */}
+            <Imagen src={`./heroes/${h.id}.jpg`} alt={h.name} className="grid-cara" tam={30} />
+            <span className="grid-nombre">{h.name}</span>
           </button>
         ))}
         {!list.length && <p className="empty-state">{t('app.sinNombre')}</p>}
@@ -550,8 +599,33 @@ export function Veredicto({ partidas, maestria, t = tPorDefecto }) {
         </>
       )}
 
+      <Calibracion partidas={partidas} t={t} />
       <p className="build-nota">{t('veredicto.trampa')}</p>
     </section>
+  );
+}
+
+/**
+ * ¿La probabilidad estimada se parece a lo que pasa? Solo con partidas que
+ * llevaran estimación delante; las previas no cuentan.
+ */
+export function Calibracion({ partidas, t = tPorDefecto }) {
+  const c = useMemo(() => calibracion(partidas), [partidas]);
+  if (!c.n) return null;
+  const pct = (v) => (v == null ? '—' : Math.round(v * 100));
+  return (
+    <div className="calibracion">
+      <p className="veredicto-cifra">{t('estimacion.calibrada', { n: c.n, prev: pct(c.prevista), real: pct(c.real) })}</p>
+      {c.concluyente ? (
+        <p className={`frase ${c.brier < c.brierMoneda ? 'bien' : 'ojo'}`}>
+          {t('estimacion.brier', {
+            brier: c.brier.toFixed(3), altas: pct(c.altas.real), nAltas: c.altas.n, bajas: pct(c.bajas.real), nBajas: c.bajas.n,
+          })}
+        </p>
+      ) : (
+        <p className="frase duda">{t('estimacion.faltanCalibrar', { n: c.faltan })}</p>
+      )}
+    </div>
   );
 }
 
@@ -972,6 +1046,70 @@ export function AvisoLegal({ t = tPorDefecto, idioma, onIdioma, idiomas = ['es',
           {t('donar.texto')}
         </a>
       )}
+    </section>
+  );
+}
+
+/**
+ * La probabilidad estimada de ganar con tu nº1, y de dónde sale. Va con su
+ * aviso porque es un modelo (ver estimacion.js), no un dato: lo que la hace
+ * creíble o no son las partidas que apuntes, y eso se enseña en el Veredicto.
+ */
+export function Estimacion({ est, yo, t = tPorDefecto }) {
+  if (!est || !yo) return null;
+  const pct = Math.round(est.p * 100);
+  const signo = (v) => (v > 0 ? `+${v}` : `${v}`);
+  const partes = ['heroes', 'cruces', 'parejas', 'tu']
+    .filter((k) => k !== 'tu' || est.puntos.tu !== 0)
+    .map((k) => `${t(`estimacion.${k}`)} ${signo(est.puntos[k])}`);
+  return (
+    <section className={`estimacion ${pct >= 55 ? 'alta' : pct <= 45 ? 'baja' : ''}`}>
+      <div className="estimacion-cabecera">
+        <span className="side-label">{t('estimacion.titulo')} · {t('estimacion.con', { yo: yo.name })}</span>
+        <span className="estimacion-vistos">{t('estimacion.vistos', { n: est.vistos })}</span>
+      </div>
+      <div className="estimacion-fila">
+        <strong className="estimacion-cifra">{pct}%</strong>
+        <div className="estimacion-barra" role="img" aria-label={`${pct}%`}>
+          <i style={{ width: `${pct}%` }} />
+        </div>
+      </div>
+      <p className="estimacion-desglose">{partes.join(' · ')}</p>
+      <p className="build-nota">{t('estimacion.aviso')}</p>
+    </section>
+  );
+}
+
+/**
+ * Qué tiene cada equipo: de qué pega y si hay primera línea, control e
+ * inicio. Lo que se mira antes que nada en un draft, en una tira.
+ */
+export function Composicion({ comp, t = tPorDefecto }) {
+  if (!comp) return null;
+  const fila = (nombre, c) => {
+    if (!c.n) return null;
+    const d = c.dano;
+    const dano = [['fisico', d.fisico], ['magico', d.magico], ['mixto', d.mixto]]
+      .filter(([, n]) => n > 0).map(([k, n]) => `${n} ${t(`comp.${k}`)}`).join(' · ');
+    return (
+      <div className="comp-fila">
+        <span className="comp-quien">{nombre}</span>
+        <span className="comp-dano">{dano}</span>
+        {['tanky', 'cc_hard', 'engage', 'peel'].map((tag) => (
+          <span key={tag} className={`comp-chip ${c.cubiertos[tag] ? 'si' : 'falta'}`}>
+            {c.cubiertos[tag] ? '✓' : '✗'} {t(`comp.${tag}`)}
+          </span>
+        ))}
+        {c.dobles.map((db) => (
+          <span key={db.rol} className="comp-chip doble">{t('comp.doble', { n: db.n, rol: t(`rol.${db.rol}`), pp: db.pp })}</span>
+        ))}
+      </div>
+    );
+  };
+  return (
+    <section className="comp">
+      {fila(t('comp.tu'), comp.mio)}
+      {fila(t('comp.ellos'), comp.suyo)}
     </section>
   );
 }

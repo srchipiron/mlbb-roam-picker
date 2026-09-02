@@ -2,7 +2,7 @@ import {
   rankRoamers, metaScore, masteryScore, coverage, normName, densidadCounters, matchup, sinergia,
 } from './score.js';
 import { DEFAULT_WEIGHTS } from './rules.js';
-import { resumen, MINIMO_PARA_CONCLUIR } from './registro.js';
+import { resumen, MINIMO_PARA_CONCLUIR, calibracion } from './registro.js';
 import { coberturaBuilds } from './builds.js';
 
 /**
@@ -95,6 +95,22 @@ export function runSelfTest({ catalog, meta, metaCtx, allHeroes, roamPool, maste
       const margen = ((a.score - b.score) * 100).toFixed(1);
       lineas.push(`Por qué ${a.hero.name} y no ${b.hero.name}: ${margen} puntos de margen · lo decide ${dif[0][0]} (${(dif[0][1] * 100 >= 0 ? '+' : '')}${(dif[0][1] * 100).toFixed(1)})`
         + (dif[1] ? `, luego ${dif[1][0]} (${(dif[1][1] * 100 >= 0 ? '+' : '')}${(dif[1][1] * 100).toFixed(1)})` : ''));
+    }
+    // La probabilidad estimada con cada uno de los tres, y de dónde sale
+    // (ver estimacion.js). Es lo que permite discutir el número, no solo verlo.
+    const signo = (v) => (v > 0 ? `+${v}` : `${v}`);
+    for (const e of draft.estimaciones ?? []) {
+      if (e?.p == null) continue;
+      lineas.push(`Estimación con ${e.yo}: ${Math.round(e.p * 100)}% · héroes ${signo(e.puntos.heroes)} · cruces ${signo(e.puntos.cruces)} · parejas ${signo(e.puntos.parejas)} · tú ${signo(e.puntos.tu)} (${e.vistos}/10 a la vista)`);
+    }
+    // Y la composición de cada lado: de qué pega y qué le falta.
+    const comp = (c) => (c?.n ? `${c.n} héroes · físico ${c.dano.fisico} · mágico ${c.dano.magico} · mixto ${c.dano.mixto}`
+      + (c.huecos.length ? ` · sin ${c.huecos.join(', ')}` : ' · sin huecos')
+      + (c.dobles.length ? ` · doble: ${c.dobles.map((d) => `${d.rol}×${d.n} (${d.pp})`).join(', ')}` : '') : null);
+    if (draft.composicion) {
+      const m = comp(draft.composicion.mio); const s = comp(draft.composicion.suyo);
+      if (m) lineas.push(`Tu equipo (con el nº1): ${m}${draft.composicion.tapa.length ? ` · el nº1 tapa ${draft.composicion.tapa.join(', ')}` : ''}`);
+      if (s) lineas.push(`Ellos: ${s}`);
     }
     // Y si aguanta lo que falta por salir (ver robustez.js).
     if (draft.robustez?.lineasAbiertas?.length && a) {
@@ -451,6 +467,23 @@ export function runSelfTest({ catalog, meta, metaCtx, allHeroes, roamPool, maste
   // ---------- partidas apuntadas ----------
   seccion('TUS PARTIDAS');
   const reg = resumen(partidas, mastery);
+  // ¿La probabilidad estimada se parece a lo que pasa? Solo con partidas que
+  // llevaran la estimación delante. Mientras no haya 20 es una línea; con 20 o
+  // más y peor que una moneda, es un aviso: el modelo no sirve para ti.
+  if (!env.sinDatosPersonales) {
+    const cal = calibracion(partidas);
+    if (cal.n) {
+      const pct = (v) => (v == null ? '—' : `${Math.round(v * 100)}%`);
+      lineas.push(`Estimación vs realidad: ${cal.n} partidas · previsto ${pct(cal.prevista)} · ganadas ${pct(cal.real)} · Brier ${cal.brier.toFixed(3)} (moneda 0.250)`);
+      lineas.push(`  con ≥50% ganadas ${pct(cal.altas.real)} de ${cal.altas.n} · con <50% ganadas ${pct(cal.bajas.real)} de ${cal.bajas.n}`);
+      if (cal.concluyente) {
+        check(cal.brier < cal.brierMoneda, 'La estimación acierta más que una moneda en tus partidas',
+          `La estimación acierta MENOS que una moneda en tus ${cal.n} partidas (Brier ${cal.brier.toFixed(3)}): no te fíes del porcentaje`, true);
+      } else {
+        lineas.push(`  faltan ${cal.faltan} partidas con estimación para juzgarla`);
+      }
+    }
+  }
   lineas.push(env.sinDatosPersonales
     ? 'Sin acceso: las partidas viven en el móvil'
     : `Apuntadas: ${reg.total}`);
