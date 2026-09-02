@@ -8,6 +8,16 @@ que esto no se olvida.
 Criterio: `0.X.0` cuando cambia cómo decide la app o qué hace; `0.0.X` para
 correcciones.
 
+## 1.24.1
+
+Corrección en el mantenimiento semanal: su descarga de datos se saltaba el
+guardarraíl que ya tenían el despliegue y el bot de datos. No llegaba a
+commitear nada malo, pero derivaba las tablas y pasaba las pruebas sobre lo que
+saliera, y podía quedarse colgada. Ahora hace lo mismo que los otros dos:
+descarga a un temporal, compara con lo guardado, usa lo nuevo solo si no
+empeora, y tiene tope de 20 minutos. La prueba que vigila esto cubre ya los
+tres workflows, no dos.
+
 ## 1.24.0
 
 **El despliegue ya no puede quedarse colgado esperando a la API.** Se vio en

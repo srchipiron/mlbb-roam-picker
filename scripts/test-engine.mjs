@@ -1017,7 +1017,10 @@ test('una corrida de ingesta degradada no llega a los datos guardados', async ()
 test('los workflows que publican datos pasan por el guardarrail', () => {
   // Si alguien vuelve a poner la ingesta escribiendo directa sobre
   // public/data, el guardarrail deja de mirar y volvemos al fallo de arriba.
-  for (const f of ['deploy.yml', 'update-data.yml']) {
+  // Los TRES que ejecutan la ingesta. mantenimiento.yml se quedo fuera de esta
+  // lista y escribia directa sobre public/data sin comparar: no lo commiteaba,
+  // pero derivaba las tablas y pasaba npm test sobre lo que saliera.
+  for (const f of ['deploy.yml', 'update-data.yml', 'mantenimiento.yml']) {
     const yml = readFileSync(resolve(ROOT, '.github/workflows', f), 'utf8');
     const ingesta = yml.split('\n').filter((l) => l.includes('scripts/ingest.mjs'));
     ok(ingesta.length > 0, `${f}: ya no ejecuta la ingesta`);
@@ -1039,7 +1042,7 @@ test('los workflows que publican datos pasan por el guardarrail', () => {
   // API a medias, y el despliegue se quedaba ahi sabiendo publicar con los
   // datos del repositorio. Se vio en directo: una ingesta llevaba 20 minutos
   // en un paso que normalmente tarda 9.
-  for (const f of ['deploy.yml', 'update-data.yml']) {
+  for (const f of ['deploy.yml', 'update-data.yml', 'mantenimiento.yml']) {
     const yml = readFileSync(resolve(ROOT, `.github/workflows/${f}`), 'utf8');
     const paso = yml.slice(yml.indexOf('name: Ingesta'), yml.indexOf('scripts/ingest.mjs'));
     const m = paso.match(/timeout-minutes:\s*(\d+)/);
