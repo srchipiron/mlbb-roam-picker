@@ -177,6 +177,41 @@ const ES = {
   'analisis.pickFragil': '{yo} solo sigue siendo el nº1 en el {pct}% de los finales plausibles: depende de lo que saquen en {faltan} líneas. Si puedes, espera.',
   'analisis.pickClaro': '{yo} le saca {puntos} puntos al siguiente. Pick claro.',
   'analisis.empatadoCon': 'Empatado con {otros}. Coge el que mejor lleves.',
+  'analisis.equipoLeFalta': 'A tu equipo le falta {lista}, y {yo} tampoco lo trae.',
+  'analisis.yoTapo': 'A tu equipo le faltaba {lista}: {yo} lo tapa.',
+  'analisis.ellosSin': 'Ellos van sin {lista}.',
+  'analisis.rolDoble': 'Con {yo} llevaríais {n} {rol}: dos del mismo rol pierden {pp} puntos de sinergia, medido en las parejas.',
+  'sheet.listo': 'Listo',
+  'sheet.sugeridos': 'Merece la pena',
+  'sheet.baneados': '{n}/{max} baneados · toca para quitar',
+  'estimacion.titulo': 'Probabilidad estimada de ganar',
+  'estimacion.con': 'con {yo}',
+  'estimacion.heroes': 'héroes',
+  'estimacion.cruces': 'cruces',
+  'estimacion.parejas': 'parejas',
+  'estimacion.tu': 'tú',
+  'estimacion.vistos': '{n} de 10 a la vista',
+  'estimacion.aviso': 'Es un modelo sobre winrates públicos, no una promesa: cada partida que apuntes lo contrasta con lo que pasó.',
+  'estimacion.calibrada': 'En tus {n} partidas con estimación: previsto {prev}%, ganadas {real}%.',
+  'estimacion.brier': 'Error del modelo {brier} (una moneda: 0.250). Con ≥50% ganaste el {altas}% de {nAltas}; con menos, el {bajas}% de {nBajas}.',
+  'estimacion.faltanCalibrar': 'Faltan {n} partidas apuntadas para saber si la estimación se parece a lo que pasa.',
+  'comp.tu': 'Tu equipo',
+  'comp.ellos': 'Ellos',
+  'comp.fisico': 'físico',
+  'comp.magico': 'mágico',
+  'comp.mixto': 'mixto',
+  'comp.tanky': 'primera línea',
+  'comp.cc_hard': 'control',
+  'comp.engage': 'inicio',
+  'comp.peel': 'peel',
+  'comp.sustain': 'curación',
+  'comp.doble': '{n}× {rol} ({pp} pts)',
+  'rol.tank': 'tanque',
+  'rol.fighter': 'luchador',
+  'rol.assassin': 'asesino',
+  'rol.mage': 'mago',
+  'rol.marksman': 'tirador',
+  'rol.support': 'support',
   'analisis.todoFisico': 'Tu equipo pega todo físico: con una armadura os apagan a los cinco. {yo} mete daño mágico.',
   'analisis.todoMagico': 'Tu equipo pega todo mágico: con resistencia mágica os apagan a los cinco. {yo} mete daño físico.',
   'analisis.faltaMagico': 'Tu equipo pega todo físico y {yo} también. Les basta con comprar armadura.',
@@ -375,6 +410,41 @@ const EN = {
   'analisis.pickFragil': '{yo} stays #1 in only {pct}% of plausible endings: it depends on what they pick in {faltan} lanes. Wait if you can.',
   'analisis.pickClaro': '{yo} is {puntos} points clear of the next one. Easy pick.',
   'analisis.empatadoCon': 'Tied with {otros}. Take the one you play best.',
+  'analisis.equipoLeFalta': 'Your team lacks {lista}, and {yo} does not bring it either.',
+  'analisis.yoTapo': 'Your team was missing {lista}: {yo} covers it.',
+  'analisis.ellosSin': 'They have no {lista}.',
+  'analisis.rolDoble': 'With {yo} you would run {n} {rol}: two of the same role lose {pp} synergy points, measured on pairs.',
+  'sheet.listo': 'Done',
+  'sheet.sugeridos': 'Worth banning',
+  'sheet.baneados': '{n}/{max} banned · tap to remove',
+  'estimacion.titulo': 'Estimated win probability',
+  'estimacion.con': 'with {yo}',
+  'estimacion.heroes': 'heroes',
+  'estimacion.cruces': 'matchups',
+  'estimacion.parejas': 'pairs',
+  'estimacion.tu': 'you',
+  'estimacion.vistos': '{n} of 10 visible',
+  'estimacion.aviso': 'A model over public win rates, not a promise: every match you log checks it against what happened.',
+  'estimacion.calibrada': 'Over your {n} logged matches with an estimate: predicted {prev}%, won {real}%.',
+  'estimacion.brier': 'Model error {brier} (a coin: 0.250). At ≥50% you won {altas}% of {nAltas}; below it, {bajas}% of {nBajas}.',
+  'estimacion.faltanCalibrar': '{n} more logged matches to tell whether the estimate matches reality.',
+  'comp.tu': 'Your team',
+  'comp.ellos': 'Them',
+  'comp.fisico': 'physical',
+  'comp.magico': 'magic',
+  'comp.mixto': 'mixed',
+  'comp.tanky': 'front line',
+  'comp.cc_hard': 'control',
+  'comp.engage': 'engage',
+  'comp.peel': 'peel',
+  'comp.sustain': 'healing',
+  'comp.doble': '{n}× {rol} ({pp} pts)',
+  'rol.tank': 'tank',
+  'rol.fighter': 'fighter',
+  'rol.assassin': 'assassin',
+  'rol.mage': 'mage',
+  'rol.marksman': 'marksman',
+  'rol.support': 'support',
   'analisis.todoFisico': 'Your team is all physical damage: one armour item shuts down all five. {yo} brings magic damage.',
   'analisis.todoMagico': 'Your team is all magic damage: one magic resist item shuts down all five. {yo} brings physical damage.',
   'analisis.faltaMagico': 'Your team is all physical damage and so is {yo}. Armour alone answers all of you.',
@@ -433,11 +503,18 @@ export function idiomaPorDefecto() {
  */
 export function crearT(idioma) {
   const dic = TEXTOS[idioma] ?? EN;
-  return (clave, params) => {
+  const t = (clave, params) => {
     const plantilla = dic[clave] ?? TEXTOS.es[clave] ?? clave;
     if (!params) return plantilla;
-    return plantilla.replace(/\{(\w+)\}/g, (_, k) => (params[k] ?? `{${k}}`));
+    return plantilla.replace(/\{(\w+)\}/g, (_, k) => {
+      const v = params[k];
+      // Una lista de CLAVES se traduce elemento a elemento: así el motor puede
+      // decir «te falta primera línea y control» sin saber en qué idioma.
+      if (Array.isArray(v)) return v.map((x) => (typeof x === 'string' && (dic[x] ?? TEXTOS.es[x]) ? t(x) : x)).join(', ');
+      return v ?? `{${k}}`;
+    });
   };
+  return t;
 }
 
 /** Para las pruebas: comprobar que ningún idioma se ha quedado a medias. */

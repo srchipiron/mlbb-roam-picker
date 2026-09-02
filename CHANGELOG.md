@@ -8,6 +8,27 @@ que esto no se olvida.
 Criterio: `0.X.0` cuando cambia cómo decide la app o qué hace; `0.0.X` para
 correcciones.
 
+## 1.28.0
+
+- **Probabilidad estimada de ganar.** Debajo del análisis sale «55% con
+  Marcel» con su barra y de dónde viene: héroes, cruces, parejas y tú (tu
+  maestría con ese héroe). Es un modelo aditivo sobre los winrates públicos
+  de tu rango, no una promesa, y la app lo dice al lado del número. Cada
+  partida que apuntes guarda la estimación que tenía delante, y «Partidas»
+  compara lo previsto con lo que pasó: con 20 apuntadas te dice si el modelo
+  acierta más que una moneda.
+- **Qué tiene y qué le falta a cada equipo.** Una tira bajo el draft con el
+  daño de cada lado (físico / mágico / mixto) y si hay primera línea,
+  control, inicio y peel, para los dos equipos. El análisis lo dice en
+  palabras: «a tu equipo le faltaba primera línea: Marcel lo tapa», «ellos
+  van sin primera línea», y avisa si llevaríais dos del mismo rol (dos magos
+  pierden 4 puntos de sinergia: medido en las parejas, no supuesto).
+- **Banear en la mitad de toques.** El selector de baneos ya no se cierra
+  con cada héroe: tocas los que quieras, se marcan, y «Listo». Arriba salen
+  los que merece la pena banear, la rejilla va ordenada por tasa de ban y
+  cada héroe lleva su cara. Tocar un baneado lo quita. Y en todos los
+  selectores, Intro coge el primero de la lista: tres letras y Intro.
+
 ## 1.27.1
 
 - La simulación de «¿aguanta el pick?» ya respeta los baneos: un héroe

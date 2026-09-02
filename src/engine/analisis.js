@@ -1,5 +1,6 @@
 import { normName, matchup, perfilDeDano, tapaElHueco, CRUCE_MALO } from './score.js';
 import { CUOTA_ROBUSTA } from './robustez.js';
+import { HUECOS_QUE_SE_DICEN } from './composicion.js';
 import { TEAM_NEEDS } from './rules.js';
 
 /**
@@ -35,7 +36,7 @@ const lookup = (map, name) => (map ? map[normName(name)] ?? map[name] : undefine
  */
 export function analizarDraft({
   eleccion, ranked = [], enemies = [], allies = [], meta = {},
-  rivalLinea = null, linea = 'roam', empate = [], robustez = null,
+  rivalLinea = null, linea = 'roam', empate = [], robustez = null, composicion = null,
 }) {
   const salida = [];
   const top = eleccion ?? ranked[0];
@@ -146,6 +147,26 @@ export function analizarDraft({
           params: { yo: hero.name },
         });
     }
+  }
+
+  // 3b. Lo que le falta al equipo aparte del daño: primera línea, control,
+  //     inicio (ver composicion.js). Misma regla de tres aliados que el daño,
+  //     por la misma razón: es una afirmación sobre el equipo. Y el rol
+  //     doble, que sí está medido en las parejas (dos magos: −4 puntos).
+  if (composicion && allies.length >= 3) {
+    const dichos = (tags) => tags.filter((tg) => HUECOS_QUE_SE_DICEN.includes(tg)).map((tg) => `comp.${tg}`);
+    const tapa = dichos(composicion.tapa);
+    const faltan = dichos(composicion.mio.huecos);
+    if (tapa.length) salida.push({ tono: 'bien', clave: 'analisis.yoTapo', params: { yo: hero.name, lista: tapa } });
+    else if (faltan.length) salida.push({ tono: 'ojo', clave: 'analisis.equipoLeFalta', params: { yo: hero.name, lista: faltan } });
+    const doble = composicion.mio.dobles.find((d) => d.rol === hero.role);
+    if (doble) {
+      salida.push({ tono: 'ojo', clave: 'analisis.rolDoble', params: { yo: hero.name, n: doble.n, rol: [`rol.${doble.rol}`], pp: Math.abs(doble.pp).toFixed(1) } });
+    }
+  }
+  if (composicion && enemies.length >= 4) {
+    const sin = composicion.suyo.huecos.filter((tg) => ['tanky', 'cc_hard'].includes(tg)).map((tg) => `comp.${tg}`);
+    if (sin.length) salida.push({ tono: 'bien', clave: 'analisis.ellosSin', params: { lista: sin } });
   }
 
   // 4. Cuánto le saca al siguiente. Esto SIEMPRE se puede decir y es lo que

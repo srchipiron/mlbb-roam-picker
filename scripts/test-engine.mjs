@@ -294,6 +294,118 @@ test('el diagnostico detecta datos imposibles y caidas frente a su propio histor
   ok(/A aguanta el 70%: pick seguro/.test(conDraft), 'no califica el pick por su cuota');
 });
 
+test('la estimacion de victoria: neutra sin datos, simetrica, y cae donde se midio', async () => {
+  const { estimarVictoria, mediaDeSinergia } = await import('../src/engine/estimacion.js');
+  const { indiceDeLineas } = await import('../src/engine/rival-de-linea.js');
+  const { poolDeLinea, LINEAS, indexByName } = await import('../src/engine/score.js');
+
+  // 1. Sin nadie no hay nada que estimar; sin datos, todo el mundo al 50%.
+  eq(estimarVictoria({}), null, 'estima sin nadie en el draft');
+  const H = (name, extra = {}) => ({ name, role: 'tank', tags: [], ...extra });
+  const sinDatos = estimarVictoria({ allies: [H('A')], yo: H('Y'), enemies: [H('E')], meta: {} });
+  ok(Math.abs(sinDatos.p - 0.5) < 1e-9, `sin datos deberia dar 50%, da ${sinDatos.p}`);
+
+  // 2. Cada termino va por su lado y con su signo. Fixture con un solo dato
+  //    por termino: un heroe fuerte, un cruce ganado, una pareja buena.
+  const stats = indexByName({ Y: { winRate: 0.55 }, A: { winRate: 0.5 }, E: { winRate: 0.5 } });
+  const counters = indexByName({ Y: { E: 0.55 } }, 2);
+  const synergies = indexByName({ Y: { A: 0.55 }, A: { Y: 0.55 }, E: { A: 0.45 }, A: { E: 0.45 } }, 2);
+  const meta = { stats, counters, synergies };
+  const r = estimarVictoria({ allies: [H('A')], yo: H('Y'), enemies: [H('E')], meta });
+  const l = (p) => Math.log(p / (1 - p));
+  ok(Math.abs(r.terminos.heroes - l(0.55)) < 1e-9, `termino de heroes ${r.terminos.heroes}`);
+  ok(Math.abs(r.terminos.cruces - l(0.55)) < 1e-9, `termino de cruces ${r.terminos.cruces}`);
+  const centro = mediaDeSinergia(synergies);
+  ok(Math.abs(r.terminos.parejas - (l(0.55) - l(centro))) < 1e-9, `termino de parejas ${r.terminos.parejas}`);
+  ok(r.p > 0.5 && r.p < 0.7, `con tres ventajas pequenas deberia ir por encima del 50%, no ${r.p}`);
+  //    Un cruce PERDIDO resta: el 0.45 se lee desde el otro lado si hace falta.
+  const perdido = estimarVictoria({ allies: [], yo: H('E'), enemies: [H('Y')], meta });
+  ok(perdido.terminos.cruces < 0, 'un cruce perdido no resta');
+
+  // 3. Tu maestria: con 100 partidas al 70% con tu heroe, sube; y el termino
+  //    sustituye al del heroe, no se suma encima (nivel 0.5, k medido).
+  const conMaestria = estimarVictoria({ allies: [H('A')], yo: H('Y'), enemies: [H('E')], meta, mastery: { Y: { games: 100, winRate: 0.7 } } });
+  ok(conMaestria.p > r.p + 0.02, `100 partidas al 70% deberian subir la estimacion: ${r.p} -> ${conMaestria.p}`);
+  ok(conMaestria.terminos.heroes === r.terminos.heroes, 'el termino de heroes cambia con la maestria: se cuenta dos veces');
+
+  // 4. Sobre los datos reales: simetrica (p + p del otro lado = 1) y, en 200
+  //    drafts completos al azar, centrada en el 50% y entre el 30% y el 70%
+  //    (p05/p95 medidos: 30/70). Centrar los cruces en la media de la fila
+  //    en vez de en 0.5 desplazaba la mediana al 64%; esto lo caza.
+  const real = JSON.parse(readFileSync(resolve(ROOT, 'public/data/roam-meta.json'), 'utf8'));
+  if (!(real.heroes ?? []).length || !real.counters) return;
+  const todos = mergeCatalog(cat.heroes, real.heroes);
+  const idx = indiceDeLineas(real.heroes);
+  const M = { stats: indexByName(real.stats), counters: indexByName(real.counters, 2), synergies: indexByName(real.synergies, 2) };
+  const pools = Object.fromEntries(LINEAS.map((ln) => [ln, poolDeLinea(todos, idx, ln)]));
+  if (LINEAS.some((ln) => pools[ln].length < 10)) return;
+  let semilla = 3;
+  const rnd = () => (semilla = (semilla * 1103515245 + 12345) % 2147483648) / 2147483648;
+  const ps = [];
+  for (let d = 0; d < 200; d++) {
+    const u = new Set();
+    const coge = (ln) => { const c = pools[ln].filter((h) => !u.has(h.name)); const h = c[Math.floor(rnd() * c.length)]; u.add(h.name); return h; };
+    const A = LINEAS.map(coge); const E = LINEAS.map(coge);
+    const ida = estimarVictoria({ allies: A.slice(1), yo: A[0], enemies: E, meta: M });
+    const vuelta = estimarVictoria({ allies: E.slice(1), yo: E[0], enemies: A, meta: M });
+    // Los dos sentidos de un cruce suman 1 a cuatro decimales, no a dieciseis.
+    ok(Math.abs(ida.p + vuelta.p - 1) < 1e-3, `no es simetrica: ${ida.p} + ${vuelta.p}`);
+    ps.push(ida.p);
+  }
+  ps.sort((a, b) => a - b);
+  const q = (f) => ps[Math.floor(ps.length * f)];
+  ok(Math.abs(q(0.5) - 0.5) < 0.06, `la mediana en drafts al azar deberia ser 50%, es ${q(0.5)}`);
+  ok(q(0.05) > 0.2 && q(0.05) < 0.42 && q(0.95) > 0.58 && q(0.95) < 0.8, `p05/p95 fuera de lo medido: ${q(0.05)} / ${q(0.95)}`);
+});
+
+test('la composicion dice que le falta al equipo y que tapa el candidato', async () => {
+  const { analizarComposicion, composicionDe, ROL_DOBLE_PP } = await import('../src/engine/composicion.js');
+  const F = (name, role, tags, fisico, magico) => ({ name, role, tags, damage: { fisico, magico, verdadero: 0 } });
+  // Cuatro fisicos sin nadie delante ni control.
+  const allies = [F('Ti', 'marksman', ['hypercarry'], 5, 0), F('As', 'assassin', ['dash', 'burst'], 4, 0), F('Lu', 'fighter', ['dash'], 4, 0), F('Ju', 'assassin', ['dash'], 4, 0)];
+  const tanque = F('Ta', 'tank', ['tanky', 'cc_hard', 'engage'], 0, 4);
+  const r = analizarComposicion({ allies, yo: tanque, enemies: [] });
+  eq(r.sinMi.dano.falta, 'magico', 'no ve que los cuatro pegan fisico');
+  ok(r.sinMi.huecos.includes('tanky') && r.sinMi.huecos.includes('cc_hard'), `no ve los huecos: ${r.sinMi.huecos}`);
+  ok(r.tapa.includes('tanky') && r.tapa.includes('cc_hard') && r.tapa.includes('engage'), `el tanque deberia tapar tres huecos: ${r.tapa}`);
+  ok(r.tapaDano, 'un tanque magico deberia tapar el hueco de dano magico');
+  ok(!r.mio.huecos.includes('tanky') && r.mio.dano.falta == null, 'con el tanque dentro sigue faltando lo que el tapa');
+  // Dos asesinos: el duplicado medido, con su cifra.
+  eq(r.mio.dobles.length, 1, `deberia haber un rol doble (assassin): ${JSON.stringify(r.mio.dobles)}`);
+  eq(r.mio.dobles[0].rol, 'assassin', 'el rol doble no es el de los dos asesinos');
+  eq(r.mio.dobles[0].pp, ROL_DOBLE_PP.assassin, 'el rol doble no lleva su cifra medida');
+  // Un equipo vacio no tiene huecos que decir ni dano que le falte.
+  const vacio = composicionDe([]);
+  eq(vacio.dano.falta, null, 'a un equipo vacio le falta dano');
+  eq(vacio.dobles.length, 0, 'un equipo vacio tiene roles dobles');
+});
+
+test('la calibracion compara lo previsto con lo que paso, y se guarda al apuntar', async () => {
+  const { apuntar, calibracion, MINIMO_PARA_CALIBRAR } = await import('../src/engine/registro.js');
+  // Al apuntar se guarda la estimacion redondeada; una invalida no se guarda.
+  let ps = apuntar([], { pick: 'Khufra', gane: true, estimacion: 0.61234 });
+  eq(ps[0].estimacion, 0.612, 'no guarda la estimacion al apuntar');
+  ps = apuntar(ps, { pick: 'Khufra', gane: false, estimacion: 1.5 });
+  eq(ps[0].estimacion, undefined, 'guarda una estimacion imposible');
+  ps = apuntar(ps, { pick: 'Khufra', gane: true, previa: true, estimacion: 0.9 });
+  // Las previas no entran en la calibracion aunque traigan numero.
+  const c0 = calibracion(ps);
+  eq(c0.n, 1, `solo una partida tiene estimacion valida y no es previa: ${c0.n}`);
+  // Un modelo que acierta: Brier por debajo de la moneda y las altas ganan mas.
+  const buenas = []; const malas = [];
+  for (let i = 0; i < 40; i++) {
+    const gane = i % 3 !== 0; // 26 de 40
+    buenas.push({ t: i, pick: 'X', gane, estimacion: gane ? 0.65 : 0.4 });
+    malas.push({ t: i, pick: 'X', gane, estimacion: gane ? 0.4 : 0.65 });
+  }
+  const cb = calibracion(buenas); const cm = calibracion(malas);
+  ok(cb.concluyente && cb.n === 40 && cb.faltan === 0, 'con 40 partidas deberia ser concluyente');
+  ok(cb.brier < cb.brierMoneda && cm.brier > cm.brierMoneda, `Brier: bueno ${cb.brier}, malo ${cm.brier}, moneda 0.25`);
+  ok(cb.altas.real > cb.bajas.real, 'con un modelo que acierta, las altas deberian ganar mas');
+  ok(Math.abs(cb.real - 26 / 40) < 1e-9, `winrate real ${cb.real}`);
+  ok(calibracion(buenas.slice(0, 5)).faltan === MINIMO_PARA_CALIBRAR - 5, 'no dice cuantas faltan');
+});
+
 test('el rival se deduce por eliminacion, y acierta lo que se midio', async () => {
   const { detectarRivalDeLinea, indiceDeLineas, frecuenciaDeRoles } =
     await import('../src/engine/rival-de-linea.js');

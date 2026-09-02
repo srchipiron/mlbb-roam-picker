@@ -32,12 +32,52 @@ export function apuntar(partidas, entrada, tope = 500) {
     recomendados: (entrada.recomendados ?? []).slice(0, 3),
     gane: !!entrada.gane,
     rango: entrada.rango ?? null,
+    // La probabilidad que la app estimaba al apuntarla (0..1), si la había.
+    // Es lo que permite calibrar el modelo contra lo que pasó de verdad.
+    ...(typeof entrada.estimacion === 'number' && entrada.estimacion > 0 && entrada.estimacion < 1
+      ? { estimacion: Math.round(entrada.estimacion * 1000) / 1000 } : {}),
     // Partida vieja, metida a mano del historial del juego. Cuenta para la
     // maestría y NO cuenta para comprobar si la app acierta: ver `esPrevia`.
     ...(entrada.previa ? { previa: true } : {}),
   };
   if (!limpia.pick) return partidas;
   return [limpia, ...partidas].sort((a, b) => (b.t ?? 0) - (a.t ?? 0)).slice(0, tope);
+}
+
+/** Partidas con estimación a partir de las cuales se dice algo de la calibración. */
+export const MINIMO_PARA_CALIBRAR = 20;
+
+/**
+ * ¿La probabilidad estimada se parece a lo que pasa?
+ *
+ * Con cada partida apuntada se guarda la estimación que había delante. Aquí
+ * se compara lo previsto con lo ocurrido: media prevista frente a winrate
+ * real, y el Brier (error cuadrático medio; 0.25 es lo que saca una moneda,
+ * y menos es mejor). Y discriminación: cuando la app daba ≥50%, ¿se ganó más
+ * que cuando daba menos? Es lo mínimo que tiene que cumplir un modelo antes
+ * de creerse su escala.
+ *
+ * Las previas quedan fuera: no tenían estimación delante.
+ */
+export function calibracion(partidas = []) {
+  const con = partidas.filter((p) => !esPrevia(p) && typeof p.estimacion === 'number');
+  const n = con.length;
+  if (!n) return { n: 0, concluyente: false, faltan: MINIMO_PARA_CALIBRAR };
+  const media = (lista, f) => lista.reduce((acc, p) => acc + f(p), 0) / lista.length;
+  const ganada = (p) => (p.gane ? 1 : 0);
+  const altas = con.filter((p) => p.estimacion >= 0.5);
+  const bajas = con.filter((p) => p.estimacion < 0.5);
+  return {
+    n,
+    prevista: media(con, (p) => p.estimacion),
+    real: media(con, ganada),
+    brier: media(con, (p) => (p.estimacion - ganada(p)) ** 2),
+    brierMoneda: 0.25,
+    altas: { n: altas.length, real: altas.length ? media(altas, ganada) : null },
+    bajas: { n: bajas.length, real: bajas.length ? media(bajas, ganada) : null },
+    concluyente: n >= MINIMO_PARA_CALIBRAR,
+    faltan: Math.max(0, MINIMO_PARA_CALIBRAR - n),
+  };
 }
 
 /** Quitar una partida apuntada por error. */

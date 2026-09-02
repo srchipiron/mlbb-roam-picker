@@ -597,6 +597,54 @@ button:focus-visible, [tabindex]:focus-visible { outline: 2px solid var(--gold);
    regla base con su mismo selector.
    ------------------------------------------------------------------------- */
 
+/* ---------- probabilidad estimada ---------- */
+.estimacion {
+  border: 1px solid var(--line); border-radius: var(--r); background: var(--panel);
+  padding: 10px 12px; margin-bottom: 10px;
+}
+.estimacion.alta { border-color: var(--c-comp); }
+.estimacion.baja { border-color: var(--enemy); }
+.estimacion-cabecera { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; flex-wrap: wrap; }
+.estimacion-cabecera .side-label { margin: 0; }
+.estimacion-vistos { font-size: 11px; color: var(--muted); font-family: var(--font-num); }
+.estimacion-fila { display: flex; align-items: center; gap: 12px; margin: 6px 0 4px; }
+.estimacion-cifra { font-family: var(--font-num); font-size: 28px; line-height: 1; min-width: 64px; }
+.estimacion.alta .estimacion-cifra { color: var(--c-comp); }
+.estimacion.baja .estimacion-cifra { color: var(--enemy); }
+.estimacion-barra { flex: 1; height: 8px; border-radius: 4px; background: var(--panel-hi); overflow: hidden; position: relative; }
+.estimacion-barra i { display: block; height: 100%; background: var(--gold); border-radius: 4px; }
+.estimacion-barra::after {
+  content: ''; position: absolute; left: 50%; top: -2px; bottom: -2px; width: 2px; background: var(--line);
+}
+.estimacion-desglose { margin: 0 0 4px; font-size: 12px; color: var(--muted); font-family: var(--font-num); }
+
+/* ---------- composición de cada equipo ---------- */
+.comp { display: flex; flex-direction: column; gap: 4px; margin-top: 10px; }
+.comp-fila { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 6px; font-size: 12px; }
+.comp-quien { color: var(--muted); min-width: 62px; }
+.comp-dano { font-family: var(--font-num); }
+.comp-chip {
+  border: 1px solid var(--line); border-radius: 999px; padding: 1px 8px; font-size: 11px; color: var(--muted);
+}
+.comp-chip.si { color: var(--text); }
+.comp-chip.falta { border-color: var(--enemy); color: var(--enemy); }
+.comp-chip.doble { border-color: var(--enemy); color: var(--enemy); font-family: var(--font-num); }
+
+/* ---------- selector: caras, cuenta de baneos y sugeridos ---------- */
+.grid-cara { width: 30px; height: 30px; border-radius: 50%; object-fit: cover; flex: none; }
+.hero-grid button { display: flex; align-items: center; gap: 8px; text-align: left; }
+.grid-nombre { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.sheet-cuenta { margin: -4px 0 8px; font-size: 12px; color: var(--muted); }
+.sheet-sugeridos { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin-bottom: 10px; }
+.sheet-sugeridos .side-label { margin: 0; width: auto; }
+.chip {
+  display: inline-flex; align-items: center; gap: 6px; border: 1px solid var(--line); border-radius: 999px;
+  background: var(--panel); padding: 4px 10px 4px 4px; font-size: 13px;
+}
+.chip .grid-cara { width: 22px; height: 22px; }
+.chip.elegido { border-color: var(--ban); color: var(--muted); text-decoration: line-through; }
+.calibracion { margin-top: 8px; display: flex; flex-direction: column; gap: 4px; }
+
 @media (max-width: 820px) and (orientation: portrait) {
   .app { grid-template-columns: 1fr; grid-template-rows: auto minmax(0, 1fr); }
   .draft {

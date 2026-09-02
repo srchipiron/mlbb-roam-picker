@@ -6,7 +6,9 @@ import { analizarDraft } from './engine/analisis.js';
 import { crearT, idiomaPorDefecto, IDIOMAS } from './i18n.js';
 import { detectarRivalDeLinea, indiceDeLineas, frecuenciaDeRoles, lineasOcupadas } from './engine/rival-de-linea.js';
 import { simularFinales } from './engine/robustez.js';
-import { Side, HeroSheet, Pick, Legend, MasteryEditor, RankPicker, BanSuggestions, Footer, SelfTest, RegistroPartida, SelectorDeLinea, Analisis, AvisoLegal, Perfil, HistorialPartidas, Build } from './components/ui.jsx';
+import { estimarVictoria } from './engine/estimacion.js';
+import { analizarComposicion } from './engine/composicion.js';
+import { Side, HeroSheet, Pick, Legend, MasteryEditor, RankPicker, BanSuggestions, Footer, SelfTest, RegistroPartida, SelectorDeLinea, Analisis, AvisoLegal, Perfil, HistorialPartidas, Build, Estimacion, Composicion } from './components/ui.jsx';
 
 // OJO: estas claves siguen diciendo 'roam-picker' aunque la app se llame ya
 // Mobile Legends Pick Assist. NO se renombran: el almacenamiento del navegador
@@ -238,12 +240,28 @@ export default function App() {
     });
   }, [enemies, allies, bans, roamPool, allHeroes, lineas, frecuencias, metaCtx, maestriaUsada, enemyRoamEfectivo, linea]);
 
+  // Qué tiene y qué le falta a cada equipo, contigo dentro (tu nº1).
+  const composicion = useMemo(
+    () => ((allies.length || enemies.length) && ranked[0]
+      ? analizarComposicion({ allies, yo: ranked[0].hero, enemies })
+      : null),
+    [allies, enemies, ranked],
+  );
+
+  // Cuánto hay de ganar con tu nº1 y estos diez (ver estimacion.js).
+  const estimacion = useMemo(
+    () => (ranked[0] && (allies.length || enemies.length)
+      ? estimarVictoria({ allies, yo: ranked[0].hero, enemies, meta: metaCtx, mastery: maestriaUsada })
+      : null),
+    [ranked, allies, enemies, metaCtx, maestriaUsada],
+  );
+
   const analisis = useMemo(
     () => analizarDraft({
       ranked, enemies, allies, meta: metaCtx,
-      rivalLinea: enemyRoamEfectivo, linea, empate, robustez,
+      rivalLinea: enemyRoamEfectivo, linea, empate, robustez, composicion,
     }),
-    [ranked, enemies, allies, metaCtx, enemyRoamEfectivo, linea, empate, robustez],
+    [ranked, enemies, allies, metaCtx, enemyRoamEfectivo, linea, empate, robustez, composicion],
   );
 
   const banIdeas = useMemo(
@@ -277,7 +295,13 @@ export default function App() {
         // El draft que tienes delante, con nombres: es lo que hace falta para
         // reproducir una partida, y la captura ya no lo dice desde que los
         // huecos ensenan caras.
-        draft: { enemies, allies, bans, rival: enemyRoamEfectivo, marcado: !!enemyRoam, ranked, analisis, robustez },
+        draft: {
+          enemies, allies, bans, rival: enemyRoamEfectivo, marcado: !!enemyRoam, ranked, analisis, robustez, composicion,
+          estimaciones: ranked.slice(0, 3).map((r) => ({
+            yo: r.hero.name,
+            ...estimarVictoria({ allies, yo: r.hero, enemies, meta: metaCtx, mastery: maestriaUsada }),
+          })),
+        },
         historial,
         env: leerEntorno({
           version: __APP_VERSION__, buildTime: __BUILD_TIME__, rango: activeRank, publicada,
@@ -291,7 +315,12 @@ export default function App() {
   };
 
   const addTo = (hero) => {
-    const setter = { enemy: setEnemyNames, ally: setAllyNames, ban: setBanNames }[sheet];
+    if (sheet === 'ban') {
+      // Baneos: se marca y se desmarca sin cerrar. Se cierra con «Listo».
+      setBanNames((prev) => (prev.includes(hero.name) ? prev.filter((n) => n !== hero.name) : [...prev, hero.name]));
+      return;
+    }
+    const setter = { enemy: setEnemyNames, ally: setAllyNames }[sheet];
     setter?.((prev) => [...prev, hero.name]);
     setSheet(null);
   };
@@ -307,9 +336,14 @@ export default function App() {
 
   // Apunta la partida y limpia el draft, que es lo que toca justo después.
   const guardarPartida = (pick, gane) => {
+    // La estimación que había delante para ESE héroe, no para el nº1: es lo
+    // que luego se compara con el resultado (ver `calibracion`).
+    const heroe = resolve([pick])[0];
+    const est = heroe ? estimarVictoria({ allies, yo: heroe, enemies, meta: metaCtx, mastery: maestriaUsada }) : null;
     const siguiente = apuntar(partidas, {
       pick, gane, rango: activeRank,
       recomendados: ranked.slice(0, 3).map((r) => r.hero.name),
+      ...(est ? { estimacion: est.p } : {}),
     });
     setPartidas(siguiente);
     save(PARTIDAS_KEY, siguiente);
@@ -359,6 +393,7 @@ export default function App() {
               autoName={roamAuto} />
         <Side t={t} title={t('app.tuEquipo')} kind="ally" picks={allies} max={4}
               onAdd={() => setSheet('ally')} onRemove={remove(setAllyNames)} />
+        <Composicion comp={composicion} t={t} />
         <details className="more">
           <summary>{t('app.ajustes')}</summary>
 
@@ -448,6 +483,7 @@ export default function App() {
             con otras palabras, y el bloque empujaba la recomendacion fuera de
             la primera pantalla. */}
         <Analisis frases={analisis} t={t} />
+        <Estimacion est={estimacion} yo={ranked[0]?.hero} t={t} />
 
         {ranked.slice(0, 8).map((r, i) => (
           <Pick
@@ -546,9 +582,15 @@ export default function App() {
         <HeroSheet
           heroes={allHeroes}
           stats={metaCtx.stats}
-          taken={taken}
+          // Para banear, los baneados no están «cogidos»: se tocan para quitarlos.
+          taken={sheet === 'ban' ? new Set([...enemyNames, ...allyNames]) : taken}
           onPick={addTo}
           onClose={() => setSheet(null)}
+          multi={sheet === 'ban'}
+          seleccionados={sheet === 'ban' ? new Set(banNames) : null}
+          max={10}
+          sugeridos={sheet === 'ban' ? banIdeas.map((b) => b.hero) : []}
+          orden={sheet === 'ban' ? 'ban' : 'pick'}
           t={t}
         />
       )}

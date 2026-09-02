@@ -346,7 +346,7 @@ export function synergyScore(roamHero, allies, synergyMatrix) {
 }
 
 /** Tags que cubren la misma necesidad: encadenar CC vale como control duro. */
-const SATISFIES = {
+export const SATISFIES = {
   cc_hard: ['cc_hard', 'cc_chain'],
   peel: ['peel', 'shield', 'anti_dive'],
   sustain: ['sustain', 'heal'],
