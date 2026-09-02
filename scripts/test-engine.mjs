@@ -2007,6 +2007,20 @@ test('el motivo de maestria se mide contra TU nivel, no contra un 55% fijo', asy
     'a un jugador del 45% no le reconoce nunca su mejor heroe, porque no llega al 55%');
   ok(motivos(flojo, 'peor').includes('regla.maestriaMala'), 'no le avisa de su peor heroe');
   eq(motivos(flojo, 'medio').length, 0, 'saca motivo de un heroe que esta en su media');
+
+  // Y se decide con el estimado ENCOGIDO: la evidencia debil no sale y la
+  // fuerte si. Antes era al reves: 20 partidas al 60% sacaban motivo (12
+  // victorias contra 10,6 esperadas: nada) y 300 al 57% no.
+  const conNuevo = (n, wr) => ({ ...bueno, nuevo: { games: n, winRate: wr } });
+  ok(!motivos(conNuevo(20, 0.60), 'nuevo').includes('regla.maestriaBuena'),
+    '20 partidas al 60% no son evidencia de nada y saca motivo');
+  // (62%, no 59%: con este perfil el nivel es 54,4% y σ 4,2 puntos, asi que
+  // 59% encogido se queda a +3,1, por debajo de una desviacion. Primera version
+  // de esta prueba pedia 59% y era la prueba la que estaba mal, no el motor.)
+  ok(motivos(conNuevo(300, 0.62), 'nuevo').includes('regla.maestriaBuena'),
+    '300 partidas al 62% son una senal real y no saca motivo');
+  ok(!motivos(conNuevo(5, 1.0), 'nuevo').includes('regla.maestriaBuena'),
+    'cinco partidas ganadas disparan el motivo');
 });
 
 test('ningun 0.53 escrito a mano suelto en el motor', async () => {

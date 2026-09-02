@@ -192,6 +192,13 @@ Todos estos llegaron a producción y costaron rondas enteras de ida y vuelta:
   (p90 0.5100 frente a 0.5154), así que copiar el número de un sitio a otro es
   doblemente erróneo. Hay una prueba que falla si vuelve a aparecer un umbral de
   cruce suelto en `score.js` o `analisis.js`.
+- **El motivo de maestría decidido con el winrate bruto y un corte de 20
+  partidas** — 20 partidas al 60% sacaban «lo llevas al 60%» (encogido: 54%,
+  nada) y 300 al 57% no sacaban nada (encogido: 55,7%, señal real). La
+  evidencia débil se enseñaba y la fuerte no. Hoy decide el estimado encogido,
+  que ya lleva dentro el tamaño de muestra, y el corte de partidas desapareció
+  con `MASTERY_CONFIDENCE_GAMES`. Si una condición mira una cantidad cruda
+  habiendo un estimado encogido de la misma cosa, está mirando la equivocada.
 - **El umbral del motivo de maestría, absoluto** — la NOTA se arregló para
   medirse contra tu nivel y el MOTIVO se quedó en `>= 0.55`. A un jugador del
   53,4% le decía «lo llevas bien» de un héroe en su media exacta, y a uno del
@@ -490,12 +497,11 @@ y el botón Diagnóstico mentía sobre los rangos. No le quites el `--out`.
 
 ## Lo que queda pendiente
 
-- 7 héroes siguen sin tags escritos a mano: Marcel, Hirara, Zetian, Sora,
-  Obsidia, Cici y Valir. Desde 0.6.0 no dependen solo del rol: se les deduce de
-  la `speciality` de Moonton, con una precisión medida del 67% y una cobertura
-  del 52,5%. Escribirles tags propios en `heroes.json` sigue siendo mejor
-  —quita el descuento por deducción—, pero ya no es urgente. Valir no es un
-  desajuste de nombre: es un héroe real que falta en el catálogo.
+- Ya no queda ningún héroe con tags deducidos: los 7 que faltaban (Marcel,
+  Hirara, Zetian, Sora, Obsidia, Cici, Valir) se escribieron a mano en
+  `2917b2d`. El mecanismo de deducción (`tagsDeducidos`, `PRECISION_DEDUCIDA`)
+  sigue vivo para el próximo héroe que saque Moonton antes de que alguien le
+  escriba los tags, y `mantenimiento.yml` avisa cuando eso pase.
 - La deducción se apoya en `SPECIALITY_TAGS` y `ROLE_VETO`, que NO se editan a
   mano: las regenera `node scripts/derivar-tags.mjs` del propio catálogo.
   Reejecútalo cuando crezca `heroes.json` o Moonton cambie sus etiquetas.

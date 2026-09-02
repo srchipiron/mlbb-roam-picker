@@ -8,6 +8,20 @@ que esto no se olvida.
 Criterio: `0.X.0` cuando cambia cómo decide la app o qué hace; `0.0.X` para
 correcciones.
 
+## 1.22.0
+
+**«Lo llevas al X%» se decide ahora con lo que la app cree de verdad, no con el
+número bruto.** Tenía el criterio al revés: 20 partidas al 60% sacaban motivo —y
+son 12 victorias contra 11 esperadas, o sea nada— mientras 300 partidas al 57%
+no sacaban ninguno, siendo una señal real. La evidencia débil se enseñaba y la
+fuerte no. Ahora decide el estimado encogido, que ya tiene en cuenta cuántas
+partidas hay, y el corte fijo de 20 partidas desaparece. Lo que ves sigue siendo
+lo que pasó: «60% en 20 partidas», y tú ya ves que son veinte.
+
+De paso: comprobado que los datos viajan comprimidos al móvil (180 KB, no 786),
+y CLAUDE.md dejaba pendientes 7 héroes sin tags que ya se escribieron hace
+tiempo.
+
 ## 1.21.0
 
 **Tu rival de línea se deduce mirando el draft entero, no a cada enemigo por

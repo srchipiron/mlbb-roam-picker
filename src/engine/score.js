@@ -5,7 +5,6 @@ import {
   COUNTER_RULES,
   DANGER_RULES,
   TEAM_NEEDS,
-  MASTERY_CONFIDENCE_GAMES,
   DEFAULT_WEIGHTS,
 } from './rules.js';
 
@@ -541,12 +540,20 @@ export function masteryScore(roamHero, mastery, nivel, prior) {
   // El margen es la dispersión que la app ya mide de tus propios datos
   // (`priorDeMaestria` la saca de ahí): destacar es salirse una desviación de
   // lo tuyo, no cruzar un número redondo.
+  // Y se decide con el estimado ENCOGIDO, no con el winrate bruto. El bruto con
+  // un corte de 20 partidas hacia justo lo contrario de lo que debe: 20
+  // partidas al 60% sacaban "lo llevas al 60%" (encogido: 54,0%, o sea nada) y
+  // 300 partidas al 57% no sacaban nada (encogido: 55,7%, una senal de verdad).
+  // La evidencia debil se ensenaba y la fuerte no. El encogimiento ya lleva
+  // dentro el tamano de muestra, asi que no hace falta ningun corte de partidas.
+  // Lo que se ENSENA sigue siendo el bruto con su n: "60% en 20" es lo que
+  // paso, y el lector ya ve que son veinte.
   const sigma = Math.sqrt(0.25 / k);
   const reasons = [];
-  if (m.games >= MASTERY_CONFIDENCE_GAMES && m.winRate >= base + sigma) {
+  if (shrunk >= base + sigma) {
     reasons.push({ clave: 'regla.maestriaBuena', params: { pct: Math.round(m.winRate * 100), n: m.games }, good: true, w: 1.4 });
   }
-  if (m.games >= MASTERY_CONFIDENCE_GAMES && m.winRate <= base - sigma) {
+  if (shrunk <= base - sigma) {
     reasons.push({ clave: 'regla.maestriaMala', params: { pct: Math.round(m.winRate * 100), n: m.games }, good: false, w: 1.4 });
   }
   return { value, reasons };
