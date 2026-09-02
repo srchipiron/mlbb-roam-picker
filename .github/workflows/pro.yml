@@ -1,0 +1,50 @@
+name: Partidas profesionales
+
+on:
+  schedule:
+    - cron: '40 6 * * 1'   # lunes (UTC); GitHub lo ejecuta con 3-5 h de retraso
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  pro:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '20'
+
+      - name: Ingesta de Liquipedia
+        # A temporales, nunca encima de lo guardado: si Liquipedia corta a
+        # mitad, lo de antes tiene que seguir intacto para poder compararlo.
+        # Con tope de tiempo: cada 429 se espera minutos, y son ~40
+        # peticiones a una cada 5 s.
+        timeout-minutes: 45
+        run: node scripts/ingesta-pro.mjs --out /tmp/pro.json --out-partidas /tmp/pro-partidas.jsonl --max-peticiones 120 --max-torneos 25
+
+      - name: Descartar si hay menos partidas que las guardadas
+        run: |
+          ANTES=$( [ -f historial/pro-partidas.jsonl ] && wc -l < historial/pro-partidas.jsonl || echo 0 )
+          AHORA=$(wc -l < /tmp/pro-partidas.jsonl)
+          echo "guardadas $ANTES · ahora $AHORA"
+          if [ "$AHORA" -lt "$ANTES" ]; then echo "::error::la corrida trae menos partidas ($AHORA < $ANTES)"; exit 1; fi
+
+      - name: Guardar
+        run: |
+          mkdir -p historial public/data
+          cp /tmp/pro-partidas.jsonl historial/pro-partidas.jsonl
+          cp /tmp/pro.json public/data/pro.json
+
+      - name: Medir el motor contra las partidas
+        run: node scripts/medir-pro.mjs || true
+
+      - name: Commit si hay cambios
+        run: |
+          git config user.name  "meta-bot"
+          git config user.email "meta-bot@users.noreply.github.com"
+          git add historial/pro-partidas.jsonl public/data/pro.json
+          git diff --staged --quiet || git commit -m "datos: partidas profesionales $(date -u +%Y-%m-%d)"
+          git push

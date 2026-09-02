@@ -31,6 +31,8 @@ const save = (key, value) => {
 export default function App() {
   const [catalog, setCatalog] = useState(null);
   const [meta, setMeta] = useState(null);
+  // Partidas profesionales (Liquipedia): un extra, la app funciona sin él.
+  const [pro, setPro] = useState(null);
   const [error, setError] = useState(null);
 
   // El draft sobrevive a que Android mate la pestaña al cambiar de app:
@@ -142,6 +144,7 @@ export default function App() {
     fetchJson('./data/heroes.json').then(setCatalog).catch((e) => setError(e.message));
     // El meta puede faltar en el primer arranque: la app sigue siendo útil sin él.
     fetchJson('./data/roam-meta.json').then(setMeta).catch(() => setMeta(null));
+    fetchJson('./data/pro.json').then(setPro).catch(() => setPro(null));
   }, []);
 
   // Catálogo escrito a mano + todo lo que conozca la API, con tags deducidos
@@ -303,6 +306,7 @@ export default function App() {
           })),
         },
         historial,
+        pro,
         env: leerEntorno({
           version: __APP_VERSION__, buildTime: __BUILD_TIME__, rango: activeRank, publicada,
         }),
@@ -492,6 +496,7 @@ export default function App() {
             index={i}
             t={t}
             stat={metaCtx.stats?.[normName(r.hero.name)]}
+            pro={pro?.heroes?.[r.hero.name] ?? null}
             onBuild={meta?.builds ? setVerBuild : null}
           />
         ))}

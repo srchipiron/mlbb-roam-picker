@@ -253,6 +253,10 @@ const ES = {
   // --- público: avisos y donaciones ---
   'legal.noAfiliado': 'Proyecto de aficionado, sin relación con Moonton. Mobile Legends: Bang Bang y sus héroes son marcas de sus propietarios.',
   'legal.privacidad': 'Tus datos no salen de tu móvil: no hay cuentas, ni servidor, ni seguimiento.',
+  'legal.liquipedia': 'Las partidas profesionales salen de Liquipedia (liquipedia.net/mobilelegends), con licencia CC-BY-SA 3.0.',
+  'pro.titulo': 'En los últimos torneos profesionales (Liquipedia)',
+  'pro.linea': 'Pro: {picks} picks · {pct}% · {bans} bans',
+  'pro.lineaSinPct': 'Pro: {picks} picks · {bans} bans',
   'donar.texto': 'Invítame a un café',
   'idioma.nombre': 'Idioma',
 };
@@ -481,6 +485,10 @@ const EN = {
 
   'legal.noAfiliado': 'A fan project, not affiliated with Moonton. Mobile Legends: Bang Bang and its heroes are trademarks of their respective owners.',
   'legal.privacidad': 'Your data never leaves your phone: no accounts, no server, no tracking.',
+  'legal.liquipedia': 'Professional match data comes from Liquipedia (liquipedia.net/mobilelegends), licensed CC-BY-SA 3.0.',
+  'pro.titulo': 'In recent professional tournaments (Liquipedia)',
+  'pro.linea': 'Pro: {picks} picks · {pct}% · {bans} bans',
+  'pro.lineaSinPct': 'Pro: {picks} picks · {bans} bans',
   'donar.texto': 'Buy me a coffee',
   'idioma.nombre': 'Language',
 };
