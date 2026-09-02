@@ -113,6 +113,12 @@ Todos estos llegaron a producción y costaron rondas enteras de ida y vuelta:
 - **`ROUTES is not defined`** — la ingesta reventaba en la primera línea. Pasaba
   `node --check` porque la sintaxis era válida. Hay una prueba que la ejecuta de
   verdad; no la quites.
+- **El tercer workflow fuera del guardarraíl** — `mantenimiento.yml` ejecutaba
+  la ingesta sin `--out`, directa sobre `public/data`, sin comparar y sin tope;
+  la prueba del guardarraíl solo listaba los otros dos. No commiteaba el
+  fichero, pero derivaba las tablas y pasaba `npm test` sobre lo que saliera.
+  Hoy los tres hacen lo mismo y la prueba recorre los tres. Si añades un
+  workflow que llame a la ingesta, va en esa lista o no está protegido.
 - **La ingesta sin tope de tiempo** — `continue-on-error` cubre que falle, no
   que se cuelgue: ~570 peticiones con 15 s de timeout son 140 minutos con la
   API a medias, y el despliegue se quedaba ahí sabiendo publicar con los datos

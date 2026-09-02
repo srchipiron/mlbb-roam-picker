@@ -24,8 +24,27 @@ jobs:
       - run: npm ci
 
       # Los datos de hoy, que es de donde salen las etiquetas de Moonton.
+      #
+      # A un temporal y con guardarrail, igual que el despliegue y el bot de
+      # datos. Aqui escribia DIRECTA sobre public/data sin comparar: no se
+      # commiteaba, pero los pasos de abajo -avisar de heroes nuevos, derivar
+      # las tablas y pasar npm test- leen ese fichero, asi que una corrida
+      # degradada derivaba tablas de basura y tumbaba las pruebas por nada. Y
+      # la prueba del guardarrail solo vigilaba los otros dos workflows.
       - name: Ingesta
-        run: node scripts/ingest.mjs --rank glory --days 7
+        id: ingesta
+        continue-on-error: true
+        timeout-minutes: 20
+        run: node scripts/ingest.mjs --rank glory --days 7 --out /tmp/nueva.json
+
+      - name: Usar la corrida solo si no empeora la guardada
+        run: |
+          if [ "${{ steps.ingesta.outcome }}" = "success" ] \
+             && node scripts/comparar-ingesta.mjs /tmp/nueva.json public/data/roam-meta.json; then
+            cp /tmp/nueva.json public/data/roam-meta.json
+          else
+            echo "::warning::La ingesta ha fallado o resuelve menos; el mantenimiento sigue con los datos del repositorio."
+          fi
 
       # ¿Hay héroes nuevos sin tags escritos a mano? Eso NO se automatiza:
       # inventarle tags a un héroe que nadie ha mirado es justo lo que este
