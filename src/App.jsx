@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useDeferredValue, useEffect, useMemo, useState } from 'react';
 import { rankRoamers, mergeCatalog, suggestBans, indexByName, coverage, empatados, normName, poolDeLinea, LINEAS } from './engine/score.js';
 import { runSelfTest, leerEntorno } from './engine/selftest.js';
 import { apuntar, olvidar, corregir, maestriaEfectiva } from './engine/registro.js';
@@ -232,16 +232,27 @@ export default function App() {
   // quién te va a doler y si estás eligiendo a ciegas.
   // ¿Aguanta el nº1 lo que falta por salir? Solo con draft a medias. Son 60
   // rankings más por cambio de draft: unos milisegundos.
+  // La simulación son 60 rankings enteros (20-100 ms en un portátil, más en
+  // el móvil). Con los valores DIFERIDOS, React pinta primero el ranking con
+  // el pick nuevo y la frase de «aguanta» llega en el render siguiente, en
+  // vez de bloquear el toque.
+  const enemigosDiferidos = useDeferredValue(enemies);
+  const aliadosDiferidos = useDeferredValue(allies);
+  const baneosDiferidos = useDeferredValue(bans);
+  const poolsPorLinea = useMemo(
+    () => Object.fromEntries(LINEAS.map((l) => [l, poolDeLinea(allHeroes, lineas, l)])),
+    [allHeroes, lineas],
+  );
   const robustez = useMemo(() => {
-    if (!enemies.length || enemies.length >= 5 || !roamPool.length) return null;
-    const ocupadas = new Set(lineasOcupadas(enemies, lineas, frecuencias));
+    const en = enemigosDiferidos;
+    if (!en.length || en.length >= 5 || !roamPool.length) return null;
+    const ocupadas = new Set(lineasOcupadas(en, lineas, frecuencias));
     const abiertas = LINEAS.filter((l) => !ocupadas.has(l));
-    const poolsPorLinea = Object.fromEntries(LINEAS.map((l) => [l, poolDeLinea(allHeroes, lineas, l)]));
     return simularFinales({
-      pool: roamPool, enemies, allies, lineasAbiertas: abiertas, poolsPorLinea,
-      ctx: { meta: metaCtx, mastery: maestriaUsada, bans, enemyRoam: enemyRoamEfectivo }, linea,
+      pool: roamPool, enemies: en, allies: aliadosDiferidos, lineasAbiertas: abiertas, poolsPorLinea,
+      ctx: { meta: metaCtx, mastery: maestriaUsada, bans: baneosDiferidos, enemyRoam: enemyRoamEfectivo }, linea,
     });
-  }, [enemies, allies, bans, roamPool, allHeroes, lineas, frecuencias, metaCtx, maestriaUsada, enemyRoamEfectivo, linea]);
+  }, [enemigosDiferidos, aliadosDiferidos, baneosDiferidos, roamPool, poolsPorLinea, lineas, frecuencias, metaCtx, maestriaUsada, enemyRoamEfectivo, linea]);
 
   // Qué tiene y qué le falta a cada equipo, contigo dentro (tu nº1).
   const composicion = useMemo(
@@ -383,9 +394,11 @@ export default function App() {
     <div className="app">
       <aside className="draft">
         <div className="brand">
-          <h1>Roam</h1>
+          {/* La línea que juegas, no «Roam»: desde 1.0.0 hay cinco y el
+              título se había quedado en la primera. */}
+          <h1>{linea ? t(`linea.${linea}`) : 'Pick Assist'}</h1>
           <span className={`freshness ${ageHours > 36 ? 'stale' : ''}`}>
-            {ageHours != null ? `${Math.round(ageHours)}h` : 'sin datos meta'}
+            {ageHours != null ? `${Math.round(ageHours)}h` : t('app.sinDatosMeta')}
           </span>
         </div>
 
@@ -460,9 +473,9 @@ export default function App() {
             {meta?.diagnostics && (
               <details className="diag">
                 <summary>{t('app.verPorQue')}</summary>
-                <p>Base: <code>{meta.diagnostics.base ?? 'ninguna'}</code></p>
+                <p>{t('api.base')}: <code>{meta.diagnostics.base ?? '—'}</code></p>
                 {meta.diagnostics.schema && (
-                  <p>Esquema: <code>{meta.diagnostics.schema.pathCount} rutas en {meta.diagnostics.schema.url}</code></p>
+                  <p><code>{t('api.esquema', { n: meta.diagnostics.schema.pathCount, url: meta.diagnostics.schema.url })}</code></p>
                 )}
                 {meta.diagnostics.routes && Object.entries(meta.diagnostics.routes).map(([k, v]) => (
                   <p key={k}><code>{k}: {v}</code></p>
@@ -505,7 +518,7 @@ export default function App() {
         <AvisoLegal t={t} idioma={idioma} onIdioma={setIdioma} idiomas={IDIOMAS} />
       </main>
 
-      {test && <SelfTest resultado={test} onClose={() => setTest(null)} />}
+      {test && <SelfTest t={t} resultado={test} onClose={() => setTest(null)} />}
 
       {verBuild && (
         <Build
