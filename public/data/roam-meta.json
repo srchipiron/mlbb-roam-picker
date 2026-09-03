@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-09-02T19:56:15.856Z",
+  "generatedAt": "2026-09-03T09:59:50.197Z",
   "rank": "glory",
   "ranks": [
     "epic",
@@ -2113,6 +2113,13 @@
       "equipment": "GET https://arena-hv.fastapicloud.dev/api/academy/equipment/expanded (size, index, lang)",
       "builds": "GET https://arena-hv.fastapicloud.dev/api/academy/heroes/{hero_identifier}/builds (hero_identifier, lane, rank, size, index, lang)"
     },
+    "frescos": [
+      "epic",
+      "legend",
+      "mythic",
+      "glory"
+    ],
+    "conservado": false,
     "relations": {
       "rutaCounter": "GET https://arena-hv.fastapicloud.dev/api/academy/heroes/{hero_identifier}/counters",
       "conId": 133,
