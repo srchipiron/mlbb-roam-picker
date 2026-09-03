@@ -43,6 +43,8 @@ jobs:
         # enseña. Si hay menos de 30 partidas no escribe nada y no pasa nada.
         run: |
           node scripts/medir-pro.mjs --json /tmp/medicion.json || true
+          # Solo al log: la tendencia del peso del rival de linea (ver CLAUDE.md).
+          node scripts/medir-rival.mjs || true
           if [ -f /tmp/medicion.json ]; then
             node -e "const fs=require('fs');const p=JSON.parse(fs.readFileSync('public/data/pro.json'));p.medicion=JSON.parse(fs.readFileSync('/tmp/medicion.json'));fs.writeFileSync('public/data/pro.json',JSON.stringify(p))"
           fi

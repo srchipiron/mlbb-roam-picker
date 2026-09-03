@@ -373,6 +373,44 @@ test('los motivos se filtran antes de cortar a tres, y el pick a ciegas es un so
   eq(cortas, 0, `${cortas} de ${tarjetas} tarjetas ensenan menos motivos de los que tienen`);
 });
 
+test('la medida del rival de linea: la logistica recupera coeficientes conocidos y el reparto de lineas es el de la app', async () => {
+  const { logistica, asignarLineas } = await import('./medir-rival.mjs');
+  const { indiceDeLineas, frecuenciaDeRoles, detectarRivalDeLinea } = await import('../src/engine/rival-de-linea.js');
+  const { generador } = await import('../src/engine/robustez.js');
+  // Datos sinteticos con coeficientes conocidos (a=0.3, b1=1.5, b2=-0.8): el
+  // ajuste tiene que recuperarlos dentro de tres errores tipicos. Con el
+  // generador del motor (mulberry32): el congruencial de otras pruebas
+  // sesgaba el intercepto +0.03 de forma sistematica.
+  const rnd = generador(17);
+  const X = []; const y = [];
+  for (let i = 0; i < 3000; i++) {
+    const x1 = rnd() * 2 - 1; const x2 = rnd() * 2 - 1;
+    const p = 1 / (1 + Math.exp(-(0.3 + 1.5 * x1 - 0.8 * x2)));
+    X.push([1, x1, x2]); y.push(rnd() < p ? 1 : 0);
+  }
+  const r = logistica(X, y);
+  ok(Math.abs(r.b[1] - 1.5) < 3 * r.se[1] && r.se[1] < 0.2, `b1 ${r.b[1]} ± ${r.se[1]} (esperado 1.5)`);
+  ok(Math.abs(r.b[2] + 0.8) < 3 * r.se[2], `b2 ${r.b[2]} ± ${r.se[2]} (esperado -0.8)`);
+  ok(Math.abs(r.b[0] - 0.3) < 3 * r.se[0], `a ${r.b[0]} ± ${r.se[0]} (esperado 0.3)`);
+  // Y el generador del motor no tiene correlacion serial apreciable.
+  const g = generador(5); const v = Array.from({ length: 20000 }, g); const m = v.reduce((a, b) => a + b) / v.length;
+  let num = 0; let den = 0; for (let i = 0; i < v.length - 1; i++) num += (v[i] - m) * (v[i + 1] - m); for (const x of v) den += (x - m) ** 2;
+  ok(Math.abs(num / den) < 0.008, `correlacion serial del generador ${num / den}`);
+  ok(Number.isFinite(r.logL) && r.logL < 0, 'log-verosimilitud');
+  // El reparto de lineas coincide con lo que la app deduce cuando no duda.
+  const listado = [
+    { name: 'Angela', role: 'support', lane: 'roam' }, { name: 'Kagura', role: 'mage', lane: 'mid' },
+    { name: 'Claude', role: 'marksman', lane: 'gold' }, { name: 'Saber', role: 'assassin', lane: 'jungle' },
+    { name: 'Argus', role: 'fighter', lane: 'exp' },
+  ];
+  const info = indiceDeLineas(listado); const frec = frecuenciaDeRoles(listado.map((x) => ({ ...x, lanes: x.lane.split(',') })));
+  const equipo = listado.map((x) => ({ name: x.name }));
+  const reparto = asignarLineas(equipo, info, frec);
+  for (const l of ['roam', 'mid', 'gold', 'jungle', 'exp']) {
+    eq(reparto[l].name, detectarRivalDeLinea(equipo, info, l, frec), `reparto de ${l} distinto del de la app`);
+  }
+});
+
 test('la estimacion de victoria: neutra sin datos, simetrica, y cae donde se midio', async () => {
   const { estimarVictoria, mediaDeSinergia } = await import('../src/engine/estimacion.js');
   const { indiceDeLineas } = await import('../src/engine/rival-de-linea.js');

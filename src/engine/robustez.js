@@ -46,10 +46,22 @@ export const FINALES_POR_DEFECTO = 60;
 /**
  * Generador determinista: mismas entradas, misma cuota. Sin esto el número
  * bailaría entre dos aperturas del diagnóstico y no se podría probar nada.
+ *
+ * mulberry32, no un congruencial: el de antes (s·1103515245+12345 mod 2³¹)
+ * tiene correlación serial (−0,011 a un paso) y, medido con datos
+ * sintéticos, desplazaba de forma sistemática lo que se estima con él
+ * (+0,034 en un intercepto conocido, 8 semillas × 20.000 puntos). Aquí
+ * cada final se muestrea con varias extracciones seguidas, así que la
+ * correlación entre extracciones consecutivas sesga los finales.
  */
-function generador(semilla) {
-  let s = semilla >>> 0 || 1;
-  return () => (s = (s * 1103515245 + 12345) % 2147483648) / 2147483648;
+export function generador(semilla) {
+  let a = (semilla >>> 0) || 1;
+  return () => {
+    a = (a + 0x6D2B79F5) | 0;
+    let t = Math.imul(a ^ (a >>> 15), 1 | a);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
 }
 
 function muestrear(pool, excluidos, pickRateDe, rnd) {

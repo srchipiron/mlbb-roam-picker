@@ -8,6 +8,19 @@ que esto no se olvida.
 Criterio: `0.X.0` cuando cambia cómo decide la app o qué hace; `0.0.X` para
 correcciones.
 
+## 1.31.3
+
+- La simulación de «¿aguanta el pick?» usa un generador de números sin
+  sesgo. El anterior tenía correlación entre extracciones seguidas y, medido
+  con datos sintéticos, desplazaba de forma sistemática lo que se estima
+  con él. El porcentaje de la frase puede moverse unos puntos respecto a
+  ayer; es el ruido normal de 60 finales simulados, no un cambio del motor.
+- Medido el peso doble del cruce contra el rival de línea, con 532 partidas
+  profesionales: no lo respalda (la señal de los cruces está en los veinte
+  que no son de línea). No se cambia todavía, porque son partidas de cinco
+  coordinados y la muestra aún no separa cero de uno; queda documentado y
+  el bot lo mide cada semana.
+
 ## 1.31.2
 
 - Las partidas profesionales ya no se cuentan dos veces. Liquipedia lista

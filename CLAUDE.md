@@ -394,7 +394,14 @@ a suponer:
   reescala dentro de cada draft y promediar escalas distintas es el fallo del
   encogimiento que se comía la normalización.
 - Es determinista (semilla fija): sin eso el número bailaría entre dos
-  aperturas del diagnóstico.
+  aperturas del diagnóstico. El generador es mulberry32 (1.31.3): el
+  congruencial de antes tenía correlación serial (−0,011) y sesgaba de forma
+  sistemática (+0,034 en un intercepto conocido, 8 semillas × 20.000). Con
+  60 finales el cambio de generador mueve la cuota del nº1 una mediana de 5
+  puntos (p90 13), o sea el ruido ±6 documentado: si alguna vez hace falta
+  un número más fino, sube `FINALES_POR_DEFECTO`, no cambies el generador.
+  Las pruebas que generan drafts sintéticos con el congruencial no importan
+  (muestrean, no calibran); una que AJUSTE algo con él, sí.
 
 ## Las partidas profesionales (Liquipedia)
 
@@ -442,6 +449,23 @@ aquí: pidiéndole datos, no leyendo su README.
   factor y se documenta aquí. Y ojo con lo contrario: con 164 partidas de
   un año antes salía lo opuesto (cruces con señal, héroes sin ella), así
   que la época de la muestra decide, no el tamaño.
+- **El peso doble del rival de línea, medido y NO apoyado** (1.31.2,
+  `scripts/medir-rival.mjs`): con las líneas repartidas como en la app,
+  `gana ~ a + bR·R + bO·O` (R = los cinco cruces de línea, O = los otros
+  veinte) da, sobre 532 partidas, bR 0.10 ± 0.83 y bO 1.23 ± 0.45: la señal
+  de los cruces está en los veinte que NO son de línea, y el cruce de línea
+  no añade nada medible (razón 0.08 donde el motor supone 2; la hipótesis
+  bR = 2·bO queda a 1,9 σ). La verosimilitud con el rival a peso 1 es mejor
+  que a peso 2 (diferencia 1,3, no concluyente). Ganar tres o más cruces de
+  línea no hace ganar la partida (55,6% frente a 58,6%). Y en los 275 de la
+  misma época, lo mismo (bR 0.10 ± 1.16). NO se ha tocado `counterScore`
+  porque: (1) son partidas profesionales de cinco coordinados, donde la
+  línea se rota más que en solo queue; (2) solo en 78 de 275 las diez
+  líneas están claras; (3) con ± 0.8 no se distingue 0 de 1. Lo que sí dice
+  ya: el ×2 no está respaldado y probablemente mete ruido. Cuando el bot
+  pase de ~2.000 partidas (± ≈ 0.4) y bR siga en cero, se baja a peso 1 y
+  se documenta aquí. La medida corre en cada corrida de `pro.yml` (solo al
+  log).
 - Es incremental y monótona: funde por `claveDe` y `pro.yml` rechaza una
   corrida con menos partidas que las guardadas. `claveDe` es el CONTENIDO
   (fecha, equipos, picks, duración), no la página: la categoría de torneos
