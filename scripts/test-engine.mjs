@@ -545,6 +545,17 @@ test('la ingesta profesional lee los drafts de Liquipedia y reconoce a los heroe
   eq(ps[0].lado1, 'red', 'el lado no se lee');
   ok(claveDe(ps[0]) !== claveDe(ps[1]), 'dos partidas distintas comparten clave');
   eq(fechaISO('October 19, 2025 - 20:15{{abbr/ICT}}'), '2025-10-19', 'fechaISO');
+  // La misma partida leida de dos paginas (el torneo y su subpagina, que
+  // tambien esta en la categoria) es UNA: la clave es el contenido.
+  const { sinSubpaginas } = await import('./ingesta-pro.mjs');
+  const otra = parsearPartidas(w, 'T/Qualifier')[0];
+  eq(claveDe(otra), claveDe(ps[0]), 'la misma partida en otra pagina tiene otra clave y cuenta doble');
+  eq(sinSubpaginas(['MPL/Cambodia/Season 11', 'MPL/Cambodia/Season 11/Qualifier', 'MSC/2026']).join('|'),
+    'MPL/Cambodia/Season 11|MSC/2026', 'una subpagina de otro torneo se lee como torneo aparte');
+  // Y el corpus guardado no tiene partidas repetidas por contenido.
+  const corpus = readFileSync(resolve(ROOT, 'historial/pro-partidas.jsonl'), 'utf8').split('\n').filter(Boolean).map((l) => JSON.parse(l));
+  const clavesCorpus = new Set(corpus.map(claveDe));
+  eq(clavesCorpus.size, corpus.length, `hay ${corpus.length - clavesCorpus.size} partidas repetidas en historial/pro-partidas.jsonl`);
 
   // Cada alias apunta a un heroe REAL del catalogo, y los slugs del fixture
   // (los abreviados de Liquipedia incluidos) se resuelven todos.

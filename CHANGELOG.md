@@ -8,6 +8,15 @@ que esto no se olvida.
 Criterio: `0.X.0` cuando cambia cómo decide la app o qué hace; `0.0.X` para
 correcciones.
 
+## 1.31.2
+
+- Las partidas profesionales ya no se cuentan dos veces. Liquipedia lista
+  algunas subpáginas de torneo (una fase de clasificación) también como
+  torneo, y sus partidas entraban por las dos vías: 20 de las 304 recientes
+  estaban repetidas en la línea «Pro» de las tarjetas y en la medida del
+  motor. Ahora una partida es su contenido (fecha, equipos, picks y
+  duración), venga de la página que venga.
+
 ## 1.31.1
 
 - La fecha de los datos ya no miente cuando la API está caída. Una corrida

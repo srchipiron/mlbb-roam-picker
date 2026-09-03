@@ -156,8 +156,25 @@ export function parsearPartidas(wikitext, torneo = null) {
   return partidas;
 }
 
-/** La clave por la que se funden dos corridas: torneo + página + nº de mapa + picks. */
-export const claveDe = (p) => `${p.torneo}#${p.pagina ?? ''}#${p.indice}#${p.picks[0].join(',')}|${p.picks[1].join(',')}`;
+/**
+ * La clave por la que se funden dos corridas: el CONTENIDO de la partida
+ * (fecha, equipos, los diez picks y la duración), no la página de donde se
+ * leyó. Una subpágina de torneo («MPL/Cambodia/Season 11/Qualifier») está
+ * también en la categoría de torneos, y con la página en la clave sus 20
+ * partidas entraban dos veces: en la medida y en las cifras por héroe.
+ * La duración distingue dos partidas reales con el mismo draft el mismo
+ * día (no se ha visto ninguna en 555, pero cuesta nada).
+ */
+export const claveDe = (p) => `${p.fecha ?? ''}|${(p.equipos ?? []).join('/')}|${p.picks[0].join(',')}|${p.picks[1].join(',')}|${p.duracion ?? ''}`;
+
+/**
+ * Sin las subpáginas de otro título de la lista: se leen como parte de su
+ * torneo, y como torneo aparte contarían doble.
+ */
+export function sinSubpaginas(titulos) {
+  const lista = [...new Set(titulos)];
+  return lista.filter((t) => !lista.some((o) => o !== t && t.startsWith(`${o}/`)));
+}
 
 /** Slug de Liquipedia → héroe del catálogo, o null. */
 export function resolverHeroe(slug, indice) {
@@ -321,9 +338,10 @@ async function main() {
   try {
     const titulos = new Set();
     for (const c of CATEGORIAS) for (const t of await torneosDe(cliente, c, maxTorneos * 2)) titulos.add(t);
-    log(`${titulos.size} torneos recientes en las categorías`);
+    const portadasAPedir = sinSubpaginas([...titulos]);
+    log(`${titulos.size} torneos recientes en las categorías (${portadasAPedir.length} sin subpáginas)`);
     // Primero las portadas, en lotes: la infobox dice si el torneo es reciente.
-    const portadas = await wikitextDe(cliente, [...titulos]);
+    const portadas = await wikitextDe(cliente, portadasAPedir);
     const recientes = Object.entries(portadas)
       .map(([t, w]) => ({ titulo: t, ...fechasDe(w) }))
       .filter((t) => t.edate && t.edate >= desde)

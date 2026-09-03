@@ -443,7 +443,12 @@ aquí: pidiéndole datos, no leyendo su README.
   un año antes salía lo opuesto (cruces con señal, héroes sin ella), así
   que la época de la muestra decide, no el tamaño.
 - Es incremental y monótona: funde por `claveDe` y `pro.yml` rechaza una
-  corrida con menos partidas que las guardadas. `pro.json` es un EXTRA para
+  corrida con menos partidas que las guardadas. `claveDe` es el CONTENIDO
+  (fecha, equipos, picks, duración), no la página: la categoría de torneos
+  lista también algunas subpáginas (`.../Season 11/Qualifier`) y con la
+  página en la clave sus partidas entraban dos veces (20 de 304, 1.31.2).
+  `sinSubpaginas` quita esas portadas antes de pedirlas, y hay una prueba de
+  que el corpus guardado no tiene repetidas. `pro.json` es un EXTRA para
   la app (la línea «Pro» de las tarjetas): sin él, la app funciona igual.
 
 ## La probabilidad estimada de ganar
