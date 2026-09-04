@@ -7,6 +7,7 @@ import { crearT, idiomaPorDefecto, IDIOMAS } from './i18n.js';
 import { detectarRivalDeLinea, indiceDeLineas, frecuenciaDeRoles, lineasOcupadas } from './engine/rival-de-linea.js';
 import { simularFinales } from './engine/robustez.js';
 import { estimarVictoria } from './engine/estimacion.js';
+import { sanear } from './engine/perfil.js';
 import { analizarComposicion } from './engine/composicion.js';
 import { Side, HeroSheet, Pick, Legend, MasteryEditor, RankPicker, BanSuggestions, Footer, SelfTest, RegistroPartida, SelectorDeLinea, Analisis, AvisoLegal, Perfil, HistorialPartidas, Build, Estimacion, Composicion } from './components/ui.jsx';
 
@@ -57,10 +58,13 @@ export default function App() {
   const t = useMemo(() => crearT(idioma), [idioma]);
   const [sheet, setSheet] = useState(null); // 'enemy' | 'ally' | 'ban'
 
-  const [partidas, setPartidas] = useState(() => load(PARTIDAS_KEY, []));
+  // Lo guardado se sanea al cargar, igual que un perfil importado: un
+  // localStorage con la forma rota (una version vieja, una edicion a mano)
+  // reventaba la pantalla de partidas en vez de degradarse.
+  const [partidas, setPartidas] = useState(() => sanear({ partidas: load(PARTIDAS_KEY, []) }).partidas);
   const [apuntando, setApuntando] = useState(false);
   const [eligiendoLinea, setEligiendoLinea] = useState(false);
-  const [mastery, setMastery] = useState(() => load(MASTERY_KEY, {}));
+  const [mastery, setMastery] = useState(() => sanear({ mastery: load(MASTERY_KEY, {}) }).mastery);
   const [editingMastery, setEditingMastery] = useState(false);
   const [verPerfil, setVerPerfil] = useState(false);
   const [verHistorial, setVerHistorial] = useState(false);

@@ -8,6 +8,19 @@ que esto no se olvida.
 Criterio: `0.X.0` cuando cambia cómo decide la app o qué hace; `0.0.X` para
 correcciones.
 
+## 1.32.1
+
+- Lo guardado en el móvil (maestría y partidas) se sanea al cargar, igual
+  que un perfil importado: una entrada con la forma rota ya no puede dejar
+  la pantalla de partidas en blanco. Los datos válidos quedan intactos, y
+  hay una prueba de que así es.
+- Publicar tarda menos: los workflows guardan la caché de npm (un `npm ci`
+  llegó a costar siete minutos de un despliegue de ocho).
+- La prueba que vigila que la simulación de finales predice algo ya no
+  puede fallar por mala suerte con los datos del día: pasa de 150 a 300
+  drafts y de una razón al filo a una diferencia con margen. Corre en cada
+  despliegue, así que un fallo suyo bloqueaba el código sin motivo.
+
 ## 1.32.0
 
 - **Los baneos sugeridos miran el cruce real contra tus aliados**, no una

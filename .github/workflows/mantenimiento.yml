@@ -21,6 +21,7 @@ jobs:
       - uses: actions/setup-node@v7
         with:
           node-version: '20'
+          cache: npm
       - run: npm ci
 
       # Los datos de hoy, que es de donde salen las etiquetas de Moonton.

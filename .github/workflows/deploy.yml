@@ -29,6 +29,7 @@ jobs:
       - uses: actions/setup-node@v7
         with:
           node-version: '20'
+          cache: npm
 
       # npm ci, no npm install: instala EXACTAMENTE lo que dice el lockfile.
       # Con npm install, una version menor mala de una dependencia entraba sola

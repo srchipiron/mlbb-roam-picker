@@ -364,6 +364,14 @@ Todos estos llegaron a producción y costaron rondas enteras de ida y vuelta:
   continua desde el 50%, sin escalón) y la tabla solo entra sin dato. Mismo
   patrón que `counterScore` en 1.5.0: si un componente lee `tags` habiendo
   matriz, sobra.
+- **Una prueba estadística al filo del umbral, dentro del despliegue** — la
+  prueba de que la simulación predice exigía razón ≥ 1,5 sobre 150 drafts;
+  medida con cinco semillas salía 1,45–2,51, y corre en `deploy.yml` sobre
+  los datos del día: un dato malo habría bloqueado la publicación de código
+  sin regresión alguna. Hoy son 300 drafts y diferencia de tasas ≥ 0,12
+  (real 0,25–0,33, error típico 0,05; simulación rota −0,38). Toda prueba
+  que mida un estadístico sobre datos reales lleva su margen medido con
+  varias semillas, o no es una prueba: es una moneda.
 - **Texto escrito a mano en la interfaz** — «37/37 con datos · 37 con counters»
   estaba en español dentro de App.jsx y salía tal cual con la app en inglés.
   Todo lo que se ve pasa por `t()`; la única excepción a propósito es el
@@ -756,6 +764,30 @@ Por eso la prueba que ejecuta la ingesta de verdad escribe en un temporal
 su sitio, así que cada `npm test` ensuciaba el repo y, como en el workflow las
 pruebas van antes de compilar, el diagnóstico degradado era el que se publicaba
 y el botón Diagnóstico mentía sobre los rangos. No le quites el `--out`.
+
+## Candidatos descartados
+
+Lo examinado y dejado como está, con su medida, para que la siguiente
+iteración no lo repita. Si aparece evidencia nueva, se reabre.
+
+- **La frase de empate cortada por el tope de tres del análisis**: medido en
+  300 drafts con tres enemigos y tres aliados, 76 con empate y 0 cortadas.
+  No hay problema.
+- **Que los baneos miren también tu propio pool** (además de los aliados):
+  el cruce está en la matriz, pero no hay resultado con el que medir si
+  mejora los baneos, y sin medida es una regla nueva. Se reabre si hay
+  forma de medirlo (partidas apuntadas con baneos, por ejemplo).
+- **El peso doble del rival de línea**: medido y no apoyado (ver «Las
+  partidas profesionales»); se espera a ~2.000 partidas.
+- **La escala de la probabilidad estimada**: pendiente 0,72 ± 0,22 con 275
+  partidas pro; se calibra cuando el ± baje de 0,1, y con las partidas de
+  Javi como muestra preferente.
+- **Las reglas negativas por etiqueta en héroes sin cruces** (`clamp01`
+  deja la nota en 0.5 y enseña el motivo): solo afecta a héroes sin dato
+  del cruce, hoy ninguno. Se reabre con el próximo héroe nuevo.
+- **`update-data.yml` falla dos veces al día si la API está caída** (el
+  comparador rechaza una corrida sin nada nuevo): es la señal correcta,
+  no ruido; la vigilancia no la duplica porque mira lo publicado.
 
 ## Lo que queda pendiente
 

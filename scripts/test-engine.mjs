@@ -226,8 +226,8 @@ test('la robustez del pick: determinista, suma uno y predice si aguanta', async 
   }
   ok(robustos >= 10 && fragiles >= 10, `muestra desequilibrada: ${robustos} robustos, ${fragiles} fragiles`);
   const tasaR = robustosAguantan / robustos; const tasaF = fragilesAguantan / fragiles;
-  ok(tasaR >= tasaF * 1.5,
-    `la cuota no predice: los "robustos" aguantan el ${(tasaR * 100).toFixed(0)}% y los "fragiles" el ${(tasaF * 100).toFixed(0)}%`);
+  ok(tasaR - tasaF >= 0.12,
+    `la cuota no predice: los "robustos" (${robustos}) aguantan el ${(tasaR * 100).toFixed(0)}% y los "fragiles" (${fragiles}) el ${(tasaF * 100).toFixed(0)}% (diferencia ${(tasaR - tasaF).toFixed(2)}, minimo 0.12)`);
 });
 
 test('el analisis dice si el pick aguanta lo que falta, y se calla con el draft completo', async () => {
@@ -409,6 +409,22 @@ test('la medida del rival de linea: la logistica recupera coeficientes conocidos
   for (const l of ['roam', 'mid', 'gold', 'jungle', 'exp']) {
     eq(reparto[l].name, detectarRivalDeLinea(equipo, info, l, frec), `reparto de ${l} distinto del de la app`);
   }
+});
+
+test('sanear deja intactos los datos validos: lo guardado en el movil no se pierde al cargar', async () => {
+  const { sanear } = await import('../src/engine/perfil.js');
+  const mastery = { Tigreal: { games: 3821, winRate: 0.54 }, 'X.Borg': { games: 12, winRate: 0.5 } };
+  const partidas = [
+    { t: 1700000000000, pick: 'Tigreal', recomendados: ['Tigreal', 'Atlas', 'Khufra'], gane: true, rango: 'glory', estimacion: 0.55 },
+    { t: 1700000000001, pick: 'Atlas', recomendados: [], gane: false, rango: null, previa: true },
+  ];
+  const s = sanear({ mastery, partidas, rango: 'glory', linea: 'roam' });
+  eq(JSON.stringify(s.mastery), JSON.stringify(mastery), 'sanear altera una maestria valida');
+  eq(JSON.stringify(s.partidas), JSON.stringify(partidas), 'sanear altera partidas validas');
+  eq(s.rango, 'glory', 'sanear pierde campos sueltos');
+  // Y con basura no revienta: devuelve vacio, no undefined.
+  const roto = sanear({ mastery: null, partidas: 'no' });
+  ok(Array.isArray(roto.partidas) && typeof roto.mastery === 'object', 'sanear no devuelve estructuras vacias con basura');
 });
 
 test('la estimacion de victoria: neutra sin datos, simetrica, y cae donde se midio', async () => {
