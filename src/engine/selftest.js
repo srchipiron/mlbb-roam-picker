@@ -43,6 +43,8 @@ export function runSelfTest({ catalog, meta, metaCtx, allHeroes, roamPool, maste
     if (estado === AVISO) avisos++;
     lineas.push(`[${estado}] ${texto}`);
   };
+  // Mismo umbral que medir-pro.mjs ("menos de 30 partidas: no hay nada que medir").
+  const MINIMO_PARA_MEDIR_PRO = 30;
   const check = (cond, bien, mal, blando = false) =>
     add(cond ? OK : (blando ? AVISO : MAL), cond ? bien : mal);
 
@@ -395,6 +397,14 @@ export function runSelfTest({ catalog, meta, metaCtx, allHeroes, roamPool, maste
         check(t.modelo.auc >= 0.5, 'La estimación ordena las partidas pro en el sentido correcto',
           `La estimación ordena las partidas pro AL REVÉS (AUC ${t.modelo.auc?.toFixed(2)} en ${m.usables}): revisar estimacion.js`, true);
       }
+    } else {
+      // pro.yml escribe pro.json SIN medición y la añade después con
+      // `medir-pro.mjs || true`: si el script revienta, el bot commitea el
+      // fichero sin ella y el bloque de arriba simplemente no sale. Con
+      // partidas de sobra (medir-pro mide a partir de 30), esa ausencia es
+      // un fallo del bot, no una falta de datos.
+      check((pro.partidas ?? 0) < MINIMO_PARA_MEDIR_PRO, 'Sin medición del motor contra las partidas pro (aún hay pocas)',
+        `pro.json trae ${pro.partidas} partidas y NINGUNA medición del motor: medir-pro.mjs falló en pro.yml y el bot commiteó igual`);
     }
     // Un slug que no se reconoce descarta partidas en silencio: que se vea.
     const sinMapear = Object.entries(pro.sinMapear ?? {});

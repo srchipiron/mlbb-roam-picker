@@ -8,6 +8,15 @@ que esto no se olvida.
 Criterio: `0.X.0` cuando cambia cómo decide la app o qué hace; `0.0.X` para
 correcciones.
 
+## 1.32.2
+
+- El diagnóstico avisa si las partidas profesionales llegan sin la medición
+  del motor. El bot semanal escribe `pro.json` y añade la medida después; si
+  ese paso fallaba, el fichero salía sin ella y la línea «Estimación contra
+  N partidas pro» desaparecía sin que nada lo dijera. Ahora, con 30 partidas
+  o más y sin medición, es un fallo del diagnóstico y la vigilancia abre
+  incidencia.
+
 ## 1.32.1
 
 - Lo guardado en el móvil (maestría y partidas) se sanea al cargar, igual

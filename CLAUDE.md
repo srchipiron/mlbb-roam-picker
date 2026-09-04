@@ -788,6 +788,25 @@ iteración no lo repita. Si aparece evidencia nueva, se reabre.
 - **`update-data.yml` falla dos veces al día si la API está caída** (el
   comparador rechaza una corrida sin nada nuevo): es la señal correcta,
   no ruido; la vigilancia no la duplica porque mira lo publicado.
+- **La simetría de la matriz de parejas**: los 8.778 pares están en los dos
+  sentidos y la diferencia máxima |s[a][b]−s[b][a]| es 0,0000, así que
+  `sinergia()` mirando los dos sentidos no puede dar dos valores distintos.
+- **El orden de los picks en la estimación**: `estimarVictoria` da el mismo
+  número barajando aliados y enemigos en 300 de 300 drafts. No hay término
+  que dependa del orden.
+- **Un pool con un solo candidato**: `rankRoamers` devuelve 0.5 con las
+  contribuciones neutras (la normalización de un componente sobre un único
+  valor no divide por cero). No hace falta caso especial.
+- **`cache: npm` en `setup-node`** (1.32.1): medido después, `npm ci` sigue
+  en 3,7–4,7 minutos con la caché (despliegue 99, vigilancia 77): esa caché
+  guarda las descargas, no `node_modules`, y 346 paquetes se siguen
+  instalando. Lo que ahorraría de verdad es cachear `node_modules` por el
+  hash del lockfile con `actions/cache`, y eso toca los workflows que
+  despliegan: se propone, no se hace solo.
+- **`medir-rival.mjs || true` en `pro.yml`**: solo escribe al log y su
+  resultado no entra en ningún fichero, así que un fallo suyo no deja nada a
+  medias; el caso de `medir-pro` era distinto porque su salida SÍ entra en
+  `pro.json` (arreglado en 1.32.2 con una comprobación en el diagnóstico).
 
 ## Lo que queda pendiente
 

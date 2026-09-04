@@ -298,6 +298,18 @@ test('el diagnostico detecta datos imposibles y caidas frente a su propio histor
   ok(/Por qué A y no B: 8\.0 puntos de margen · lo decide counter \(\+12\.0\)/.test(conDraft), `no explica por que gana el nº1: ${conDraft.split('\n').find((l) => l.startsWith('Por qué'))}`);
   ok(/Líneas enemigas abiertas: mid, gold · en 10 finales plausibles, nº1: A 70%/.test(conDraft), 'no dice si el pick aguanta lo que falta');
   ok(/A aguanta el 70%: pick seguro/.test(conDraft), 'no califica el pick por su cuota');
+
+  // Partidas profesionales: pro.yml escribe pro.json sin medicion y la anade
+  // con `medir-pro.mjs || true`. Si el script falla, el fichero se commitea
+  // sin ella y nadie lo ve. Con partidas de sobra tiene que chillar; con
+  // pocas (medir-pro no mide por debajo de 30) o con la medicion, no.
+  const heroesPro = Object.fromEntries(Array.from({ length: 60 }, (_, i) => [`H${i}`, { picks: 3 }]));
+  const proBase = { generatedAt: new Date().toISOString(), torneos: 3, sinMapear: {}, heroes: heroesPro };
+  const fallosPro = (pro) => runSelfTest({ ...base, meta, pro }).texto.split('\n').filter((l) => /^\[FALLO\].*medici/.test(l));
+  ok(fallosPro({ ...proBase, partidas: 100 }).length === 1, 'no ve que pro.json viene sin la medicion del motor');
+  ok(fallosPro({ ...proBase, partidas: 10 }).length === 0, 'exige medicion con diez partidas, que medir-pro no mide');
+  const medicion = { usables: 100, desde: '2026-05-01', azul: 0.52, terminos: { modelo: { acierto: 0.57, auc: 0.6, pendiente: 0.7, errorPendiente: 0.2 }, heroes: {}, cruces: {}, parejas: {} } };
+  ok(fallosPro({ ...proBase, partidas: 100, medicion }).length === 0, 'falla con la medicion presente');
 });
 
 test('perfiles y registro: fundir por instante, sanear lo que llega y maestria por nombre normalizado', async () => {
