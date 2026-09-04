@@ -8,6 +8,15 @@ que esto no se olvida.
 Criterio: `0.X.0` cuando cambia cómo decide la app o qué hace; `0.0.X` para
 correcciones.
 
+## 1.32.3
+
+- Los despliegues y las corridas de los bots tardan unos cuatro minutos
+  menos: las dependencias se guardan enteras entre corridas y solo se
+  reinstalan cuando cambia el lockfile. Antes cada corrida las instalaba de
+  cero (3,7–4,7 minutos medidos, incluso con la caché de descargas de
+  1.32.1). Hay una prueba de que todos los workflows que instalan llevan
+  esa caché y no la pisan.
+
 ## 1.32.2
 
 - El diagnóstico avisa si las partidas profesionales llegan sin la medición

@@ -23,7 +23,18 @@ jobs:
         with:
           node-version: '20'
           cache: npm
-      - run: npm ci
+      # node_modules ENTERO, por hash del lockfile. La cache de npm de
+      # setup-node solo guarda las descargas: medido, npm ci seguia en 3,7-4,7
+      # minutos con ella (despliegue 99, vigilancia 77). Con node_modules
+      # guardado, el paso se salta. npm ci BORRA node_modules antes de
+      # instalar, asi que solo corre si la cache no ha traido nada.
+      - id: modulos
+        uses: actions/cache@v4
+        with:
+          path: node_modules
+          key: modulos-${{ runner.os }}-node20-${{ hashFiles('package-lock.json') }}
+      - if: steps.modulos.outputs.cache-hit != 'true'
+        run: npm ci
       - run: npm test
       - name: Compilar
         run: npm run build

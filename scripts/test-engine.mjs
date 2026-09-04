@@ -1668,6 +1668,26 @@ test('los workflows que publican datos pasan por el guardarrail', async () => {
     if (m) ok(Number(m[1]) >= 15 && Number(m[1]) <= 40,
       `${f}: timeout de ${m[1]} min; lo normal son 9-10 y hace falta margen sin dejar que se cuelgue`);
   }
+
+  // node_modules va en cache por hash del lockfile en TODOS los workflows
+  // que instalan: medido, npm ci costaba 3,7-4,7 minutos por corrida con la
+  // cache de npm de setup-node (que solo guarda descargas). Y npm ci BORRA
+  // node_modules antes de instalar: sin la condicion, la cache no sirve.
+  const { readdirSync } = await import('node:fs');
+  const conNpmCi = readdirSync(resolve(ROOT, '.github/workflows')).filter((f) => /npm ci/.test(readFileSync(resolve(ROOT, `.github/workflows/${f}`), 'utf8')));
+  ok(conNpmCi.length >= 5, `solo ${conNpmCi.length} workflows instalan: la lista de esta prueba se ha quedado corta`);
+  for (const f of conNpmCi) {
+    const yml = readFileSync(resolve(ROOT, `.github/workflows/${f}`), 'utf8');
+    const cache = yml.match(/- id: (\w+)\n\s+uses: actions\/cache@v\d+\n\s+with:\n\s+path: node_modules\n\s+key: ([^\n]+)/);
+    ok(cache, `${f}: instala sin cache de node_modules`);
+    if (!cache) continue;
+    ok(/hashFiles\('package-lock\.json'\)/.test(cache[2]), `${f}: la clave de la cache no depende del lockfile: serviria node_modules viejos con dependencias nuevas`);
+    const nodo = yml.match(/node-version:\s*'?(\d+)/)?.[1];
+    ok(nodo && cache[2].includes(`node${nodo}`), `${f}: la clave de la cache no lleva la version de node (${nodo})`);
+    const instala = yml.match(/- if: ([^\n]+)\n\s+run: npm ci/);
+    ok(instala && instala[1].includes(`steps.${cache[1]}.outputs.cache-hit != 'true'`),
+      `${f}: npm ci corre aunque la cache haya traido node_modules (y lo borra)`);
+  }
 });
 
 test('el tipo de dano sale del texto de Moonton, no del rol', async () => {

@@ -30,11 +30,22 @@ jobs:
         with:
           node-version: '20'
           cache: npm
+      # node_modules ENTERO, por hash del lockfile. La cache de npm de
+      # setup-node solo guarda las descargas: medido, npm ci seguia en 3,7-4,7
+      # minutos con ella (despliegue 99, vigilancia 77). Con node_modules
+      # guardado, el paso se salta. npm ci BORRA node_modules antes de
+      # instalar, asi que solo corre si la cache no ha traido nada.
+      - id: modulos
+        uses: actions/cache@v4
+        with:
+          path: node_modules
+          key: modulos-${{ runner.os }}-node20-${{ hashFiles('package-lock.json') }}
 
       # npm ci, no npm install: instala EXACTAMENTE lo que dice el lockfile.
       # Con npm install, una version menor mala de una dependencia entraba sola
       # en el despliegue, y eso es indepurable desde el movil.
-      - run: npm ci
+      - if: steps.modulos.outputs.cache-hit != 'true'
+        run: npm ci
 
       # ¿Hacen falta datos nuevos? El bot de datos ya descarga dos veces al dia
       # y los commitea, y un winrate de ventana de 7 dias no se mueve en horas.

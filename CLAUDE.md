@@ -800,9 +800,10 @@ iteración no lo repita. Si aparece evidencia nueva, se reabre.
 - **`cache: npm` en `setup-node`** (1.32.1): medido después, `npm ci` sigue
   en 3,7–4,7 minutos con la caché (despliegue 99, vigilancia 77): esa caché
   guarda las descargas, no `node_modules`, y 346 paquetes se siguen
-  instalando. Lo que ahorraría de verdad es cachear `node_modules` por el
-  hash del lockfile con `actions/cache`, y eso toca los workflows que
-  despliegan: se propone, no se hace solo.
+  instalando. Desde 1.32.3 `actions/cache` guarda `node_modules` entero
+  por hash del lockfile y `npm ci` solo corre si la caché no lo trae
+  (`npm ci` BORRA `node_modules` antes de instalar: sin esa condición la
+  caché no sirve de nada). Hay prueba para todo workflow con `npm ci`.
 - **`medir-rival.mjs || true` en `pro.yml`**: solo escribe al log y su
   resultado no entra en ningún fichero, así que un fallo suyo no deja nada a
   medias; el caso de `medir-pro` era distinto porque su salida SÍ entra en
