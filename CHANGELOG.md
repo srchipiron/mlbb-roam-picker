@@ -8,6 +8,18 @@ que esto no se olvida.
 Criterio: `0.X.0` cuando cambia cómo decide la app o qué hace; `0.0.X` para
 correcciones.
 
+## 1.32.0
+
+- **Los baneos sugeridos miran el cruce real contra tus aliados**, no una
+  tabla de etiquetas. La tabla decía «salta encima de Melissa» o «revienta a
+  Layla» sin comprobar nada: medido sobre 200 aliados al azar, en el 47% de
+  las veces que se disparaba el cruce real iba en contra del supuesto
+  peligro, y solo en el 12% era una ventaja destacable. Ahora cada candidato
+  a baneo puntúa por lo que de verdad le gana a tus aliados, y el motivo
+  dice el porcentaje: «le gana el cruce a Melissa (56%)». Cambia el primer
+  baneo sugerido en dos de cada tres drafts. La tabla se queda solo para
+  héroes tan nuevos que no tienen cruces.
+
 ## 1.31.3
 
 - La simulación de «¿aguanta el pick?» usa un generador de números sin

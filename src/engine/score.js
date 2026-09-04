@@ -927,11 +927,27 @@ export function suggestBans(allHeroes, ctx) {
       const power = metaScore(stat, meta.patchAvgWinRate ?? 0.5).value;
       const consensus = stat.banRate ?? 0;
 
-      // Cuánto castiga a los aliados que ya has elegido. Con la tabla propia de
-      // peligro, no con la de counters puesta del revés.
+      // Cuánto castiga a los aliados que ya has elegido: con el CRUCE REAL de
+      // este héroe contra cada aliado cuando hay dato (la matriz está al 100%),
+      // y con la tabla de peligro por etiquetas solo cuando no lo hay, que es
+      // un héroe recién salido. Antes mandaba la tabla siempre, teniendo el
+      // dato delante: misma deuda que ya se pagó en counterScore.
       const positivas = [];
       const reasons = [];
       for (const ally of allies) {
+        const cruce = matchup(meta.counters, hero.name, ally.name);
+        if (cruce != null) {
+          // Continuo desde el empate: 0 a 50%, 1 a +6 puntos (el techo de la
+          // escala de counter). Sin escalón en 0.5: un 50,1% no es un peligro.
+          const ventaja = clamp01((cruce - 0.5) / (ESCALA_CRUCE.base + ESCALA_CRUCE.rango - 0.5));
+          if (ventaja <= 0) continue;
+          positivas.push(ventaja);
+          // El motivo solo si el cruce es de los que destacan (p90), como en las tarjetas.
+          if (cruce >= CRUCE_DESTACABLE) {
+            reasons.push({ clave: 'peligro.ganaCruce', params: { a: ally.name, pct: Math.round(cruce * 100) }, good: false, w: ventaja });
+          }
+          continue;
+        }
         for (const rule of DANGER_RULES) {
           if (!ally.tags.includes(rule.allyTag) || !hero.tags.includes(rule.enemyTag)) continue;
           if (rule.soloSiFragil && !hayQueProtegerlo(ally)) continue;

@@ -1051,6 +1051,30 @@ test('los baneos señalan la amenaza real contra tu equipo', () => {
   ok(r[0].hero.name === 'Fanny', `esperaba Fanny la primera, salió ${r[0].hero.name}`);
 });
 
+test('los baneos miden el peligro con el cruce real, y con la tabla solo sin dato', async () => {
+  const { matchup: _m, CRUCE_DESTACABLE } = await import('../src/engine/score.js');
+  const H = (name, tags = []) => ({ name, role: 'assassin', tags, lanes: ['jungle'] });
+  const aliado = { name: 'Al', role: 'marksman', tags: ['immobile', 'hypercarry'], lanes: ['gold'] };
+  const X = H('X'); const Y = H('Y'); const Z = H('Z', ['dive', 'burst']);
+  const stats = indexByName(Object.fromEntries(['X', 'Y', 'Z', 'Al'].map((n) => [n, { winRate: 0.5, banRate: 0.1 }])));
+  // Con dato: X gana el cruce a tu aliado (56%), Y lo pierde (44%), Z (con las
+  // etiquetas de la tabla) va al 50%. Manda el dato: X primero, Z sin peligro.
+  const counters = indexByName({ X: { Al: 0.56 }, Y: { Al: 0.44 }, Z: { Al: 0.5 } }, 2);
+  const conDato = suggestBans([X, Y, Z], { allies: [aliado], meta: { stats, counters, patchAvgWinRate: 0.5 } });
+  eq(conDato[0].hero.name, 'X', `con dato deberia mandar el cruce: ${conDato.map((b) => b.hero.name)}`);
+  ok(conDato[0].score > conDato[1].score, 'X no puntua por encima');
+  eq(conDato.find((b) => b.hero.name === 'Z').score, conDato.find((b) => b.hero.name === 'Y').score, 'con cruce al 50% la tabla por etiquetas no deberia sumar nada');
+  ok(conDato[0].reasons[0]?.clave === 'peligro.ganaCruce' && conDato[0].reasons[0].params.pct === 56, `motivo de X: ${JSON.stringify(conDato[0].reasons)}`);
+  ok(0.56 >= CRUCE_DESTACABLE, 'el fixture tiene que superar el umbral de motivo');
+  // Sin escalon: un 50,1% no es peligro.
+  const rozando = suggestBans([X, Y], { allies: [aliado], meta: { stats, counters: indexByName({ X: { Al: 0.501 }, Y: { Al: 0.5 } }, 2), patchAvgWinRate: 0.5 } });
+  ok(Math.abs(rozando[0].score - rozando[1].score) < 0.005, `un 50,1% deberia valer casi lo mismo que un 50%: ${rozando.map((b) => b.score)}`);
+  // Sin dato (heroe recien salido): la tabla por etiquetas sigue mandando.
+  const sinDato = suggestBans([X, Z], { allies: [aliado], meta: { stats, counters: {}, patchAvgWinRate: 0.5 } });
+  eq(sinDato[0].hero.name, 'Z', 'sin cruce, la tabla de peligro deberia poner primero al que salta encima');
+  eq(sinDato[0].reasons[0]?.clave, 'peligro.saltaEncima', 'sin cruce no sale el motivo por etiqueta');
+});
+
 test('la cobertura detecta héroes sin datos', () => {
   const c = coverage([h('Khufra'), h('Atlas')], indexByName({ Khufra: { winRate: 0.5 } }));
   ok(c.withData === 1 && c.missing[0] === 'Atlas', JSON.stringify(c));

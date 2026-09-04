@@ -351,6 +351,15 @@ Todos estos llegaron a producción y costaron rondas enteras de ida y vuelta:
 - **Fundir perfiles por instante+pick+resultado** — una partida corregida
   aquí y reimportada de un código viejo salía dos veces. La clave es `t`, y
   gana la copia local.
+- **El peligro de un baneo, por etiquetas con el dato delante** — `suggestBans`
+  medía «cuánto castiga a tus aliados» con `DANGER_RULES` (dive contra
+  immobile, burst, antiheal...) teniendo la matriz de cruces al 100%.
+  Medido: la tabla se dispara 6.308 veces sobre 200 aliados al azar y en el
+  47% el cruce real va EN CONTRA (el «peligro» pierde contra el aliado);
+  solo el 12% es una ventaja destacable. Desde 1.32.0 manda el cruce (escala
+  continua desde el 50%, sin escalón) y la tabla solo entra sin dato. Mismo
+  patrón que `counterScore` en 1.5.0: si un componente lee `tags` habiendo
+  matriz, sobra.
 - **Texto escrito a mano en la interfaz** — «37/37 con datos · 37 con counters»
   estaba en español dentro de App.jsx y salía tal cual con la app en inglés.
   Todo lo que se ve pasa por `t()`; la única excepción a propósito es el
