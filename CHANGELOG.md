@@ -8,6 +8,17 @@ que esto no se olvida.
 Criterio: `0.X.0` cuando cambia cómo decide la app o qué hace; `0.0.X` para
 correcciones.
 
+## 1.32.4
+
+- El análisis ya no dice «frágil 0%» de tu nº1 justo después de un toque.
+  La simulación de finales va un paso por detrás del ranking para no
+  bloquear la pantalla, y en ese paso podía cruzar la cuota del draft
+  anterior con el nº1 nuevo. Ahora la simulación lleva la marca del draft
+  para el que se hizo y el análisis se calla hasta que la tiene.
+- Una prueba comprueba que toda clave de texto que usan la pantalla y el
+  motor existe en los dos idiomas. Antes solo se comprobaban las reglas,
+  y una clave mal escrita en la interfaz salía tal cual en pantalla.
+
 ## 1.32.3
 
 - Los despliegues y las corridas de los bots tardan unos cuatro minutos

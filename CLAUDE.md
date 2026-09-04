@@ -376,6 +376,18 @@ Todos estos llegaron a producción y costaron rondas enteras de ida y vuelta:
   estaba en español dentro de App.jsx y salía tal cual con la app en inglés.
   Todo lo que se ve pasa por `t()`; la única excepción a propósito es el
   diagnóstico, que es depuración.
+- **La simulación diferida cruzada con el ranking nuevo** — `robustez` va con
+  `useDeferredValue` (60 rankings, para no bloquear el toque) y `ranked` no:
+  en el render de en medio el nº1 ya era el nuevo y la cuota la del draft
+  anterior, y un héroe que esa simulación no había votado salía «frágil 0%».
+  Desde 1.32.4 la simulación lleva `enemigos`/`aliados` y `analizarDraft` se
+  calla si no son los de ahora. Si difieres otro cálculo, marca para qué
+  entrada se hizo o el consumidor lo cruzará con la entrada nueva.
+- **La prueba de claves i18n que solo miraba las reglas** — `t('pro.inexistente')`
+  en `ui.jsx` pasaba `npm test` y salía la clave cruda en pantalla (probado
+  por mutación). Desde 1.32.4 la prueba recorre `t('…')`, `t(\`prefijo.${…}\`)`
+  y `clave: '…'` en la interfaz y el motor. Un guardarraíl se comprueba
+  rompiendo lo que vigila, no leyendo su nombre.
 - **Una corrida degradada commiteada por el bot de datos** — `update-data.yml`
   ejecutaba la ingesta encima de `public/data` y commiteaba lo que saliera. Salió
   una corrida con los 133 héroes SIN `lanes` y SIN `role`, y con counters de 34
@@ -804,6 +816,13 @@ iteración no lo repita. Si aparece evidencia nueva, se reabre.
   por hash del lockfile y `npm ci` solo corre si la caché no lo trae
   (`npm ci` BORRA `node_modules` antes de instalar: sin esa condición la
   caché no sirve de nada). Hay prueba para todo workflow con `npm ci`.
+- **`historial.json` con una fila corrupta en `salud.jsonl`**: `vite.config.js`
+  descarta el historial entero y el diagnóstico dice «sin historial a mano».
+  La fila la escribe un solo `echo >>` y va commiteada, así que una fila a
+  medias no se ha visto; si aparece, tolerar línea a línea y contar las rotas.
+- **`candidatos` ausente en el `ctx` de la simulación** (`robustez.js`): el
+  riesgo de contrapick solo entra en la nota con `cegera > 0`, y los finales
+  simulados tienen los cinco enemigos, así que da igual que no llegue.
 - **`medir-rival.mjs || true` en `pro.yml`**: solo escribe al log y su
   resultado no entra en ningún fichero, así que un fallo suyo no deja nada a
   medias; el caso de `medir-pro` era distinto porque su salida SÍ entra en

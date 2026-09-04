@@ -84,7 +84,7 @@ function muestrear(pool, excluidos, pickRateDe, rnd) {
  * @param poolsPorLinea   { linea: [héroes] } de dónde salen los que faltan
  * @param ctx             lo mismo que recibe rankRoamers (meta, mastery, bans, enemyRoam...)
  * @param linea           tu línea: si está abierta, el que salga por ella es tu rival
- * @returns { cuota: { nombre: 0..1 }, lider, cuotaLider, n, lineasAbiertas } o null
+ * @returns { cuota: { nombre: 0..1 }, lider, cuotaLider, n, lineasAbiertas, enemigos, aliados } o null
  */
 export function simularFinales({
   pool, enemies = [], allies = [], lineasAbiertas = [], poolsPorLinea = {},
@@ -121,5 +121,10 @@ export function simularFinales({
 
   const cuota = Object.fromEntries(Object.entries(votos).map(([k, v]) => [k, v / n]));
   const [lider, cuotaLider] = Object.entries(cuota).sort((a, b) => b[1] - a[1])[0] ?? [null, 0];
-  return { cuota, lider, cuotaLider, n, lineasAbiertas: abiertas };
+  // Para qué draft se ha simulado. En la app la simulación va DIFERIDA (60
+  // rankings, 20-100 ms) y el ranking no: en el render de en medio el nº1 ya
+  // es el nuevo y la cuota aún es la del draft anterior. Sin esto, el
+  // análisis decía «frágil 0%» de un héroe que la simulación no había visto.
+  const nombres = (hs) => hs.map((h) => normName(h.name)).sort();
+  return { cuota, lider, cuotaLider, n, lineasAbiertas: abiertas, enemigos: nombres(enemies), aliados: nombres(allies) };
 }
