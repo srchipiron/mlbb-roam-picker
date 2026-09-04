@@ -20,6 +20,10 @@ comprobaciones automáticas importan más de lo normal.
 
 ## Reglas de trabajo
 
+La iteración de mejora se lanza con `/iterar` (o `/iterar analizar` para
+quedarse en el plan): es `.claude/commands/iterar.md`, y su semáforo dice qué
+se puede hacer solo y qué hay que proponer antes.
+
 **Nunca subas nada sin pasar `npm test`.** Son cuatro comprobaciones y ~100
 pruebas (orden de declaraciones, CSS, versión documentada y motor). El
 despliegue corre esas cuatro más dos que no están en `npm test`: que la corrida
