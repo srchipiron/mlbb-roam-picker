@@ -4,7 +4,7 @@
  * workflow ANTES de compilar, así que un cambio que rompa la lógica no llega
  * a publicarse.
  */
-import { readFileSync } from 'node:fs';
+import { readFileSync, readdirSync } from 'node:fs';
 import { resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import {
@@ -244,6 +244,19 @@ test('el analisis dice si el pick aguanta lo que falta, y se calla con el draft 
   for (const rb of [null, { cuota: { Khufra: 1 }, lineasAbiertas: [], n: 60 }]) {
     const nada = analizarDraft({ ...base, robustez: rb });
     ok(!nada.some((f) => /pickRobusto|pickFragil/.test(f.clave)), 'habla de finales con el draft completo');
+  }
+
+  // La simulación de OTRO draft no vale para este. En la app va diferida
+  // (useDeferredValue) y el ranking no: en el render de en medio el nº1 es el
+  // nuevo y la cuota la del draft anterior, y un héroe que esa simulación no
+  // votó salía como «frágil 0%». Con la marca del draft, se calla; sin marca
+  // (fixtures viejos) sigue hablando; con la marca correcta, habla.
+  {
+    const marcada = { cuota: { Atlas: 0.9 }, lineasAbiertas: ['mid'], n: 60, enemigos: ['fanny', 'ling'], aliados: [] };
+    const otroDraft = analizarDraft({ ...base, robustez: marcada });
+    ok(!otroDraft.some((f) => /pickRobusto|pickFragil/.test(f.clave)), `cruza la simulación de otro draft con este ranking: ${JSON.stringify(otroDraft)}`);
+    const esteDraft = analizarDraft({ ...base, robustez: { ...marcada, enemigos: base.enemies.map((h) => normName(h.name)).sort(), aliados: [] } });
+    ok(esteDraft.some((f) => f.clave === 'analisis.pickFragil' && f.params.pct === 0), 'con la marca de este draft no habla');
   }
 });
 
@@ -769,6 +782,22 @@ test('los dos idiomas están completos y las reglas usan claves de verdad', asyn
     ok(typeof clave === 'string', `why deberia ser una clave, no ${typeof clave}`);
     ok(CLAVES.includes(clave), `la regla usa una clave que no existe: ${clave}`);
   }
+
+  // 2b. Y toda clave escrita en la interfaz o en el motor. La prueba de
+  //     arriba solo miraba las reglas: t('pro.inexistente') en ui.jsx pasaba
+  //     y salía la clave cruda en pantalla (probado por mutación).
+  const fuentes = ['src/App.jsx', 'src/components/ui.jsx', ...readdirSync(resolve(ROOT, 'src/engine')).map((f) => `src/engine/${f}`)];
+  const literales = new Set(); const prefijos = new Set();
+  for (const f of fuentes) {
+    const src = readFileSync(resolve(ROOT, f), 'utf8');
+    for (const m of src.matchAll(/\bt\('([a-zA-Z0-9_.]+)'/g)) literales.add(m[1]);
+    for (const m of src.matchAll(/\bclave: '([a-zA-Z0-9_.]+)'/g)) literales.add(m[1]);
+    for (const m of src.matchAll(/\bt\(`([a-zA-Z0-9_.]+)\$\{/g)) prefijos.add(m[1]);
+  }
+  ok(literales.size >= 100, `solo ${literales.size} claves literales encontradas: la expresión ya no casa con cómo se escribe t()`);
+  const perdidas = [...literales].filter((k) => !CLAVES.includes(k));
+  ok(!perdidas.length, `la interfaz o el motor usan claves que no existen: ${perdidas.join(', ')}`);
+  for (const pre of prefijos) ok(CLAVES.some((k) => k.startsWith(pre)), `t(\`${pre}…\`) no tiene ninguna clave con ese prefijo`);
 
   // 3. Los parámetros se sustituyen en los dos idiomas.
   for (const idioma of IDIOMAS) {

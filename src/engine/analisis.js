@@ -32,6 +32,21 @@ const MATCHUP_CLARO = 0.5 - CRUCE_MALO;
 const lookup = (map, name) => (map ? map[normName(name)] ?? map[name] : undefined);
 
 /**
+ * ¿La simulación se hizo con ESTE draft? En la app va diferida y el ranking
+ * no, así que durante un render la cuota es la del draft anterior y el nº1 el
+ * de este: la cuota de un héroe que la simulación no vio es 0 y salía
+ * «frágil 0%». Una simulación sin marca (fixtures antiguos) se acepta.
+ */
+function esDeEsteDraft(robustez, enemies, allies) {
+  const mismo = (marca, equipo) => {
+    if (!Array.isArray(marca)) return true;
+    const ahora = equipo.map((h) => normName(h.name)).sort();
+    return marca.length === ahora.length && marca.every((n, i) => n === ahora[i]);
+  };
+  return mismo(robustez.enemigos, enemies) && mismo(robustez.aliados, allies);
+}
+
+/**
  * @returns [{ tono: 'bien'|'ojo'|'duda', texto }]
  */
 export function analizarDraft({
@@ -45,7 +60,7 @@ export function analizarDraft({
   //    si hay simulación: la cuota de finales en que sigue siendo nº1 está
   //    medida como predictor (ver robustez.js). Va la primera porque es la
   //    única frase que habla del futuro del draft y no de lo que ya se ve.
-  if (top && robustez?.lineasAbiertas?.length && robustez.cuota) {
+  if (top && robustez?.lineasAbiertas?.length && robustez.cuota && esDeEsteDraft(robustez, enemies, allies)) {
     const cuota = robustez.cuota[top.hero.name] ?? 0;
     const pct = Math.round(cuota * 100);
     salida.push(cuota >= CUOTA_ROBUSTA
