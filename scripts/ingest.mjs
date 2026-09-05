@@ -11,6 +11,7 @@
  *   node scripts/ingest.mjs
  *   node scripts/ingest.mjs --rank mythic --days 7
  *   node scripts/ingest.mjs --base https://otra.api/api
+ *   node scripts/ingest.mjs --base http://127.0.0.1:8816/api --pausa 0 --out /tmp/x.json   (pruebas)
  */
 
 import { writeFile, readFile, mkdir, readdir } from 'node:fs/promises';
@@ -111,7 +112,11 @@ const TIMEOUT_MS = 15000;
 const diagnostics = { bases: BASES, ok: [], failed: [] };
 let LOCKED = null; // { base, prefix, method } en cuanto algo responde
 
-const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+// Las esperas entre peticiones son cortesia con una API gratuita. `--pausa 0`
+// las quita: lo usa la prueba que ejecuta la ingesta entera contra una API
+// simulada en local, donde 133 esperas de 250 ms serian medio minuto de nada.
+const PAUSA_MS = args.pausa != null ? Number(args.pausa) : null;
+const sleep = (ms) => new Promise((r) => setTimeout(r, PAUSA_MS ?? ms));
 
 /**
  * Una petición. En el error incluye el cuerpo de la respuesta recortado: cuando

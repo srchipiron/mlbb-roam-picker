@@ -53,6 +53,24 @@ lo que estás mirando es lo que acabas de subir. `check-version.mjs` falla si la
 versión no tiene entrada en el CHANGELOG, y corre tanto en `npm test` como en el
 despliegue. Escribe la entrada para quien USA la app, no para quien lee el diff.
 
+**Un guardarraíl se comprueba rompiendo lo que vigila.** Desde 1.32.4 cada
+prueba nueva se verifica por mutación (se rompe lo que vigila y se mira que
+falle), y en 1.32.5 se hizo con las que ya había. Siete mutaciones, tres
+agujeros: (1) un `ReferenceError` dentro de `fetchEquipo` pasaba porque la
+prueba de la ingesta corre con la API caída y esa ruta ni se ejecuta; en
+producción se habría tapado solo, porque cada endpoint que falla conserva lo
+anterior y el comparador no ve nada peor. Hoy la ingesta ENTERA corre en las
+pruebas contra una API simulada en local (`--pausa 0`, `--out`, `--iconos`,
+`--retratos` a temporales) y se comprueba que lo que sale es lo que sirvió esa
+API, no lo conservado. (2) `'heroes/*.jpg'` en la precarga del instalador
+pasaba porque la prueba solo buscaba `png`. (3) Quitar la regla de caché de
+imágenes pasaba porque la palabra «objetos» sigue en un comentario. Hoy esa
+prueba compila a un temporal y mira el `sw.js` que se publica. Aguantaron:
+un `ReferenceError` al arrancar `main`, una regla normal al final del CSS o
+entre dos `@media`, y `png` en la precarga. Si añades un guardarraíl, rómpelo
+antes de fiarte de él; si tocas la forma de las respuestas que simula la
+prueba, cámbiala a la vez que la real.
+
 **No ajustes los pesos por una partida.** Los winrates se mueven entre el 48% y
 el 55%; una derrota no dice nada. Si hay que tocar el motor, mídelo antes con
 drafts simulados (hay utilidades en las pruebas) y comprueba concentración y

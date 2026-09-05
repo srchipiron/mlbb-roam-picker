@@ -8,6 +8,21 @@ que esto no se olvida.
 Criterio: `0.X.0` cuando cambia cómo decide la app o qué hace; `0.0.X` para
 correcciones.
 
+## 1.32.5
+
+- Dos guardarraíles que se dejaban engañar, reforzados. Se rompieron a
+  propósito siete cosas que las pruebas dicen vigilar y tres pasaron sin
+  ruido: un error de programación dentro de un endpoint de la ingesta (con
+  la API caída esa ruta ni se ejecuta y en producción se tapa conservando lo
+  anterior), las caras de los héroes metidas en la precarga del instalador
+  (2,5 MB que la prueba no miraba porque solo buscaba png) y la regla de
+  caché de imágenes borrada (la prueba se conformaba con una palabra en un
+  comentario). Ahora la ingesta entera corre en las pruebas contra una API
+  simulada en local y se comprueba que lo que sale es lo que sirvió, y la
+  prueba del instalador compila de verdad y mira el `sw.js` que se publica.
+- `npm test` tarda unos 15 segundos más por eso (compilar y la ingesta
+  simulada).
+
 ## 1.32.4
 
 - El análisis ya no dice «frágil 0%» de tu nº1 justo después de un toque.
