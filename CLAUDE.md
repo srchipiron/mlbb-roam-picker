@@ -337,6 +337,13 @@ Todos estos llegaron a producción y costaron rondas enteras de ida y vuelta:
   el selector de baneos es multi-toque (`multi` en `HeroSheet`), con los
   sugeridos arriba y ordenado por tasa de ban. Si añades otro selector con
   varios toques seguidos, reutiliza ese modo en vez de cerrar y reabrir.
+- **Los baneos escondidos en «Baneos y ajustes»** — con el draft corriendo
+  costaba encontrar el botón que separa baneos de picks. Desde 1.33.0 el
+  draft va en dos fases (`fase` dentro de `roam-picker:draft`, `baneos` |
+  `picks`): la de baneos sola en pantalla y la de picks con la tira de
+  baneos arriba. Un draft guardado sin `fase` con picks dentro arranca en
+  picks; vacío, en baneos. `reset()` vuelve a baneos. Lo que se toca en
+  mitad de una partida no va dentro de un desplegable.
 - **El «conservo lo anterior» de la ingesta, leyendo del temporal** — cada
   endpoint que falla conserva los datos previos, pero `previous` se leía de
   la ruta de SALIDA (`--out /tmp/nueva.json`, que no existe) y conservaba

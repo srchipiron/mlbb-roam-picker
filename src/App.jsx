@@ -9,7 +9,7 @@ import { simularFinales } from './engine/robustez.js';
 import { estimarVictoria } from './engine/estimacion.js';
 import { sanear } from './engine/perfil.js';
 import { analizarComposicion } from './engine/composicion.js';
-import { Side, HeroSheet, Pick, Legend, MasteryEditor, RankPicker, BanSuggestions, Footer, SelfTest, RegistroPartida, SelectorDeLinea, Analisis, AvisoLegal, Perfil, HistorialPartidas, Build, Estimacion, Composicion } from './components/ui.jsx';
+import { Side, HeroSheet, Pick, Legend, MasteryEditor, RankPicker, BanSuggestions, Footer, SelfTest, RegistroPartida, SelectorDeLinea, Analisis, AvisoLegal, Perfil, HistorialPartidas, Build, Estimacion, Composicion, Imagen } from './components/ui.jsx';
 
 // OJO: estas claves siguen diciendo 'roam-picker' aunque la app se llame ya
 // Mobile Legends Pick Assist. NO se renombran: el almacenamiento del navegador
@@ -47,6 +47,15 @@ export default function App() {
   const [allyNames, setAllyNames] = useState(() => load(DRAFT_KEY, {}).allies ?? []);
   const [banNames, setBanNames] = useState(() => load(DRAFT_KEY, {}).bans ?? []);
   const [enemyRoam, setEnemyRoam] = useState(() => load(DRAFT_KEY, {}).enemyRoam ?? null);
+  // La fase del draft: primero los baneos, después los picks, sin mezclar.
+  // Antes los baneos vivían dentro de «Baneos y ajustes» y con el draft
+  // corriendo costaba encontrar el botón. Un draft guardado antes de esta
+  // versión (sin `fase`) sigue donde estaba: con picks metidos, en picks.
+  const [fase, setFase] = useState(() => {
+    const d = load(DRAFT_KEY, {});
+    if (d.fase === 'baneos' || d.fase === 'picks') return d.fase;
+    return (d.enemies?.length || d.allies?.length) ? 'picks' : 'baneos';
+  });
   const [rank, setRank] = useState(() => load(RANK_KEY, null));
   // La línea que juegas. Sin ella la app no sabe qué recomendarte, así que en
   // el primer arranque se pregunta y ya no se vuelve a preguntar.
@@ -96,8 +105,8 @@ export default function App() {
   };
 
   useEffect(() => {
-    save(DRAFT_KEY, { enemies: enemyNames, allies: allyNames, bans: banNames, enemyRoam });
-  }, [enemyNames, allyNames, banNames, enemyRoam]);
+    save(DRAFT_KEY, { enemies: enemyNames, allies: allyNames, bans: banNames, enemyRoam, fase });
+  }, [enemyNames, allyNames, banNames, enemyRoam, fase]);
   useEffect(() => { if (rank) save(RANK_KEY, rank); }, [rank]);
   useEffect(() => { if (linea) save(LINEA_KEY, linea); }, [linea]);
   useEffect(() => { save(IDIOMA_KEY, idioma); }, [idioma]);
@@ -355,6 +364,7 @@ export default function App() {
 
   const reset = () => {
     setEnemyNames([]); setAllyNames([]); setBanNames([]); setEnemyRoam(null);
+    setFase('baneos');
   };
 
   // Apunta la partida y limpia el draft, que es lo que toca justo después.
@@ -387,6 +397,24 @@ export default function App() {
   }
   if (!catalog) return <div className="results"><p className="empty-state">{t('app.cargando')}</p></div>;
 
+  // El selector de héroes, el mismo en las dos fases.
+  const hoja = sheet ? (
+    <HeroSheet
+      heroes={allHeroes}
+      stats={metaCtx.stats}
+      // Para banear, los baneados no están «cogidos»: se tocan para quitarlos.
+      taken={sheet === 'ban' ? new Set([...enemyNames, ...allyNames]) : taken}
+      onPick={addTo}
+      onClose={() => setSheet(null)}
+      multi={sheet === 'ban'}
+      seleccionados={sheet === 'ban' ? new Set(banNames) : null}
+      max={10}
+      sugeridos={sheet === 'ban' ? banIdeas.map((b) => b.hero) : []}
+      orden={sheet === 'ban' ? 'ban' : 'pick'}
+      t={t}
+    />
+  ) : null;
+
   // Primer arranque: sin línea no hay nada que recomendar, así que se pregunta
   // antes de enseñar una pantalla vacía que no se entiende.
   if (!linea) {
@@ -394,6 +422,39 @@ export default function App() {
       <div className="app">
         <SelectorDeLinea lineas={LINEAS} valor={null} onElegir={setLinea} t={t} />
         <AvisoLegal t={t} idioma={idioma} onIdioma={setIdioma} idiomas={IDIOMAS} />
+      </div>
+    );
+  }
+
+  // Fase 1: los baneos, solos. Diez toques en medio minuto: el selector
+  // multi-toque se abre desde cualquier hueco o desde el botón grande, y el
+  // único camino hacia delante es «Ir a los picks».
+  if (fase === 'baneos') {
+    return (
+      <div className="app fase-baneos">
+        <aside className="draft">
+          <div className="brand">
+            <h1>{t('fase.baneos')}</h1>
+            <span className="freshness">{t('fase.baneosResumen', { n: bans.length, max: 10 })}</span>
+          </div>
+          <p className="fase-pista">{t('fase.baneosPista')}</p>
+          <Side t={t} title={t('app.baneados')} kind="bans" picks={bans} max={10}
+                onAdd={() => setSheet('ban')} onRemove={remove(setBanNames)} />
+          <button className="reset" onClick={() => setSheet('ban')}>{t('fase.buscarBaneo')}</button>
+          <button className="reset primario" onClick={() => setFase('picks')}>
+            {bans.length ? t('fase.aPicks') : t('fase.sinBaneosAPicks')}
+          </button>
+          <BanSuggestions t={t} items={banIdeas} onBan={(h) => setBanNames((p) => [...p, h.name])} />
+        </aside>
+        <Footer
+          t={t}
+          meta={meta}
+          generado={fechaValida ? generado : null}
+          ageHours={ageHours}
+          rango={activeRank}
+          cov={cov}
+        />
+        {hoja}
       </div>
     );
   }
@@ -410,6 +471,14 @@ export default function App() {
           </span>
         </div>
 
+        {/* Los baneos de la fase 1, en una tira: se ven y se vuelve a ellos
+            con un toque. Antes estaban dentro de «Baneos y ajustes». */}
+        <button className="bans-resumen" onClick={() => setFase('baneos')} aria-label={t('fase.volverBaneos')}>
+          <span>{t('fase.baneosResumen', { n: bans.length, max: 10 })}</span>
+          {bans.map((h) => <Imagen key={h.name} src={`./heroes/${h.id}.jpg`} alt={h.name} className="cara-ban" tam={22} />)}
+          <span className="fase-cambiar">{t('fase.volverBaneos')}</span>
+        </button>
+
         <Side t={t} title={t('app.enemigos')} kind="enemy" picks={enemies} max={5}
               onAdd={() => setSheet('enemy')} onRemove={remove(setEnemyNames)}
               markedName={enemyRoam}
@@ -422,9 +491,6 @@ export default function App() {
         <details className="more">
           <summary>{t('app.ajustes')}</summary>
 
-          <Side t={t} title={t('app.baneados')} kind="bans" picks={bans} max={10}
-                onAdd={() => setSheet('ban')} onRemove={remove(setBanNames)} />
-
           <div className="side" >
             <div className="side-label"><span>{t('app.tuLinea')}</span></div>
             <button className="reset" onClick={() => setEligiendoLinea(true)}>
@@ -436,8 +502,6 @@ export default function App() {
             <div className="side-label"><span>{t('app.rango')}</span></div>
             <RankPicker t={t} ranks={meta?.ranks} value={activeRank} onChange={setRank} />
           </div>
-
-          <BanSuggestions t={t} items={banIdeas} onBan={(h) => setBanNames((p) => [...p, h.name])} />
 
           {/* Lo que se toca UNA VEZ vive aquí dentro. Fuera se quedan los dos
               botones que se usan con una partida delante. Antes estaban los
@@ -605,22 +669,7 @@ export default function App() {
         cov={cov}
       />
 
-      {sheet && (
-        <HeroSheet
-          heroes={allHeroes}
-          stats={metaCtx.stats}
-          // Para banear, los baneados no están «cogidos»: se tocan para quitarlos.
-          taken={sheet === 'ban' ? new Set([...enemyNames, ...allyNames]) : taken}
-          onPick={addTo}
-          onClose={() => setSheet(null)}
-          multi={sheet === 'ban'}
-          seleccionados={sheet === 'ban' ? new Set(banNames) : null}
-          max={10}
-          sugeridos={sheet === 'ban' ? banIdeas.map((b) => b.hero) : []}
-          orden={sheet === 'ban' ? 'ban' : 'pick'}
-          t={t}
-        />
-      )}
+      {hoja}
     </div>
   );
 }

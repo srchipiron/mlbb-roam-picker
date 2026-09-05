@@ -8,6 +8,18 @@ que esto no se olvida.
 Criterio: `0.X.0` cuando cambia cómo decide la app o qué hace; `0.0.X` para
 correcciones.
 
+## 1.33.0
+
+- El draft va en dos fases, sin mezclar: primero los baneos, después los
+  picks. La app arranca en la fase de baneos, sola en pantalla, con los diez
+  huecos, el buscador multi-toque, los baneos que merecen la pena y un único
+  botón dorado, «Ir a los picks». En la fase de picks los baneos quedan en
+  una tira arriba, con sus caras y «Cambiar» para volver. Antes vivían
+  dentro de «Baneos y ajustes» y con el draft corriendo costaba encontrar
+  el botón. «Nuevo draft» vuelve a la fase de baneos.
+- Un draft guardado antes de esta versión con picks metidos sigue en la
+  fase de picks: no se pierde nada al actualizar.
+
 ## 1.32.5
 
 - Dos guardarraíles que se dejaban engañar, reforzados. Se rompieron a

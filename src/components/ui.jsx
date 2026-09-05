@@ -34,7 +34,7 @@ const PART_COLORS = {
    className= para saber qué clases usa la interfaz. Con cualquier otro nombre,
    una clase sin estilo pasaría el control sin que nadie se enterara, que es
    justo el agujero del que salió esa comprobación. */
-function Imagen({ src, alt, className, tam }) {
+export function Imagen({ src, alt, className, tam }) {
   const [roto, setRoto] = useState(false);
   if (!src || roto) return null;
   return (

@@ -319,6 +319,30 @@ button:focus-visible, [tabindex]:focus-visible { outline: 2px solid var(--gold);
 /* ---------- baneos sugeridos ---------- */
 
 .bans-suggested { margin-top: 18px; border-top: 1px solid var(--line); padding-top: 12px; }
+
+/* ---------- fase de baneos, sola en pantalla ---------- */
+
+.app.fase-baneos { grid-template-columns: 1fr; grid-template-rows: 1fr auto; }
+.fase-baneos .draft { border-right: 0; width: 100%; max-width: 560px; margin: 0 auto; }
+.fase-pista { color: var(--muted); font-size: 13px; margin: 0 0 12px; line-height: 1.4; }
+/* El único camino hacia delante, con el acento de la app: que no haya que buscarlo. */
+.reset.primario {
+  background: var(--gold); border-color: var(--gold); color: var(--ink); font-weight: 700;
+  margin-top: 10px; padding: 14px;
+}
+.reset.primario:hover { color: var(--ink); }
+/* La tira de baneos en la fase de picks: se ve lo baneado y se vuelve con un toque. */
+.bans-resumen {
+  display: flex; align-items: center; flex-wrap: wrap; gap: 6px; width: 100%;
+  border: 1px solid var(--line); border-radius: var(--r); padding: 8px 10px; margin-bottom: 12px;
+  color: var(--muted); font-size: 12px; text-align: left;
+  font-family: var(--font-display); letter-spacing: 0.1em; text-transform: uppercase;
+}
+.bans-resumen .cara-ban {
+  width: 22px; height: 22px; border-radius: 4px; object-fit: cover; background: var(--ink);
+  border: 1px solid var(--ban); opacity: 0.7;
+}
+.bans-resumen .fase-cambiar { margin-left: auto; color: var(--gold); }
 .ban-row {
   display: flex; align-items: center; justify-content: space-between; gap: 8px;
   padding: 7px 0; font-size: 13px;
